@@ -85,6 +85,8 @@ const (
 	MySQLDataProviderName = "mysql"
 	// BoltDataProviderName defines the name for bbolt key/value store provider
 	BoltDataProviderName = "bolt"
+	// NatsDataProviderNamedefines the name for NATS store provider
+	NatsDataProviderName = "nats"
 	// MemoryDataProviderName defines the name for memory provider
 	MemoryDataProviderName = "memory"
 	// CockroachDataProviderName defines the for CockroachDB provider
@@ -2614,6 +2616,8 @@ func createProvider(basePath string) error {
 		return initializePGSQLProvider()
 	case MySQLDataProviderName:
 		return initializeMySQLProvider()
+	case NatsDataProviderName:
+		return initializeNatsProvider()
 	case BoltDataProviderName:
 		return initializeBoltProvider(basePath)
 	case MemoryDataProviderName:
