@@ -20,27 +20,27 @@ import (
 
 const (
 	NatsDatabaseVersion = 32
-	NatsKvAdmin         = "SFTP.KV.ADMIN"
-	NatsKvGroup         = "SFTP.KV.GROUP"
-	NatsKvRole          = "SFTP.KV.ROLE"
-	NatsKvRule          = "SFTP.KV.RULE"
-	NatsKvUser          = "SFTP.KV.USER"
-	NatsKvFolder        = "SFTP.KV.FOLDER"
-	NatsKvShare         = "SFTP.KV.SHARE"
-	NatsKvApiKey        = "SFTP.KV.API_KEY"
-	NatsKvEventAction   = "SFTP.KV.EVENT_ACTION"
-	NatsKvEventRule     = "SFTP.KV.EVENT_RULE"
-	NatsKvNode          = "SFTP.KV.NODE"
-	NatsKvTask          = "SFTP.KV.TASK"
-	NatsKvTransfer      = "SFTP.KV.TRANSFER"
-	NatsKvDefender      = "SFTP.KV.DEFENDER"
-	NatsKvIplist        = "SFTP.KV.IPLIST"
-	NatsKvSession       = "SFTP.KV.SESSION"
-	NatsKvConfig        = "SFTP.KV.CONFIG"
-	NatsKvActions       = "SFTP.KV.ACTIONS"
-	NatsKvSchemaVersion = "SFTP.KV.SCHEMA_VERSION"
-	NatsKvBucketVersion = "SFTP.KV.BUCKET_VERSION"
-	NatsKvDbVersion     = "SFTP.KV.DB_VERSION"
+	NatsKvAdmin         = "SFTP_KV_ADMIN"
+	NatsKvGroup         = "SFTP_KV_GROUP"
+	NatsKvRole          = "SFTP_KV_ROLE"
+	NatsKvRule          = "SFTP_KV_RULE"
+	NatsKvUser          = "SFTP_KV_USER"
+	NatsKvFolder        = "SFTP_KV_FOLDER"
+	NatsKvShare         = "SFTP_KV_SHARE"
+	NatsKvApiKey        = "SFTP_KV_API_KEY"
+	NatsKvEventAction   = "SFTP_KV_EVENT_ACTION"
+	NatsKvEventRule     = "SFTP_KV_EVENT_RULE"
+	NatsKvNode          = "SFTP_KV_NODE"
+	NatsKvTask          = "SFTP_KV_TASK"
+	NatsKvTransfer      = "SFTP_KV_TRANSFER"
+	NatsKvDefender      = "SFTP_KV_DEFENDER"
+	NatsKvIplist        = "SFTP_KV_IPLIST"
+	NatsKvSession       = "SFTP_KV_SESSION"
+	NatsKvConfig        = "SFTP_KV_CONFIG"
+	NatsKvActions       = "SFTP_KV_ACTIONS"
+	NatsKvSchemaVersion = "SFTP_KV_SCHEMA_VERSION"
+	NatsKvBucketVersion = "SFTP_KV_BUCKET_VERSION"
+	NatsKvDbVersion     = "SFTP_KV_DB_VERSION"
 	usersBucketNATS     = "users"
 	groupsBucketNATS    = "groups"
 	foldersBucketNATS   = "folders"
@@ -57,8 +57,12 @@ const (
 	configsKeyNATS      = "configs"
 )
 
-//boltBucketsNATS     = []string{usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS,
-//	sharesBucketNATS, actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS, configsBucketNATS, dbVersionBucketNATS}
+var bucketsNATS = []string{
+	NatsKvAdmin, NatsKvGroup, NatsKvRole, NatsKvRule, NatsKvUser, NatsKvFolder, NatsKvShare, NatsKvApiKey, NatsKvEventAction,
+	NatsKvEventRule, NatsKvNode, NatsKvTask, NatsKvTransfer, NatsKvDefender, NatsKvIplist, NatsKvSession, NatsKvConfig,
+	NatsKvActions, NatsKvSchemaVersion, NatsKvBucketVersion, NatsKvDbVersion, usersBucketNATS, groupsBucketNATS, foldersBucketNATS,
+	adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS, actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS,
+	configsBucketNATS, dbVersionBucketNATS, dbVersionKeyNATS, configsKeyNATS}
 
 func init() {
 	version.AddFeature("+nats")
