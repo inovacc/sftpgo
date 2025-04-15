@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/drakkan/sftpgo/v2/internal/logger"
+	nats2 "github.com/drakkan/sftpgo/v2/internal/nats"
 	"github.com/drakkan/sftpgo/v2/internal/util"
 	"github.com/drakkan/sftpgo/v2/internal/version"
 	"github.com/nats-io/nats.go"
@@ -15,6 +16,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -57,15 +59,39 @@ const (
 	configsKeyNATS      = "configs"
 )
 
-var bucketsNATS = []string{
-	NatsKvAdmin, NatsKvGroup, NatsKvRole, NatsKvRule, NatsKvUser, NatsKvFolder, NatsKvShare, NatsKvApiKey, NatsKvEventAction,
-	NatsKvEventRule, NatsKvNode, NatsKvTask, NatsKvTransfer, NatsKvDefender, NatsKvIplist, NatsKvSession, NatsKvConfig,
-	NatsKvActions, NatsKvSchemaVersion, NatsKvBucketVersion, NatsKvDbVersion, usersBucketNATS, groupsBucketNATS, foldersBucketNATS,
-	adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS, actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS,
-	configsBucketNATS, dbVersionBucketNATS, dbVersionKeyNATS, configsKeyNATS}
+var buckets = make(map[string]*nats.KeyValueConfig)
 
 func init() {
 	version.AddFeature("+nats")
+
+	bucketNames := []string{
+		NatsKvAdmin, NatsKvGroup, NatsKvRole, NatsKvRule, NatsKvUser, NatsKvFolder, NatsKvShare, NatsKvApiKey,
+		NatsKvEventAction, NatsKvEventRule, NatsKvNode, NatsKvTask, NatsKvTransfer, NatsKvDefender, NatsKvIplist,
+		NatsKvSession, NatsKvConfig, NatsKvActions, NatsKvSchemaVersion, NatsKvBucketVersion, NatsKvDbVersion,
+		usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS,
+		actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS, configsBucketNATS,
+		dbVersionBucketNATS, dbVersionKeyNATS, configsKeyNATS,
+	}
+
+	for _, name := range bucketNames {
+		buckets[name] = &nats.KeyValueConfig{
+			Bucket:      name,
+			Description: bucketLabel(name),
+			Storage:     nats.FileStorage,
+			Compression: true,
+		}
+	}
+}
+
+func bucketLabel(bucket string) string {
+	const prefix = "SFTP_KV_"
+	name := strings.TrimPrefix(bucket, prefix)
+	words := strings.Split(name, "_")
+
+	for i, w := range words {
+		words[i] = strings.Title(strings.ToLower(w))
+	}
+	return fmt.Sprintf("Key Value Store for %s", strings.Join(words, " "))
 }
 
 type NATSProvider struct {
@@ -105,25 +131,36 @@ func initializeNATSProvider() error {
 		return err
 	}
 
-	value := make(map[string]nats.KeyValue)
-
-	bucket := Bucket{
-		Name:        NatsKvAdmin,
-		Description: "key store for Admin data",
+	include := &nats.KeyValueConfig{
+		Compression: true,
+		Storage:     nats.FileStorage,
+		TTL:         time.Hour * 24,
 	}
 
-	if err := initBucket(js, bucket, value); err != nil {
-		return fmt.Errorf("failed to create KV bucket: %w", err)
+	newBulkInit := nats2.NewBulkInit(js)
+	if err := newBulkInit.Init(buckets, include); err != nil {
+		return err
 	}
 
-	bucket = Bucket{
-		Name:        NatsKvRole,
-		Description: "key store for Admin role data",
-	}
+	//value := make(map[string]nats.KeyValue)
 
-	if err := initBucket(js, bucket, value); err != nil {
-		return fmt.Errorf("failed to create KV bucket: %w", err)
-	}
+	//bucket := Bucket{
+	//	Name:        NatsKvAdmin,
+	//	Description: "key store for Admin data",
+	//}
+	//
+	//if err := initBucket(js, bucket, value); err != nil {
+	//	return fmt.Errorf("failed to create KV bucket: %w", err)
+	//}
+	//
+	//bucket = Bucket{
+	//	Name:        NatsKvRole,
+	//	Description: "key store for Admin role data",
+	//}
+	//
+	//if err := initBucket(js, bucket, value); err != nil {
+	//	return fmt.Errorf("failed to create KV bucket: %w", err)
+	//}
 
 	providerLog(logger.LevelDebug, "nats key store handle created")
 
@@ -135,20 +172,20 @@ func initializeNATSProvider() error {
 	return err
 }
 
-func initBucket(js nats.JetStreamContext, bucket Bucket, value map[string]nats.KeyValue) error {
-	kv, err := js.CreateKeyValue(&nats.KeyValueConfig{
-		Bucket:      bucket.Name,
-		Description: bucket.Description,
-		Storage:     nats.FileStorage,
-		Compression: true,
-	})
-	if err != nil {
-		return err
-	}
-
-	value[kv.Bucket()] = kv
-	return nil
-}
+//func initBucket(js nats.JetStreamContext, bucket Bucket, value map[string]nats.KeyValue) error {
+//	kv, err := js.CreateKeyValue(&nats.KeyValueConfig{
+//		Bucket:      bucket.Name,
+//		Description: bucket.Description,
+//		Storage:     nats.FileStorage,
+//		Compression: true,
+//	})
+//	if err != nil {
+//		return err
+//	}
+//
+//	value[kv.Bucket()] = kv
+//	return nil
+//}
 
 func getNATSOptions() ([]nats.Option, error) {
 	var opts []nats.Option

@@ -8,12 +8,87 @@ import (
 	"github.com/nats-io/nats.go"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 )
 
-var testObj testStruct
+const (
+	NatsDatabaseVersion = 32
+	NatsKvAdmin         = "SFTP_KV_ADMIN"
+	NatsKvGroup         = "SFTP_KV_GROUP"
+	NatsKvRole          = "SFTP_KV_ROLE"
+	NatsKvRule          = "SFTP_KV_RULE"
+	NatsKvUser          = "SFTP_KV_USER"
+	NatsKvFolder        = "SFTP_KV_FOLDER"
+	NatsKvShare         = "SFTP_KV_SHARE"
+	NatsKvApiKey        = "SFTP_KV_API_KEY"
+	NatsKvEventAction   = "SFTP_KV_EVENT_ACTION"
+	NatsKvEventRule     = "SFTP_KV_EVENT_RULE"
+	NatsKvNode          = "SFTP_KV_NODE"
+	NatsKvTask          = "SFTP_KV_TASK"
+	NatsKvTransfer      = "SFTP_KV_TRANSFER"
+	NatsKvDefender      = "SFTP_KV_DEFENDER"
+	NatsKvIplist        = "SFTP_KV_IPLIST"
+	NatsKvSession       = "SFTP_KV_SESSION"
+	NatsKvConfig        = "SFTP_KV_CONFIG"
+	NatsKvActions       = "SFTP_KV_ACTIONS"
+	NatsKvSchemaVersion = "SFTP_KV_SCHEMA_VERSION"
+	NatsKvBucketVersion = "SFTP_KV_BUCKET_VERSION"
+	NatsKvDbVersion     = "SFTP_KV_DB_VERSION"
+	usersBucketNATS     = "users"
+	groupsBucketNATS    = "groups"
+	foldersBucketNATS   = "folders"
+	adminsBucketNATS    = "admins"
+	apiKeysBucketNATS   = "api_keys"
+	sharesBucketNATS    = "shares"
+	actionsBucketNATS   = "events_actions"
+	rulesBucketNATS     = "events_rules"
+	rolesBucketNATS     = "roles"
+	ipListsBucketNATS   = "ip_lists"
+	configsBucketNATS   = "configs"
+	dbVersionBucketNATS = "db_version"
+	dbVersionKeyNATS    = "version"
+	configsKeyNATS      = "configs"
+)
+
+var (
+	testObj   testStruct
+	bucketsKv = make(map[string]nats.KeyValue)
+	buckets   = make(map[string]*nats.KeyValueConfig)
+)
+
+func init() {
+	bucketNames := []string{
+		NatsKvAdmin, NatsKvGroup, NatsKvRole, NatsKvRule, NatsKvUser, NatsKvFolder, NatsKvShare, NatsKvApiKey,
+		NatsKvEventAction, NatsKvEventRule, NatsKvNode, NatsKvTask, NatsKvTransfer, NatsKvDefender, NatsKvIplist,
+		NatsKvSession, NatsKvConfig, NatsKvActions, NatsKvSchemaVersion, NatsKvBucketVersion, NatsKvDbVersion,
+		usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS,
+		actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS, configsBucketNATS,
+		dbVersionBucketNATS, dbVersionKeyNATS, configsKeyNATS,
+	}
+
+	for _, name := range bucketNames {
+		buckets[name] = &nats.KeyValueConfig{
+			Bucket:      name,
+			Description: bucketLabel(name),
+			Storage:     nats.FileStorage,
+			Compression: true,
+		}
+	}
+}
+
+func bucketLabel(bucket string) string {
+	const prefix = "SFTP_KV_"
+	name := strings.TrimPrefix(bucket, prefix)
+	words := strings.Split(name, "_")
+
+	for i, w := range words {
+		words[i] = strings.Title(strings.ToLower(w))
+	}
+	return fmt.Sprintf("Key Value Store for %s", strings.Join(words, " "))
+}
 
 type user struct {
 	Username string
@@ -50,33 +125,38 @@ func TestMain(m *testing.M) {
 	testObj.ctx = ctx
 	testObj.js = js
 
+	include := &nats.KeyValueConfig{
+		Compression: true,
+		Storage:     nats.FileStorage,
+		TTL:         time.Hour * 24,
+	}
+
+	newBulkInit := NewBulkInit(testObj.js)
+	if err := newBulkInit.Init(buckets, include); err != nil {
+		log.Fatalf("Error inserting bucket metadata")
+	}
+
+	newBulkInit.Export(bucketsKv)
+
 	os.Exit(m.Run())
 }
 
 func TestWatchAndSyncTyped(t *testing.T) {
-	kv, err := testObj.js.CreateKeyValue(&nats.KeyValueConfig{
-		Bucket:      "TEST_BUCKET9",
-		Description: "test bucket for testing purpose",
-		Storage:     nats.FileStorage,
-		Compression: true,
-	})
-	if err != nil {
-		t.Fatalf("Error creating key-value store: %v", err)
-	}
-
 	userFactory := func() *user {
 		return &user{}
 	}
 
-	if err := SafeWriteTyped[*user](kv, "users.john", userFactory, func(u *user) (*user, error) {
+	fn := func(u *user) (*user, error) {
 		if u.Username == "" {
 			u.Username = "john"
 			u.Email = "init@example.com"
 		} else {
-			u.Email = "updated@example.com"
+			u.Email = "updated2@example.com"
 		}
 		return u, nil
-	}); err != nil {
+	}
+
+	if err := SafeWriteTyped[*user](bucketsKv[NatsKvUser], "users.john", userFactory, fn); err != nil {
 		t.Fatalf("Error setting up TestWatchAndSyncTyped: %v", err)
 	}
 }

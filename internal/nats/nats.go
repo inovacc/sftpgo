@@ -158,3 +158,49 @@ func WatchAndSyncTyped[T any](ctx context.Context, kv nats.KeyValue, prefix stri
 		}
 	})
 }
+
+type BulkInit struct {
+	js  nats.JetStreamContext
+	kvs map[string]nats.KeyValue
+}
+
+func NewBulkInit(js nats.JetStreamContext) *BulkInit {
+	return &BulkInit{
+		js:  js,
+		kvs: make(map[string]nats.KeyValue),
+	}
+}
+
+func (b *BulkInit) GetKv(name string) nats.KeyValue {
+	return b.kvs[name]
+}
+
+func (b *BulkInit) Export(kvs map[string]nats.KeyValue) {
+	for k, v := range b.kvs {
+		kvs[k] = v
+	}
+}
+
+func (b *BulkInit) Init(buckets map[string]*nats.KeyValueConfig, include *nats.KeyValueConfig) error {
+	for _, bucket := range buckets {
+		bucket.Compression = include.Compression
+		bucket.MaxValueSize = include.MaxValueSize
+		bucket.History = include.History
+		bucket.TTL = include.TTL
+		bucket.MaxBytes = include.MaxBytes
+		bucket.Storage = include.Storage
+		bucket.Replicas = include.Replicas
+		bucket.Placement = include.Placement
+		bucket.RePublish = include.RePublish
+		bucket.Mirror = include.Mirror
+		bucket.Sources = include.Sources
+
+		kv, err := b.js.CreateKeyValue(bucket)
+		if err != nil {
+			return err
+		}
+		b.kvs[kv.Bucket()] = kv
+	}
+
+	return nil
+}
