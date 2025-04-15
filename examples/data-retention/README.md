@@ -1,10 +1,13 @@
 # File retention policies
 
-:warning: Since v2.4.0 you can use the [EventManager](https://docs.sftpgo.com/latest/eventmanager/) to schedule data retention checks.
+:warning: Since v2.4.0 you can use the [EventManager](https://docs.sftpgo.com/latest/eventmanager/) to schedule data
+retention checks.
 
 The `checkretention` example script shows how to use the SFTPGo REST API to manage data retention.
 
-:warning: Deleting files is an irreversible action, please make sure you fully understand what you are doing before using this feature, you may have users with overlapping home directories or virtual folders shared between multiple users, it is relatively easy to inadvertently delete files you need.
+:warning: Deleting files is an irreversible action, please make sure you fully understand what you are doing before
+using this feature, you may have users with overlapping home directories or virtual folders shared between multiple
+users, it is relatively easy to inadvertently delete files you need.
 
 The example shows how to setup a really simple retention policy, for each user it sends this request:
 
@@ -19,9 +22,11 @@ The example shows how to setup a really simple retention policy, for each user i
 ]
 ```
 
-so alls files with modification time older than 168 hours (7 days) will be deleted. Empty directories will be removed and the check will respect user's permissions, so if the user cannot delete a file/folder it will be skipped.
+so alls files with modification time older than 168 hours (7 days) will be deleted. Empty directories will be removed
+and the check will respect user's permissions, so if the user cannot delete a file/folder it will be skipped.
 
-You can define different retention policies per-user and per-folder and you can exclude a folder setting the retention to `0`.
+You can define different retention policies per-user and per-folder and you can exclude a folder setting the retention
+to `0`.
 
 You can use this script as a starting point, please edit it according to your needs.
 

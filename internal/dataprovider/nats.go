@@ -25,7 +25,6 @@ import (
 	"github.com/drakkan/sftpgo/v2/internal/util"
 	"github.com/drakkan/sftpgo/v2/internal/version"
 	"github.com/drakkan/sftpgo/v2/internal/vfs"
-	"github.com/go-sql-driver/mysql"
 	"github.com/nats-io/nats.go"
 	"strings"
 	"time"
@@ -655,7 +654,7 @@ func (p *NATSProvider) revertDatabase(targetVersion int) error {
 }
 
 func (p *NATSProvider) resetDatabase() error {
-	sql := sqlReplaceAll(mysqlResetSQL)
+	sql := sqlReplaceAll(natsReset)
 	return sqlCommonExecSQLAndUpdateDBVersion(p.dbHandle, strings.Split(sql, ";"), 0, false)
 }
 
@@ -663,9 +662,9 @@ func (p *NATSProvider) normalizeError(err error, fieldType int) error {
 	if err == nil {
 		return nil
 	}
-	var mysqlErr *mysql.NATSError
-	if errors.As(err, &mysqlErr) {
-		switch mysqlErr.Number {
+	var natsErr *nats.NATSError
+	if errors.As(err, &natsErr) {
+		switch natsErr.Number {
 		case 1062:
 			var message string
 			switch fieldType {

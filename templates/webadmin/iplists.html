@@ -23,19 +23,20 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- template "errmsg" ""}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 data-i18n="ip_list.view_manage" class="card-title section-title">View and manage IP Lists</h3>
+        <h3 class="card-title section-title" data-i18n="ip_list.view_manage">View and manage IP Lists</h3>
     </div>
-    <div id="card_body" class="card-body">
-        <div id="loader" class="align-items-center text-center my-10">
+    <div class="card-body" id="card_body">
+        <div class="align-items-center text-center my-10" id="loader">
             <span class="spinner-border w-15px h-15px text-muted align-middle me-2"></span>
-            <span data-i18n="general.loading" class="text-gray-700">Loading...</span>
+            <span class="text-gray-700" data-i18n="general.loading">Loading...</span>
         </div>
-        <div id="card_content" class="d-none">
+        <div class="d-none" id="card_content">
             <div class="d-flex flex-stack flex-wrap mb-5">
                 <div class="d-flex align-items-center position-relative my-2">
                     <div class="input-group">
-                        <input name="search" id="idSearch" data-i18n="[placeholder]ip_list.search" type="text" class="form-control rounded-left w-250px" placeholder="Search" />
-                        <button id="search_button" type="button" class="btn btn-primary">
+                        <input class="form-control rounded-left w-250px" data-i18n="[placeholder]ip_list.search" id="idSearch" name="search"
+                               placeholder="Search" type="text"/>
+                        <button class="btn btn-primary" id="search_button" type="button">
                             <i class="ki-solid ki-magnifier fs-2"></i>
                         </button>
                     </div>
@@ -43,37 +44,43 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                 <div class="d-flex justify-content-end my-2" data-table-toolbar="base">
                     <div>
-                        <select id="idListType" name="list_type" class="form-select me-3" data-control="i18n-select2" data-hide-search="true">
+                        <select class="form-select me-3" data-control="i18n-select2" data-hide-search="true" id="idListType"
+                                name="list_type">
                             <option data-i18n="ip_list.defender_list" value="2">Defender</option>
                             <option data-i18n="ip_list.allow_list" value="1">Allow list</option>
-                            <option data-i18n="ip_list.ratelimiters_safe_list" value="3">Rate limiters safe list</option>
+                            <option data-i18n="ip_list.ratelimiters_safe_list" value="3">Rate limiters safe list
+                            </option>
                         </select>
                     </div>
 
-                    <a href="#" id="idAdd" class="btn btn-primary ms-5">
+                    <a class="btn btn-primary ms-5" href="#" id="idAdd">
                         <i class="ki-duotone ki-plus fs-2"></i>
                         <span data-i18n="general.add">Add</span>
                     </a>
                 </div>
             </div>
 
-            <table id="dataTable" class="table align-middle table-row-dashed fs-6 gy-5">
+            <table class="table align-middle table-row-dashed fs-6 gy-5" id="dataTable">
                 <thead>
-                    <tr class="text-start text-muted fw-bold fs-6 gs-0">
-                        <th data-i18n="ip_list.ip_net">IP/Network</th>
-                        <th data-i18n="ip_list.protocols">Protocols</th>
-                        <th data-i18n="general.mode">Mode</th>
-                        <th data-i18n="general.description">Description</th>
-                        <th class="min-w-100px"></th>
-                    </tr>
+                <tr class="text-start text-muted fw-bold fs-6 gs-0">
+                    <th data-i18n="ip_list.ip_net">IP/Network</th>
+                    <th data-i18n="ip_list.protocols">Protocols</th>
+                    <th data-i18n="general.mode">Mode</th>
+                    <th data-i18n="general.description">Description</th>
+                    <th class="min-w-100px"></th>
+                </tr>
                 </thead>
-                <tbody id="table_body" class="text-gray-800 fw-semibold"></tbody>
+                <tbody class="text-gray-800 fw-semibold" id="table_body"></tbody>
             </table>
 
-            <div id="paginationContainer" class="d-flex mt-4 mb-4 justify-content-end d-none">
-                <div class="btn-group" role="group" aria-label="Pagination">
-                    <button id="pagePrevious" data-i18n="general.previous" type="button" class="btn btn-outline btn-active-primary disabled">Previous</button>
-                    <button id="pageNext" data-i18n="general.next" type="button" class="btn btn-outline btn-active-primary disabled">Next</button>
+            <div class="d-flex mt-4 mb-4 justify-content-end d-none" id="paginationContainer">
+                <div aria-label="Pagination" class="btn-group" role="group">
+                    <button class="btn btn-outline btn-active-primary disabled" data-i18n="general.previous" id="pagePrevious"
+                            type="button">Previous
+                    </button>
+                    <button class="btn btn-outline btn-active-primary disabled" data-i18n="general.next" id="pageNext"
+                            type="button">Next
+                    </button>
                 </div>
             </div>
 
@@ -83,8 +90,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js"></script>
-<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js" {{-
+        {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
 
     const prefListTypeName = 'sftpgo_pref_{{.LoggedUser.Username}}_iplist_type';
     const prefListFilter = 'sftpgo_pref_{{.LoggedUser.Username}}_iplist_search_filter';
@@ -104,7 +112,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
     function saveSearchFilter() {
         let val = $("#idSearch").val();
-        if (val){
+        if (val) {
             localStorage.setItem(prefListFilter, val);
         } else {
             localStorage.removeItem(prefListFilter);
@@ -121,8 +129,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         $('#paginationContainer').addClass("d-none");
         paginationData.delete("firstIpOrNet");
         paginationData.delete("lastIpOrNet");
-        paginationData.set("prevClicked",false);
-        paginationData.set("nextClicked",false);
+        paginationData.set("prevClicked", false);
+        paginationData.set("nextClicked", false);
     }
 
     function handleResponseData(data) {
@@ -133,27 +141,27 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         if (length > pageSize) {
             data.pop();
             length--;
-            if (isPrev || isNext){
+            if (isPrev || isNext) {
                 $('#pagePrevious').removeClass("disabled");
             }
             $('#pageNext').removeClass("disabled");
         } else {
-            if (isPrev){
+            if (isPrev) {
                 $('#pagePrevious').addClass("disabled");
                 $('#pageNext').removeClass("disabled");
-            } else if (isNext){
+            } else if (isNext) {
                 $('#pagePrevious').removeClass("disabled");
                 $('#pageNext').addClass("disabled");
             } else {
                 $('#pageNext').addClass("disabled");
             }
         }
-        if (isPrev){
+        if (isPrev) {
             data = data.reverse();
         }
-        if (length > 0){
-            paginationData.set("firstIpOrNet",data[0].ipornet);
-            paginationData.set("lastIpOrNet",data[length-1].ipornet);
+        if (length > 0) {
+            paginationData.set("firstIpOrNet", data[0].ipornet);
+            paginationData.set("lastIpOrNet", data[length - 1].ipornet);
             $('#paginationContainer').removeClass("d-none");
         } else {
             resetPagination();
@@ -162,24 +170,24 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         return data;
     }
 
-    function getSearchURL(){
+    function getSearchURL() {
         let listType = encodeURIComponent($("#idListType").val());
         let filter = encodeURIComponent($("#idSearch").val());
         let limit = pageSize + 1;
         let from = "";
         let order = "ASC"
-        if (paginationData.get("nextClicked") && paginationData.has("lastIpOrNet")){
+        if (paginationData.get("nextClicked") && paginationData.has("lastIpOrNet")) {
             from = encodeURIComponent(paginationData.get("lastIpOrNet"));
         }
-        if (paginationData.get("prevClicked") && paginationData.has("firstIpOrNet")){
+        if (paginationData.get("prevClicked") && paginationData.has("firstIpOrNet")) {
             from = encodeURIComponent(paginationData.get("firstIpOrNet"));
             order = "DESC";
         }
-        return "{{.IPListsURL}}"+`/${listType}?filter=${filter}&from=${from}&limit=${limit}&order=${order}`;
+        return "{{.IPListsURL}}" + `/${listType}?filter=${filter}&from=${from}&limit=${limit}&order=${order}`;
     }
 
     function checkSelectedListType(val) {
-        switch (val){
+        switch (val) {
             case "1":
                 //{{- if not .IsAllowListEnabled}}
                 showToast(0, 'ip_list.allow_list_disabled');
@@ -209,10 +217,10 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 cancelButton: 'btn btn-secondary'
             }
         }).then((result) => {
-            if (result.isConfirmed){
+            if (result.isConfirmed) {
                 clearLoading();
                 KTApp.showPageLoading();
-                let path = '{{.IPListURL}}' + "/" + encodeURIComponent(listType)+ "/" + encodeURIComponent(ipNet);
+                let path = '{{.IPListURL}}' + "/" + encodeURIComponent(listType) + "/" + encodeURIComponent(ipNet);
                 axios.delete(path, {
                     timeout: 15000,
                     headers: {
@@ -221,9 +229,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     validateStatus: function (status) {
                         return status == 200;
                     }
-                }).then(function(response){
+                }).then(function (response) {
                     location.reload();
-                }).catch(function(error){
+                }).catch(function (error) {
                     KTApp.hidePageLoading();
                     let errorMessage;
                     if (error && error.response) {
@@ -236,7 +244,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 break;
                         }
                     }
-                    if (!errorMessage){
+                    if (!errorMessage) {
                         errorMessage = "general.delete_error_generic";
                     }
                     ModalAlert.fire({
@@ -252,7 +260,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         });
     }
 
-    var datatable = function(){
+    var datatable = function () {
         var dt;
 
         var initDatatable = function () {
@@ -268,12 +276,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         if ($xhr) {
                             let json = $xhr.responseJSON;
                             if (json) {
-                                if (json.message){
+                                if (json.message) {
                                     txt = json.message;
                                 }
                             }
                         }
-                        if (!txt){
+                        if (!txt) {
                             txt = "general.error500";
                         }
                         setI18NData($('#errorTxt'), txt);
@@ -283,7 +291,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 columns: [
                     {
                         data: "ipornet",
-                        render: function(data, type, row) {
+                        render: function (data, type, row) {
                             if (type === 'display') {
                                 return escapeHTML(data);
                             }
@@ -292,22 +300,22 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     },
                     {
                         data: "protocols",
-                        render: function(data, type, row) {
+                        render: function (data, type, row) {
                             if (type === 'display') {
-                                if (data == 0){
+                                if (data == 0) {
                                     return $.t('ip_list.any');
                                 }
                                 const protocols = [];
-                                if ((data & 1) != 0){
+                                if ((data & 1) != 0) {
                                     protocols.push('SSH');
                                 }
-                                if ((data & 2) != 0){
+                                if ((data & 2) != 0) {
                                     protocols.push('FTP');
                                 }
-                                if ((data & 4) != 0){
+                                if ((data & 4) != 0) {
                                     protocols.push('DAV');
                                 }
-                                if ((data & 8) != 0){
+                                if ((data & 8) != 0) {
                                     protocols.push('HTTP');
                                 }
                                 return protocols.join(', ');
@@ -317,9 +325,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     },
                     {
                         data: "mode",
-                        render: function(data, type, row) {
+                        render: function (data, type, row) {
                             if (type === 'display') {
-                                if (data == 1){
+                                if (data == 1) {
                                     return $.t('ip_list.allow');
                                 }
                                 return $.t('ip_list.deny');
@@ -331,9 +339,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         data: "description",
                         visible: true,
                         defaultContent: "",
-                        render: function(data, type, row) {
+                        render: function (data, type, row) {
                             if (type === 'display') {
-                                if (data){
+                                if (data) {
                                     return escapeHTML(data);
                                 }
                                 return ""
@@ -381,7 +389,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     zeroRecords: "",
                     emptyTable: $.t('datatable.no_records')
                 },
-                initComplete: function(settings, json) {
+                initComplete: function (settings, json) {
                     handleColumnVisibility($('#idListType').val());
                     $('#loader').addClass("d-none");
                     $('#card_content').removeClass("d-none");
@@ -400,22 +408,22 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         }
 
         function handleColumnVisibility(val) {
-            switch (val){
+            switch (val) {
                 case '2':
-                dt.column(2).visible(true);
-                break;
-            default:
-                dt.column(2).visible(false);
+                    dt.column(2).visible(true);
+                    break;
+                default:
+                    dt.column(2).visible(false);
             }
         }
 
-        function doSearch(){
+        function doSearch() {
             dt.clear().draw();
             dt.ajax.url(getSearchURL()).load();
         }
 
         var handleDatatableActions = function () {
-            $('#idListType').on("change", function(e){
+            $('#idListType').on("change", function (e) {
                 let val = $(this).find("option:selected").attr('value');
                 saveListType(val);
                 handleColumnVisibility(val);
@@ -423,24 +431,24 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 checkSelectedListType(val);
             });
 
-            $('#search_button').on("click", function(){
+            $('#search_button').on("click", function () {
                 resetPagination();
                 doSearch();
                 saveSearchFilter();
             });
 
-            $('#pagePrevious').on("click", function(e){
+            $('#pagePrevious').on("click", function (e) {
                 e.preventDefault();
                 this.blur();
-                paginationData.set("prevClicked",true);
-                paginationData.set("nextClicked",false);
+                paginationData.set("prevClicked", true);
+                paginationData.set("nextClicked", false);
                 doSearch();
             });
-            $('#pageNext').on("click", function(e){
+            $('#pageNext').on("click", function (e) {
                 e.preventDefault();
                 this.blur();
-                paginationData.set("prevClicked",false);
-                paginationData.set("nextClicked",true);
+                paginationData.set("prevClicked", false);
+                paginationData.set("nextClicked", true);
                 doSearch();
             });
         }
@@ -450,10 +458,10 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             editButtons.forEach(d => {
                 let el = $(d);
                 el.off("click");
-                el.on("click", function(e){
+                el.on("click", function (e) {
                     e.preventDefault();
                     let rowData = dt.row(e.target.closest('tr')).data();
-                    window.location.replace('{{.IPListURL}}' + "/" + encodeURIComponent(rowData['type'])+"/"+encodeURIComponent(rowData['ipornet']));
+                    window.location.replace('{{.IPListURL}}' + "/" + encodeURIComponent(rowData['type']) + "/" + encodeURIComponent(rowData['ipornet']));
                 });
             });
 
@@ -461,11 +469,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             deleteButtons.forEach(d => {
                 let el = $(d);
                 el.off("click");
-                el.on("click", function(e){
+                el.on("click", function (e) {
                     e.preventDefault();
                     const parent = e.target.closest('tr');
                     let rowData = dt.row(parent).data();
-                    deleteAction(rowData['type'],rowData['ipornet']);
+                    deleteAction(rowData['type'], rowData['ipornet']);
                 });
             });
         }
@@ -478,26 +486,26 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         }
     }();
 
-    $(document).on("i18nload", function(){
+    $(document).on("i18nload", function () {
         resetPagination();
-        if (listType === '1' || listType === '3'){
+        if (listType === '1' || listType === '3') {
             $('#idListType').val(listType);
         } else {
             $('#idListType').val('2');
         }
         $('#idListType').trigger('change');
 
-        if (listFilter){
+        if (listFilter) {
             $('#idSearch').val(listFilter);
         } else {
             $('#idSearch').val('');
         }
-        $("#idAdd").on("click", function(){
-            window.location.href = '{{.IPListURL}}'+"/"+encodeURIComponent($("#idListType").val());
+        $("#idAdd").on("click", function () {
+            window.location.href = '{{.IPListURL}}' + "/" + encodeURIComponent($("#idListType").val());
         });
     });
 
-    $(document).on("i18nshow", function(){
+    $(document).on("i18nshow", function () {
         datatable.init();
         checkSelectedListType(listType);
     });

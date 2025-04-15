@@ -11,10 +11,10 @@ info:
     name: AGPL-3.0-only
     url: 'https://www.gnu.org/licenses/agpl-3.0.en.html'
 servers:
-- url: /v1
+  - url: /v1
 security:
-- ApiKeyAuth: []
-- BasicAuth: []
+  - ApiKeyAuth: [ ]
+  - BasicAuth: [ ]
 paths:
   /stat/{name}:
     parameters:

@@ -18,16 +18,17 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 data-i18n="{{.Title}}" class="card-title section-title"></h3>
+        <h3 class="card-title section-title" data-i18n="{{.Title}}"></h3>
     </div>
     <div class="card-body">
 
         <div class="card">
             <div class="card-header bg-light">
-                <h3 data-i18n="status.ssh" class="card-title section-title-inner">SSH/SFTP server</h3>
+                <h3 class="card-title section-title-inner" data-i18n="status.ssh">SSH/SFTP server</h3>
             </div>
             <div class="card-body">
-                <p class="fs-3 fw-semibold mb-4" {{if .Status.SSH.IsActive}}data-i18n="status.active"{{else}}data-i18n="status.disabled"{{end}}></p>
+                <p .Status.SSH.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                   {{end}} {{if></p>
                 {{- if .Status.SSH.IsActive}}
                 <div class="d-flex flex-column">
                     {{- range .Status.SSH.Bindings}}
@@ -56,22 +57,28 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 {{- end}}
                 <div class="d-flex flex-column mt-10">
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="status.ssh_commands"></span> "{{.Status.SSH.GetSSHCommandsAsString}}"
+                        <span class="text-muted" data-i18n="status.ssh_commands"></span>
+                        "{{.Status.SSH.GetSSHCommandsAsString}}"
                     </p>
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="status.ssh_auths"></span> "{{.Status.SSH.GetSupportedAuthsAsString}}"
+                        <span class="text-muted" data-i18n="status.ssh_auths"></span>
+                        "{{.Status.SSH.GetSupportedAuthsAsString}}"
                     </p>
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="status.ssh_pub_key_algo"></span> "{{.Status.SSH.GetPublicKeysAlgosAsString}}"
+                        <span class="text-muted" data-i18n="status.ssh_pub_key_algo"></span>
+                        "{{.Status.SSH.GetPublicKeysAlgosAsString}}"
                     </p>
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="status.ssh_mac_algo"></span> "{{.Status.SSH.GetMACsAsString}}"
+                        <span class="text-muted" data-i18n="status.ssh_mac_algo"></span>
+                        "{{.Status.SSH.GetMACsAsString}}"
                     </p>
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="status.ssh_kex_algo"></span> "{{.Status.SSH.GetKEXsAsString}}"
+                        <span class="text-muted" data-i18n="status.ssh_kex_algo"></span>
+                        "{{.Status.SSH.GetKEXsAsString}}"
                     </p>
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="status.ssh_cipher_algo"></span> "{{.Status.SSH.GetCiphersAsString}}"
+                        <span class="text-muted" data-i18n="status.ssh_cipher_algo"></span>
+                        "{{.Status.SSH.GetCiphersAsString}}"
                     </p>
                 </div>
                 {{- end}}
@@ -80,10 +87,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
         <div class="card mt-10">
             <div class="card-header bg-light">
-                <h3 data-i18n="status.ftp" class="card-title section-title-inner">FTP server</h3>
+                <h3 class="card-title section-title-inner" data-i18n="status.ftp">FTP server</h3>
             </div>
             <div class="card-body">
-                <p class="fs-3 fw-semibold mb-4" {{if .Status.FTP.IsActive}}data-i18n="status.active"{{else}}data-i18n="status.disabled"{{end}}></p>
+                <p .Status.FTP.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                   {{end}} {{if></p>
                 {{- if .Status.FTP.IsActive}}
                 <div class="d-flex flex-column">
                     {{- range .Status.FTP.Bindings}}
@@ -96,7 +104,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     </p>
                     {{- end}}
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="status.tls"></span>&nbsp;<span data-i18n="{{.GetTLSDescription}}"></span>
+                        <span class="text-muted" data-i18n="status.tls"></span>&nbsp;<span
+                            data-i18n="{{.GetTLSDescription}}"></span>
                     </p>
                     {{- if .ForcePassiveIP}}
                     <p class="fs-5 fw-semibold">
@@ -105,14 +114,16 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     {{- end}}
                     {{- range .PassiveIPOverrides}}
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="status.ftp_passive_ip"></span> "{{.IP}} ({{.GetNetworksAsString}})"
+                        <span class="text-muted" data-i18n="status.ftp_passive_ip"></span> "{{.IP}}
+                        ({{.GetNetworksAsString}})"
                     </p>
                     {{- end}}
                     {{- end}}
                 </div>
                 <div class="d-flex flex-column mt-10">
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="status.ftp_passive_range"></span> "{{.Status.FTP.PassivePortRange.Start}}-{{.Status.FTP.PassivePortRange.End}}"
+                        <span class="text-muted" data-i18n="status.ftp_passive_range"></span>
+                        "{{.Status.FTP.PassivePortRange.Start}}-{{.Status.FTP.PassivePortRange.End}}"
                     </p>
                 </div>
                 {{- end}}
@@ -121,10 +132,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
         <div class="card mt-10">
             <div class="card-header bg-light">
-                <h3 data-i18n="status.webdav" class="card-title section-title-inner">WebDAV server</h3>
+                <h3 class="card-title section-title-inner" data-i18n="status.webdav">WebDAV server</h3>
             </div>
             <div class="card-body">
-                <p class="fs-3 fw-semibold mb-4" {{if .Status.WebDAV.IsActive}}data-i18n="status.active"{{else}}data-i18n="status.disabled"{{end}}></p>
+                <p .Status.WebDAV.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                   {{end}} {{if></p>
                 {{- if .Status.WebDAV.IsActive}}
                 <div class="d-flex flex-column">
                     {{- range .Status.WebDAV.Bindings}}
@@ -132,7 +144,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         <span class="text-muted" data-i18n="status.address"></span> "{{.GetAddress}}"
                     </p>
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="general.protocol"></span> {{if .EnableHTTPS}} HTTPS {{else}} HTTP {{end}}
+                        <span class="text-muted" data-i18n="general.protocol"></span> {{if .EnableHTTPS}} HTTPS {{else}}
+                        HTTP {{end}}
                     </p>
                     {{- end}}
                 </div>
@@ -142,12 +155,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
         <div class="card mt-10">
             <div class="card-header bg-light">
-                <h3 data-i18n="general.data_provider" class="card-title section-title-inner">Database</h3>
+                <h3 class="card-title section-title-inner" data-i18n="general.data_provider">Database</h3>
             </div>
             <div class="card-body">
                 <p class="fs-3 fw-semibold mb-4">
-                    <span {{if .Status.DataProvider.IsActive}}data-i18n="status.active"{{else}}data-i18n="status.error" class="text-warning"{{end}}></span>
-                    {{if .Status.DataProvider.Error}}&nbsp;<span class="text-warning">"{{.Status.DataProvider.Error}}"</span>{{end}}
+                    <span .Status.DataProvider.IsActive}}data-i18n="status.active" class="text-warning" {{else}}data-i18n="status.error"
+                          {{end}} {{if></span>
+                    {{if .Status.DataProvider.Error}}&nbsp;<span
+                        class="text-warning">"{{.Status.DataProvider.Error}}"</span>{{end}}
                 </p>
                 <div class="d-flex flex-column">
                     <p class="fs-5 fw-semibold">
@@ -159,32 +174,36 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
         <div class="card mt-10">
             <div class="card-header bg-light">
-                <h3 data-i18n="ip_list.defender_list" class="card-title section-title-inner">Defender</h3>
+                <h3 class="card-title section-title-inner" data-i18n="ip_list.defender_list">Defender</h3>
             </div>
             <div class="card-body">
-                <p class="fs-3 fw-semibold mb-4" {{if .Status.Defender.IsActive}}data-i18n="status.active"{{else}}data-i18n="status.disabled"{{end}}></p>
+                <p .Status.Defender.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                   {{end}} {{if></p>
             </div>
         </div>
 
         <div class="card mt-10">
             <div class="card-header bg-light">
-                <h3 data-i18n="ip_list.allow_list" class="card-title section-title-inner">Allow list</h3>
+                <h3 class="card-title section-title-inner" data-i18n="ip_list.allow_list">Allow list</h3>
             </div>
             <div class="card-body">
-                <p class="fs-3 fw-semibold mb-4" {{if .Status.AllowList.IsActive}}data-i18n="status.active"{{else}}data-i18n="status.disabled"{{end}}></p>
+                <p .Status.AllowList.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                   {{end}} {{if></p>
             </div>
         </div>
 
         <div class="card mt-10">
             <div class="card-header bg-light">
-                <h3 data-i18n="status.rate_limiters" class="card-title section-title-inner">Rate limiters</h3>
+                <h3 class="card-title section-title-inner" data-i18n="status.rate_limiters">Rate limiters</h3>
             </div>
             <div class="card-body">
-                <p class="fs-3 fw-semibold mb-4" {{if .Status.RateLimiters.IsActive}}data-i18n="status.active"{{else}}data-i18n="status.disabled"{{end}}></p>
+                <p .Status.RateLimiters.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                   {{end}} {{if></p>
                 {{- if .Status.RateLimiters.IsActive}}
                 <div class="d-flex flex-column">
                     <p class="fs-5 fw-semibold">
-                        <span class="text-muted" data-i18n="ip_list.protocols"></span> "{{.Status.RateLimiters.GetProtocolsAsString}}"
+                        <span class="text-muted" data-i18n="ip_list.protocols"></span>
+                        "{{.Status.RateLimiters.GetProtocolsAsString}}"
                     </p>
                 </div>
                 {{- end}}
@@ -193,10 +212,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
         <div class="card mt-10">
             <div class="card-header bg-light">
-                <h3 data-i18n="title.two_factor_auth" class="card-title section-title-inner">Two-factor authentication</h3>
+                <h3 class="card-title section-title-inner" data-i18n="title.two_factor_auth">Two-factor
+                    authentication</h3>
             </div>
             <div class="card-body">
-                <p class="fs-3 fw-semibold mb-4" {{if .Status.MFA.IsActive}}data-i18n="status.active"{{else}}data-i18n="status.disabled"{{end}}></p>
+                <p .Status.MFA.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                   {{end}} {{if></p>
                 {{- if .Status.MFA.IsActive}}
                 {{range .Status.MFA.TOTPConfigs}}
                 <div class="d-flex flex-column">

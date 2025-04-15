@@ -518,7 +518,7 @@ jobs:
 
   create-release:
     name: Release
-    needs: [prepare-linux-bundle, prepare-sources-with-deps, prepare-mac, prepare-windows]
+    needs: [ prepare-linux-bundle, prepare-sources-with-deps, prepare-mac, prepare-windows ]
     runs-on: ubuntu-latest
 
     steps:

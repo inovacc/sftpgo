@@ -1,7 +1,7 @@
 name: Open Source Bug Report
 description: "Submit a report and help us improve SFTPGo"
 title: "[Bug]: "
-labels: ["bug"]
+labels: [ "bug" ]
 body:
   - type: markdown
     attributes:

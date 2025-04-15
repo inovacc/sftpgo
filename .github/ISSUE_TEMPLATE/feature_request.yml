@@ -1,6 +1,6 @@
 name: 🚀 Feature request
 description: Suggest an idea for SFTPGo
-labels: ["suggestion"]
+labels: [ "suggestion" ]
 body:
   - type: textarea
     attributes:

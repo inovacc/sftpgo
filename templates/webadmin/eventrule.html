@@ -18,84 +18,110 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 data-i18n="{{.Title}}" class="card-title section-title"></h3>
+        <h3 class="card-title section-title" data-i18n="{{.Title}}"></h3>
     </div>
     <div class="card-body">
         {{- template "errmsg" .Error}}
-        <form id="eventrule_form" action="{{.CurrentURL}}" method="POST" autocomplete="off">
+        <form action="{{.CurrentURL}}" autocomplete="off" id="eventrule_form" method="POST">
 
             <div class="form-group row">
-                <label for="idName" data-i18n="general.name" class="col-md-3 col-form-label">Name</label>
+                <label class="col-md-3 col-form-label" data-i18n="general.name" for="idName">Name</label>
                 <div class="col-md-9">
-                    <input id="idName" type="text" placeholder="" name="name" value="{{.Rule.Name}}" maxlength="255" autocomplete="off"
-                        spellcheck="false" required {{if eq .Mode 2}}class="form-control-plaintext readonly-input" readonly{{else}}class="form-control"{{end}} />
+                    <input .Mode 2}}class="form-control-plaintext readonly-input" autocomplete="off" eq id="idName" maxlength="255"
+                           name="name"
+                           placeholder="" readonly{{else}}class="form-control" required spellcheck="false" type="text" value="{{.Rule.Name}}"
+                           {{end}} {{if/>
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label for="idStatus" data-i18n="general.status" class="col-md-3 col-form-label">Status</label>
+                <label class="col-md-3 col-form-label" data-i18n="general.status" for="idStatus">Status</label>
                 <div class="col-md-9">
-                    <select id="idStatus" name="status" class="form-select" data-control="i18n-select2" data-hide-search="true">
-                        <option data-i18n="general.active" value="1" {{- if eq .Rule.Status 1 }} selected{{- end}}>Active</option>
-                        <option data-i18n="general.inactive" value="0" {{- if eq .Rule.Status 0 }} selected{{- end}}>Inactive</option>
+                    <select class="form-select" data-control="i18n-select2" data-hide-search="true" id="idStatus"
+                            name="status">
+                        <option .Rule.Status 1 data-i18n="general.active" end}} eq if selected{{- value="1" {{- }}>
+                            Active
+                        </option>
+                        <option .Rule.Status 0 data-i18n="general.inactive" end}} eq if selected{{- value="0" {{- }}>
+                            Inactive
+                        </option>
                     </select>
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label for="idDescription" data-i18n="general.description" class="col-md-3 col-form-label">Description</label>
+                <label class="col-md-3 col-form-label" data-i18n="general.description"
+                       for="idDescription">Description</label>
                 <div class="col-md-9">
-                    <input id="idDescription" type="text" class="form-control" name="description" value="{{.Rule.Description}}" maxlength="255">
+                    <input class="form-control" id="idDescription" maxlength="255" name="description"
+                           type="text" value="{{.Rule.Description}}">
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label for="idTrigger" data-i18n="rules.trigger" class="col-md-3 col-form-label">Trigger</label>
+                <label class="col-md-3 col-form-label" data-i18n="rules.trigger" for="idTrigger">Trigger</label>
                 <div class="col-md-9">
-                    <select id="idTrigger" name="trigger" class="form-select" data-control="i18n-select2" data-hide-search="true">
+                    <select class="form-select" data-control="i18n-select2" data-hide-search="true" id="idTrigger"
+                            name="trigger">
                         {{- range .TriggerTypes}}
-                        <option value="{{.Value}}" {{if eq $.Rule.Trigger .Value }}selected{{end}} data-i18n="{{.Name}}"></option>
+                        <option $.Rule.Trigger .Value data-i18n="{{.Name}}" eq value="{{.Value}}" {{if
+                                }}selected{{end}}></option>
                         {{- end}}
                     </select>
                 </div>
             </div>
 
             <div class="form-group row trigger trigger-fs mt-10">
-                <label for="idFsEvents" data-i18n="rules.triggers.fs_events" class="col-md-3 col-form-label">Fs events</label>
+                <label class="col-md-3 col-form-label" data-i18n="rules.triggers.fs_events" for="idFsEvents">Fs
+                    events</label>
                 <div class="col-md-9">
-                    <select id="idFsEvents" name="fs_events" class="form-select" data-control="i18n-select2" data-hide-search="true" data-close-on-select="false" multiple>
+                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2" data-hide-search="true"
+                            id="idFsEvents" multiple name="fs_events">
                         {{- range $event := .FsEvents}}
-                        <option value="{{$event}}" {{- range $.Rule.Conditions.FsEvents }}{{- if eq . $event}}selected{{- end}}{{- end}}>{{$event}}</option>
+                        <option $.Rule.Conditions.FsEvents $event}}selected{{- . end}} end}}{{- eq if range
+                                value="{{$event}}" {{- }}{{->{{$event}}
+                        </option>
                         {{- end}}
                     </select>
                 </div>
             </div>
 
             <div class="form-group row trigger trigger-provider mt-10">
-                <label for="idProviderEvents" data-i18n="rules.triggers.provider_events" class="col-md-3 col-form-label">Provider events</label>
+                <label class="col-md-3 col-form-label" data-i18n="rules.triggers.provider_events"
+                       for="idProviderEvents">Provider events</label>
                 <div class="col-md-9">
-                    <select id="idProviderEvents" name="provider_events" class="form-select" data-control="i18n-select2" data-hide-search="true" data-close-on-select="false" multiple>
+                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2" data-hide-search="true"
+                            id="idProviderEvents" multiple name="provider_events">
                         {{- range $event := .ProviderEvents}}
-                        <option value="{{$event}}" {{- range $.Rule.Conditions.ProviderEvents }}{{- if eq . $event}}selected{{- end}}{{- end}}>{{$event}}</option>
+                        <option $.Rule.Conditions.ProviderEvents $event}}selected{{- . end}} end}}{{- eq if range
+                                value="{{$event}}" {{- }}{{->{{$event}}
+                        </option>
                         {{- end}}
                     </select>
                 </div>
             </div>
 
             <div class="form-group row trigger trigger-idp mt-10">
-                <label for="idIDPEvent" data-i18n="general.type" class="col-md-3 col-form-label">IDP Login event</label>
+                <label class="col-md-3 col-form-label" data-i18n="general.type" for="idIDPEvent">IDP Login event</label>
                 <div class="col-md-9">
-                    <select id="idIDPEvent" name="idp_login_event" class="form-select" data-control="i18n-select2" data-hide-search="true">
-                        <option value="0" data-i18n="ip_list.any" {{if eq .Rule.Conditions.IDPLoginEvent 0}}selected{{end}}>Any</option>
-                        <option value="1" data-i18n="rules.idp_logins.user" {{if eq .Rule.Conditions.IDPLoginEvent 1}}selected{{end}}>User login</option>
-                        <option value="2" data-i18n="rules.idp_logins.admin" {{if eq .Rule.Conditions.IDPLoginEvent 2}}selected{{end}}>Admin login</option>
+                    <select class="form-select" data-control="i18n-select2" data-hide-search="true" id="idIDPEvent"
+                            name="idp_login_event">
+                        <option .Rule.Conditions.IDPLoginEvent 0}}selected{{end}} data-i18n="ip_list.any" eq value="0"
+                                {{if>Any
+                        </option>
+                        <option .Rule.Conditions.IDPLoginEvent 1}}selected{{end}} data-i18n="rules.idp_logins.user" eq value="1"
+                                {{if>User login
+                        </option>
+                        <option .Rule.Conditions.IDPLoginEvent 2}}selected{{end}} data-i18n="rules.idp_logins.admin" eq value="2"
+                                {{if>Admin login
+                        </option>
                     </select>
                 </div>
             </div>
 
             <div class="card trigger trigger-schedule mt-10">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="rules.triggers.schedule" class="card-title section-title-inner">Schedules</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="rules.triggers.schedule">Schedules</h3>
                 </div>
                 <div class="card-body">
                     <div id="schedules">
@@ -107,20 +133,28 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div data-repeater-item>
                                         <div class="form-group row">
                                             <div class="col-md-3 mt-3 mt-md-8">
-                                                <input data-i18n="[placeholder]general.hour" type="text" class="form-control" name="schedule_hour" value="{{$val.Hours}}" />
+                                                <input class="form-control" data-i18n="[placeholder]general.hour"
+                                                       name="schedule_hour" type="text"
+                                                       value="{{$val.Hours}}"/>
                                             </div>
                                             <div class="col-md-3 mt-3 mt-md-8">
-                                                <input data-i18n="[placeholder]general.day_of_week" type="text" class="form-control" name="schedule_day_of_week" value="{{$val.DayOfWeek}}" />
+                                                <input class="form-control" data-i18n="[placeholder]general.day_of_week"
+                                                       name="schedule_day_of_week" type="text"
+                                                       value="{{$val.DayOfWeek}}"/>
                                             </div>
                                             <div class="col-md-3 mt-3 mt-md-8">
-                                                <input data-i18n="[placeholder]general.day_of_month" type="text" class="form-control" name="schedule_day_of_month" value="{{$val.DayOfMonth}}" />
+                                                <input class="form-control" data-i18n="[placeholder]general.day_of_month"
+                                                       name="schedule_day_of_month" type="text"
+                                                       value="{{$val.DayOfMonth}}"/>
                                             </div>
                                             <div class="col-md-2 mt-3 mt-md-8">
-                                                <input data-i18n="[placeholder]general.month" type="text" class="form-control" name="schedule_month" value="{{$val.Month}}" />
+                                                <input class="form-control" data-i18n="[placeholder]general.month"
+                                                       name="schedule_month" type="text"
+                                                       value="{{$val.Month}}"/>
                                             </div>
                                             <div class="col-md-1 mt-3 mt-md-8">
-                                                <a href="#" data-repeater-delete
-                                                    class="btn btn-light-danger ps-5 pe-4">
+                                                <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                   href="#">
                                                     <i class="ki-duotone ki-trash fs-2">
                                                         <span class="path1"></span>
                                                         <span class="path2"></span>
@@ -137,20 +171,24 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <input data-i18n="[placeholder]general.hour" type="text" class="form-control" name="schedule_hour" value="" />
+                                            <input class="form-control" data-i18n="[placeholder]general.hour"
+                                                   name="schedule_hour" type="text" value=""/>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <input data-i18n="[placeholder]general.day_of_week" type="text" class="form-control" name="schedule_day_of_week" value="" />
+                                            <input class="form-control" data-i18n="[placeholder]general.day_of_week"
+                                                   name="schedule_day_of_week" type="text" value=""/>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <input data-i18n="[placeholder]general.day_of_month" type="text" class="form-control" name="schedule_day_of_month" value="" />
+                                            <input class="form-control" data-i18n="[placeholder]general.day_of_month"
+                                                   name="schedule_day_of_month" type="text" value=""/>
                                         </div>
                                         <div class="col-md-2 mt-3 mt-md-8">
-                                            <input data-i18n="[placeholder]general.month" type="text" class="form-control" name="schedule_month" value="" />
+                                            <input class="form-control" data-i18n="[placeholder]general.month"
+                                                   name="schedule_month" type="text" value=""/>
                                         </div>
                                         <div class="col-md-1 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger ps-5 pe-4">
+                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-2">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -167,7 +205,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -180,8 +218,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row align-items-center trigger trigger-schedule mt-10">
                 <div class="col-md-12">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input class="form-check-input" type="checkbox" id="idConcurrentExecution" name="concurrent_execution" {{if .Rule.Conditions.Options.ConcurrentExecution}}checked{{end}}/>
-                        <label data-i18n="rules.concurrent_run" class="form-check-label fw-semibold text-gray-800" for="idConcurrentExecution">
+                        <input .Rule.Conditions.Options.ConcurrentExecution}}checked{{end}} class="form-check-input" id="idConcurrentExecution"
+                               name="concurrent_execution" type="checkbox"
+                               {{if/>
+                        <label class="form-check-label fw-semibold text-gray-800" data-i18n="rules.concurrent_run"
+                               for="idConcurrentExecution">
                             Concurrent execution
                         </label>
                     </div>
@@ -190,44 +231,62 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             {{- end}}
 
             <div class="form-group row trigger trigger-fs mt-10">
-                <label for="idFsProtocols" data-i18n="rules.protocol_filters" class="col-md-3 col-form-label">Protocol filters</label>
+                <label class="col-md-3 col-form-label" data-i18n="rules.protocol_filters" for="idFsProtocols">Protocol
+                    filters</label>
                 <div class="col-md-9">
-                    <select id="idFsProtocols" name="fs_protocols" class="form-select" data-control="i18n-select2" data-close-on-select="false" multiple aria-describedby="idFsProtocolsHelp">
+                    <select aria-describedby="idFsProtocolsHelp" class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                            id="idFsProtocols" multiple name="fs_protocols">
                         {{- range $p := .Protocols}}
-                        <option value="{{$p}}" {{- range $.Rule.Conditions.Options.Protocols }}{{- if eq . $p}}selected{{- end}}{{- end}}>{{$p}}</option>
+                        <option $.Rule.Conditions.Options.Protocols $p}}selected{{- . end}} end}}{{- eq if range
+                                value="{{$p}}" {{- }}{{->{{$p}}
+                        </option>
                         {{- end}}
                     </select>
-                    <div id="idFsProtocolsHelp" data-i18n="rules.no_filter" class="form-text"></div>
+                    <div class="form-text" data-i18n="rules.no_filter" id="idFsProtocolsHelp"></div>
                 </div>
             </div>
 
             <div class="form-group row trigger trigger-fs mt-10">
-                <label for="idFsStatuses" data-i18n="rules.status_filters" class="col-md-3 col-form-label">Status filters</label>
+                <label class="col-md-3 col-form-label" data-i18n="rules.status_filters" for="idFsStatuses">Status
+                    filters</label>
                 <div class="col-md-9">
-                    <select id="idFsStatuses" name="fs_statuses" class="form-select" data-control="i18n-select2" data-close-on-select="false" multiple aria-describedby="idFsStatusesHelp">
-                        <option value="1" data-i18n="general.ok" {{- range $.Rule.Conditions.Options.EventStatuses }}{{- if eq . 1}}selected{{- end}}{{- end}}>OK</option>
-                        <option value="2" data-i18n="general.failed" {{- range $.Rule.Conditions.Options.EventStatuses }}{{- if eq . 2}}selected{{- end}}{{- end}}>Failed</option>
-                        <option value="3" data-i18n="events.quota_exceeded" {{- range $.Rule.Conditions.Options.EventStatuses }}{{- if eq . 3}}selected{{- end}}{{- end}}>Quota exceeded</option>
+                    <select aria-describedby="idFsStatusesHelp" class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                            id="idFsStatuses" multiple name="fs_statuses">
+                        <option $.Rule.Conditions.Options.EventStatuses . 1}}selected{{- data-i18n="general.ok" end}} end}}{{-
+                                eq if range value="1" {{- }}{{->OK
+                        </option>
+                        <option $.Rule.Conditions.Options.EventStatuses . 2}}selected{{- data-i18n="general.failed" end}}
+                                end}}{{- eq if range value="2" {{- }}{{->Failed
+                        </option>
+                        <option $.Rule.Conditions.Options.EventStatuses . 3}}selected{{- data-i18n="events.quota_exceeded"
+                                end}} end}}{{- eq if range value="3" {{- }}{{->
+                            Quota exceeded
+                        </option>
                     </select>
-                    <div id="idFsStatusesHelp" data-i18n="rules.no_filter" class="form-text"></div>
+                    <div class="form-text" data-i18n="rules.no_filter" id="idFsStatusesHelp"></div>
                 </div>
             </div>
 
             <div class="form-group row trigger trigger-provider mt-10">
-                <label for="idProviderObjects" data-i18n="rules.object_filters" class="col-md-3 col-form-label">Object filters</label>
+                <label class="col-md-3 col-form-label" data-i18n="rules.object_filters" for="idProviderObjects">Object
+                    filters</label>
                 <div class="col-md-9">
-                    <select id="idProviderObjects" name="provider_objects" class="form-select" data-control="i18n-select2" data-close-on-select="false" multiple aria-describedby="idProviderObjectsHelp">
+                    <select aria-describedby="idProviderObjectsHelp" class="form-select" data-close-on-select="false"
+                            data-control="i18n-select2" id="idProviderObjects" multiple
+                            name="provider_objects">
                         {{- range $p := .ProviderObjects}}
-                        <option value="{{$p}}" {{- range $.Rule.Conditions.Options.ProviderObjects }}{{- if eq . $p}}selected{{- end}}{{- end}}>{{$p}}</option>
+                        <option $.Rule.Conditions.Options.ProviderObjects $p}}selected{{- . end}} end}}{{- eq if range
+                                value="{{$p}}" {{- }}{{->{{$p}}
+                        </option>
                         {{- end}}
                     </select>
-                    <div id="idProviderObjectsHelp" data-i18n="rules.no_filter" class="form-text"></div>
+                    <div class="form-text" data-i18n="rules.no_filter" id="idProviderObjectsHelp"></div>
                 </div>
             </div>
 
             <div class="card trigger trigger-fs trigger-provider trigger-schedule trigger-on-demand trigger-idp mt-10">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="rules.name_filters" class="card-title section-title-inner">Name filters</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="rules.name_filters">Name filters</h3>
                 </div>
                 <div class="card-body">
                     <div id="name_filters">
@@ -239,17 +298,23 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div data-repeater-item>
                                         <div class="form-group row">
                                             <div class="col-md-7 mt-3 mt-md-8">
-                                                <input type="text" class="form-control" name="name_pattern" value="{{$val.Pattern}}" />
+                                                <input class="form-control" name="name_pattern" type="text"
+                                                       value="{{$val.Pattern}}"/>
                                             </div>
                                             <div class="col-md-4 mt-3 mt-md-8">
-                                                <select name="type_name_pattern" data-i18n="[data-placeholder]general.mode" class="form-select select-repetear" data-hide-search="true" data-allow-clear="true">
+                                                <select class="form-select select-repetear"
+                                                        data-allow-clear="true"
+                                                        data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                        name="type_name_pattern">
                                                     <option value=""></option>
-                                                    <option value="inverse" data-i18n="rules.inverse_match" {{if $val.InverseMatch}}selected{{end}}>Inverse match</option>
+                                                    <option $val.InverseMatch}}selected{{end}} data-i18n="rules.inverse_match" value="inverse"
+                                                            {{if>Inverse match
+                                                    </option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 mt-3 mt-md-8">
-                                                <a href="#" data-repeater-delete
-                                                    class="btn btn-light-danger ps-5 pe-4">
+                                                <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                   href="#">
                                                     <i class="ki-duotone ki-trash fs-2">
                                                         <span class="path1"></span>
                                                         <span class="path2"></span>
@@ -266,17 +331,20 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-7 mt-3 mt-md-8">
-                                            <input type="text" class="form-control" name="name_pattern" value="" />
+                                            <input class="form-control" name="name_pattern" type="text" value=""/>
                                         </div>
                                         <div class="col-md-4 mt-3 mt-md-8">
-                                            <select name="type_name_pattern" data-i18n="[data-placeholder]general.mode" class="form-select select-repetear" data-hide-search="true" data-allow-clear="true">
+                                            <select class="form-select select-repetear" data-allow-clear="true"
+                                                    data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                    name="type_name_pattern">
                                                 <option value=""></option>
-                                                <option value="inverse" data-i18n="rules.inverse_match">Inverse match</option>
+                                                <option data-i18n="rules.inverse_match" value="inverse">Inverse match
+                                                </option>
                                             </select>
                                         </div>
                                         <div class="col-md-1 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger ps-5 pe-4">
+                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-2">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -293,7 +361,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -304,7 +372,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="card trigger trigger-fs trigger-provider trigger-schedule trigger-on-demand mt-10">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="rules.group_name_filters" class="card-title section-title-inner">Group name filters</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="rules.group_name_filters">Group name
+                        filters</h3>
                 </div>
                 <div class="card-body">
                     <div id="group_name_filters">
@@ -316,17 +385,23 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div data-repeater-item>
                                         <div class="form-group row">
                                             <div class="col-md-7 mt-3 mt-md-8">
-                                                <input type="text" class="form-control" name="group_name_pattern" value="{{$val.Pattern}}" />
+                                                <input class="form-control" name="group_name_pattern" type="text"
+                                                       value="{{$val.Pattern}}"/>
                                             </div>
                                             <div class="col-md-4 mt-3 mt-md-8">
-                                                <select name="type_group_name_pattern" data-i18n="[data-placeholder]general.mode" class="form-select select-repetear" data-hide-search="true" data-allow-clear="true">
+                                                <select class="form-select select-repetear"
+                                                        data-allow-clear="true"
+                                                        data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                        name="type_group_name_pattern">
                                                     <option value=""></option>
-                                                    <option value="inverse" data-i18n="rules.inverse_match" {{if $val.InverseMatch}}selected{{end}}>Inverse match</option>
+                                                    <option $val.InverseMatch}}selected{{end}} data-i18n="rules.inverse_match" value="inverse"
+                                                            {{if>Inverse match
+                                                    </option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 mt-3 mt-md-8">
-                                                <a href="#" data-repeater-delete
-                                                    class="btn btn-light-danger ps-5 pe-4">
+                                                <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                   href="#">
                                                     <i class="ki-duotone ki-trash fs-2">
                                                         <span class="path1"></span>
                                                         <span class="path2"></span>
@@ -343,17 +418,21 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-7 mt-3 mt-md-8">
-                                            <input type="text" class="form-control" name="group_name_pattern" value="" />
+                                            <input class="form-control" name="group_name_pattern" type="text" value=""/>
                                         </div>
                                         <div class="col-md-4 mt-3 mt-md-8">
-                                            <select name="type_group_name_pattern" data-i18n="[data-placeholder]general.mode" class="form-select select-repetear" data-hide-search="true" data-allow-clear="true">
+                                            <select class="form-select select-repetear"
+                                                    data-allow-clear="true"
+                                                    data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                    name="type_group_name_pattern">
                                                 <option value=""></option>
-                                                <option value="inverse" data-i18n="rules.inverse_match">Inverse match</option>
+                                                <option data-i18n="rules.inverse_match" value="inverse">Inverse match
+                                                </option>
                                             </select>
                                         </div>
                                         <div class="col-md-1 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger ps-5 pe-4">
+                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-2">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -370,7 +449,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -381,7 +460,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="card trigger trigger-fs trigger-schedule trigger-provider trigger-on-demand mt-10">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="rules.role_name_filters" class="card-title section-title-inner">Role name filters</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="rules.role_name_filters">Role name
+                        filters</h3>
                 </div>
                 <div class="card-body">
                     <div id="role_name_filters">
@@ -393,17 +473,23 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div data-repeater-item>
                                         <div class="form-group row">
                                             <div class="col-md-7 mt-3 mt-md-8">
-                                                <input type="text" class="form-control" name="role_name_pattern" value="{{$val.Pattern}}" />
+                                                <input class="form-control" name="role_name_pattern" type="text"
+                                                       value="{{$val.Pattern}}"/>
                                             </div>
                                             <div class="col-md-4 mt-3 mt-md-8">
-                                                <select name="type_role_name_pattern" data-i18n="[data-placeholder]general.mode" class="form-select select-repetear" data-hide-search="true" data-allow-clear="true">
+                                                <select class="form-select select-repetear"
+                                                        data-allow-clear="true"
+                                                        data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                        name="type_role_name_pattern">
                                                     <option value=""></option>
-                                                    <option value="inverse" data-i18n="rules.inverse_match" {{if $val.InverseMatch}}selected{{end}}>Inverse match</option>
+                                                    <option $val.InverseMatch}}selected{{end}} data-i18n="rules.inverse_match" value="inverse"
+                                                            {{if>Inverse match
+                                                    </option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 mt-3 mt-md-8">
-                                                <a href="#" data-repeater-delete
-                                                    class="btn btn-light-danger ps-5 pe-4">
+                                                <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                   href="#">
                                                     <i class="ki-duotone ki-trash fs-2">
                                                         <span class="path1"></span>
                                                         <span class="path2"></span>
@@ -420,17 +506,21 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-7 mt-3 mt-md-8">
-                                            <input type="text" class="form-control" name="role_name_pattern" value="" />
+                                            <input class="form-control" name="role_name_pattern" type="text" value=""/>
                                         </div>
                                         <div class="col-md-4 mt-3 mt-md-8">
-                                            <select name="type_role_name_pattern" data-i18n="[data-placeholder]general.mode" class="form-select select-repetear" data-hide-search="true" data-allow-clear="true">
+                                            <select class="form-select select-repetear"
+                                                    data-allow-clear="true"
+                                                    data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                    name="type_role_name_pattern">
                                                 <option value=""></option>
-                                                <option value="inverse" data-i18n="rules.inverse_match">Inverse match</option>
+                                                <option data-i18n="rules.inverse_match" value="inverse">Inverse match
+                                                </option>
                                             </select>
                                         </div>
                                         <div class="col-md-1 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger ps-5 pe-4">
+                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-2">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -447,7 +537,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -458,7 +548,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="card trigger trigger-fs mt-10">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="rules.path_filters" class="card-title section-title-inner">Path filters</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="rules.path_filters">Path filters</h3>
                 </div>
                 <div class="card-body">
                     <div id="path_filters">
@@ -470,17 +560,23 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div data-repeater-item>
                                         <div class="form-group row">
                                             <div class="col-md-7 mt-3 mt-md-8">
-                                                <input type="text" class="form-control" name="fs_path_pattern" value="{{$val.Pattern}}" />
+                                                <input class="form-control" name="fs_path_pattern" type="text"
+                                                       value="{{$val.Pattern}}"/>
                                             </div>
                                             <div class="col-md-4 mt-3 mt-md-8">
-                                                <select name="type_fs_path_pattern" data-i18n="[data-placeholder]general.mode" class="form-select select-repetear" data-hide-search="true" data-allow-clear="true">
+                                                <select class="form-select select-repetear"
+                                                        data-allow-clear="true"
+                                                        data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                        name="type_fs_path_pattern">
                                                     <option value=""></option>
-                                                    <option value="inverse" data-i18n="rules.inverse_match" {{if $val.InverseMatch}}selected{{end}}>Inverse match</option>
+                                                    <option $val.InverseMatch}}selected{{end}} data-i18n="rules.inverse_match" value="inverse"
+                                                            {{if>Inverse match
+                                                    </option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 mt-3 mt-md-8">
-                                                <a href="#" data-repeater-delete
-                                                    class="btn btn-light-danger ps-5 pe-4">
+                                                <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                   href="#">
                                                     <i class="ki-duotone ki-trash fs-2">
                                                         <span class="path1"></span>
                                                         <span class="path2"></span>
@@ -497,17 +593,21 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-7 mt-3 mt-md-8">
-                                            <input type="text" class="form-control" name="fs_path_pattern" value="" />
+                                            <input class="form-control" name="fs_path_pattern" type="text" value=""/>
                                         </div>
                                         <div class="col-md-4 mt-3 mt-md-8">
-                                            <select name="type_fs_path_pattern" data-i18n="[data-placeholder]general.mode" class="form-select select-repetear" data-hide-search="true" data-allow-clear="true">
+                                            <select class="form-select select-repetear"
+                                                    data-allow-clear="true"
+                                                    data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                    name="type_fs_path_pattern">
                                                 <option value=""></option>
-                                                <option value="inverse" data-i18n="rules.inverse_match">Inverse match</option>
+                                                <option data-i18n="rules.inverse_match" value="inverse">Inverse match
+                                                </option>
                                             </select>
                                         </div>
                                         <div class="col-md-1 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger ps-5 pe-4">
+                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-2">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -524,7 +624,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -535,21 +635,25 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="card trigger trigger-fs mt-10">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="rules.file_size_limits" class="card-title section-title-inner">
+                    <h3 class="card-title section-title-inner" data-i18n="rules.file_size_limits">
                         File size limits
                     </h3>
                 </div>
                 <div class="card-body">
                     {{- template "infomsg" "rules.file_size_limits_help"}}
                     <div class="form-group row">
-                        <label for="idFsMinSize" data-i18n="rules.min_size" class="col-md-3 col-form-label">Min size</label>
+                        <label class="col-md-3 col-form-label" data-i18n="rules.min_size" for="idFsMinSize">Min
+                            size</label>
                         <div class="col-md-3">
-                            <input id="idFsMinSize" type="text" class="form-control" name="fs_min_size" value="{{HumanizeBytes .Rule.Conditions.Options.MinFileSize}}" />
+                            <input class="form-control" id="idFsMinSize" name="fs_min_size" type="text"
+                                   value="{{HumanizeBytes .Rule.Conditions.Options.MinFileSize}}"/>
                         </div>
                         <div class="col-md-1"></div>
-                        <label for="idFsMaxSize" data-i18n="rules.max_size" class="col-md-2 col-form-label">Max size</label>
+                        <label class="col-md-2 col-form-label" data-i18n="rules.max_size" for="idFsMaxSize">Max
+                            size</label>
                         <div class="col-md-3">
-                            <input id="idFsMaxSize" type="text" class="form-control" name="fs_max_size" value="{{HumanizeBytes .Rule.Conditions.Options.MaxFileSize}}" />
+                            <input class="form-control" id="idFsMaxSize" name="fs_max_size" type="text"
+                                   value="{{HumanizeBytes .Rule.Conditions.Options.MaxFileSize}}"/>
                         </div>
                     </div>
                 </div>
@@ -557,7 +661,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="title.event_actions" class="card-title section-title-inner">Actions</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="title.event_actions">Actions</h3>
                 </div>
                 <div class="card-body">
                     <div id="actions">
@@ -569,24 +673,38 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div data-repeater-item>
                                         <div class="form-group row">
                                             <div class="col-md-6 mt-3 mt-md-8">
-                                                <select name="action_name" data-i18n="[data-placeholder]rules.action_placeholder" class="form-select select-repetear" data-allow-clear="true">
+                                                <select class="form-select select-repetear"
+                                                        data-allow-clear="true"
+                                                        data-i18n="[data-placeholder]rules.action_placeholder" name="action_name">
                                                     <option value=""></option>
                                                     {{- range $.Actions}}
-                                                    <option value="{{.Name}}" {{if eq $val.Name .Name}}selected{{end}}>{{.Name}}</option>
+                                                    <option $val.Name .Name}}selected{{end}} eq value="{{.Name}}" {{if>
+                                                        {{.Name}}
+                                                    </option>
                                                     {{- end}}
                                                 </select>
                                             </div>
                                             <div class="col-md-5 mt-3 mt-md-8">
-                                                <select name="action_options" class="form-select select-repetear" data-i18n="[data-placeholder]general.options" data-close-on-select="false" data-allow-clear="true" data-hide-search="true" multiple>
+                                                <select class="form-select select-repetear" data-allow-clear="true"
+                                                        data-close-on-select="false"
+                                                        data-hide-search="true" data-i18n="[data-placeholder]general.options"
+                                                        multiple name="action_options">
                                                     <option value=""></option>
-                                                    <option value="2" data-i18n="rules.option_stop_on_failure" {{if $val.Options.StopOnFailure}}selected{{end}}>Stop on failure</option>
-                                                    <option value="3" data-i18n="rules.option_execute_sync" {{if $val.Options.ExecuteSync}}selected{{end}}>Execute sync</option>
-                                                    <option value="1" data-i18n="rules.option_failure_action" {{if $val.Options.IsFailureAction}}selected{{end}}>Is failure action</option>
+                                                    <option $val.Options.StopOnFailure}}selected{{end}} data-i18n="rules.option_stop_on_failure" value="2"
+                                                            {{if>Stop on failure
+                                                    </option>
+                                                    <option $val.Options.ExecuteSync}}selected{{end}} data-i18n="rules.option_execute_sync" value="3"
+                                                            {{if>Execute sync
+                                                    </option>
+                                                    <option $val.Options.IsFailureAction}}selected{{end}} data-i18n="rules.option_failure_action" value="1"
+                                                            {{if>Is failure
+                                                        action
+                                                    </option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 mt-3 mt-md-8">
-                                                <a href="#" data-repeater-delete
-                                                    class="btn btn-light-danger ps-5 pe-4">
+                                                <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                   href="#">
                                                     <i class="ki-duotone ki-trash fs-2">
                                                         <span class="path1"></span>
                                                         <span class="path2"></span>
@@ -603,7 +721,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-6 mt-3 mt-md-8">
-                                            <select name="action_name" data-i18n="[data-placeholder]rules.action_placeholder" class="form-select select-repetear" data-allow-clear="true">
+                                            <select class="form-select select-repetear"
+                                                    data-allow-clear="true"
+                                                    data-i18n="[data-placeholder]rules.action_placeholder" name="action_name">
                                                 <option value=""></option>
                                                 {{- range $.Actions}}
                                                 <option value="{{.Name}}">{{.Name}}</option>
@@ -611,16 +731,24 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             </select>
                                         </div>
                                         <div class="col-md-5 mt-3 mt-md-8">
-                                            <select name="action_options" class="form-select select-repetear" data-i18n="[data-placeholder]general.options" data-close-on-select="false" data-allow-clear="true" data-hide-search="true" multiple>
+                                            <select class="form-select select-repetear" data-allow-clear="true"
+                                                    data-close-on-select="false"
+                                                    data-hide-search="true" data-i18n="[data-placeholder]general.options"
+                                                    multiple name="action_options">
                                                 <option value=""></option>
-                                                <option value="2" data-i18n="rules.option_stop_on_failure">Stop on failure</option>
-                                                <option value="3" data-i18n="rules.option_execute_sync">Execute sync</option>
-                                                <option value="1" data-i18n="rules.option_failure_action">Is failure action</option>
+                                                <option data-i18n="rules.option_stop_on_failure" value="2">Stop on
+                                                    failure
+                                                </option>
+                                                <option data-i18n="rules.option_execute_sync" value="3">Execute sync
+                                                </option>
+                                                <option data-i18n="rules.option_failure_action" value="1">Is failure
+                                                    action
+                                                </option>
                                             </select>
                                         </div>
                                         <div class="col-md-1 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger ps-5 pe-4">
+                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-2">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -637,7 +765,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -647,12 +775,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
 
             <div class="d-flex justify-content-end mt-12">
-                <input type="hidden" name="_form_token" value="{{.CSRFToken}}">
-                <button type="submit" id="form_submit" class="btn btn-primary px-10" name="form_action" value="submit">
-                    <span data-i18n="general.submit" class="indicator-label">
+                <input name="_form_token" type="hidden" value="{{.CSRFToken}}">
+                <button class="btn btn-primary px-10" id="form_submit" name="form_action" type="submit" value="submit">
+                    <span class="indicator-label" data-i18n="general.submit">
                         Submit
                     </span>
-                    <span data-i18n="general.wait" class="indicator-progress">
+                    <span class="indicator-progress" data-i18n="general.wait">
                         Please wait...
                         <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                     </span>
@@ -665,9 +793,10 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js"></script>
-<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
-    function onTriggerChanged(val){
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
+        {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
+    function onTriggerChanged(val) {
         $('.trigger').hide();
         switch (val) {
             case '1':
@@ -693,11 +822,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         }
     }
 
-    $(document).on("i18nload", function(){
+    $(document).on("i18nload", function () {
         onTriggerChanged('{{.Rule.Trigger}}');
     });
 
-    $(document).on("i18nshow", function(){
+    $(document).on("i18nshow", function () {
         initRepeater('#schedules');
         initRepeater('#name_filters');
         initRepeater('#group_name_filters');
@@ -706,14 +835,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         initRepeater('#actions');
         initRepeaterItems();
 
-        $('#idTrigger').on("change", function(){
+        $('#idTrigger').on("change", function () {
             onTriggerChanged(this.value);
         });
 
         $('#eventrule_form').submit(function (event) {
-			let submitButton = document.querySelector('#form_submit');
-			submitButton.setAttribute('data-kt-indicator', 'on');
-			submitButton.disabled = true;
+            let submitButton = document.querySelector('#form_submit');
+            submitButton.setAttribute('data-kt-indicator', 'on');
+            submitButton.disabled = true;
         });
     });
 </script>

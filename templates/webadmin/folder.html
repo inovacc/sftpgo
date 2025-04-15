@@ -18,7 +18,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 data-i18n="{{.Title}}" class="card-title section-title"></h3>
+        <h3 class="card-title section-title" data-i18n="{{.Title}}"></h3>
     </div>
     <div class="card-body">
         {{- if eq .Mode 3}}
@@ -33,22 +33,28 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         <span data-i18n="virtual_folders.template_title">Create one or more new folders from this template</span>
                     </h4>
                     <div class="fs-6 text-gray-800 pe-7">
-                        <p data-i18n="general.template_placeholders" class="mt-5">The following placeholders are supported</p>
+                        <p class="mt-5" data-i18n="general.template_placeholders">The following placeholders are
+                            supported</p>
                         <ul>
-                            <li><span class="text-info">%name%</span>, <span data-i18n="virtual_folders.template_name_placeholder">replaced with the specified folder name</span></li>
+                            <li><span class="text-info">%name%</span>, <span
+                                    data-i18n="virtual_folders.template_name_placeholder">replaced with the specified folder name</span>
+                            </li>
                         </ul>
-                        <p data-i18n="virtual_folders.template_help">The generated folders can be saved or exported. Exported folders can be imported from the "Maintenance" section of this SFTPGo instance or another.</p>
+                        <p data-i18n="virtual_folders.template_help">The generated folders can be saved or exported.
+                            Exported folders can be imported from the "Maintenance" section of this SFTPGo instance or
+                            another.</p>
                     </div>
                 </div>
             </div>
         </div>
         {{- end}}
         {{- template "errmsg" .Error}}
-        <form id="folder_form" enctype="multipart/form-data" action="{{.CurrentURL}}" method="POST" autocomplete="off" {{if eq .Mode 3}}target="_blank" rel="noopener noreferrer"{{end}}>
+        <form .Mode 3}}target="_blank" action="{{.CurrentURL}}" autocomplete="off" enctype="multipart/form-data"
+              eq id="folder_form" method="POST" rel="noopener noreferrer" {{end}} {{if>
             {{- if eq .Mode 3}}
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="title.folders" class="card-title section-title-inner">Folders</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="title.folders">Folders</h3>
                 </div>
                 <div class="card-body">
                     <div id="template_folders">
@@ -57,11 +63,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <input data-i18n="[placeholder]virtual_folders.name" type="text" class="form-control" name="tpl_foldername" autocomplete="off" spellcheck="false" value="" />
+                                            <input autocomplete="off" class="form-control"
+                                                   data-i18n="[placeholder]virtual_folders.name" name="tpl_foldername" spellcheck="false"
+                                                   type="text" value=""/>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger">
+                                            <a class="btn btn-light-danger" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -78,7 +86,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -86,33 +94,37 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     </div>
                 </div>
             </div>
-            <input type="hidden" name="name" id="idFolderName" value="{{.Folder.Name}}">
+            <input id="idFolderName" name="name" type="hidden" value="{{.Folder.Name}}">
             {{- else}}
             <div class="form-group row">
-                <label for="idFolderName" data-i18n="general.name" class="col-md-3 col-form-label">Name</label>
+                <label class="col-md-3 col-form-label" data-i18n="general.name" for="idFolderName">Name</label>
                 <div class="col-md-9">
-                    <input id="idFolderName" type="text" placeholder="" name="name" value="{{.Folder.Name}}" maxlength="255" autocomplete="off"
-                        spellcheck="false" required {{if ge .Mode 2}}class="form-control-plaintext readonly-input" readonly{{else}}class="form-control"{{end}} />
+                    <input .Mode 2}}class="form-control-plaintext readonly-input" autocomplete="off" ge id="idFolderName"
+                           maxlength="255" name="name"
+                           placeholder="" readonly{{else}}class="form-control" required spellcheck="false" type="text" value="{{.Folder.Name}}"
+                           {{end}} {{if/>
                 </div>
             </div>
             {{- end}}
 
             <div class="form-group row mt-10">
-                <label for="idDescription" data-i18n="general.description" class="col-md-3 col-form-label">Description</label>
+                <label class="col-md-3 col-form-label" data-i18n="general.description"
+                       for="idDescription">Description</label>
                 <div class="col-md-9">
-                    <input id="idDescription" type="text" class="form-control" name="description" value="{{.Folder.Description}}" maxlength="255">
+                    <input class="form-control" id="idDescription" maxlength="255" name="description"
+                           type="text" value="{{.Folder.Description}}">
                 </div>
             </div>
 
             {{- template "fshtml" .FsWrapper}}
 
             <div class="d-flex justify-content-end mt-12">
-                <input type="hidden" name="_form_token" value="{{.CSRFToken}}">
-                <button type="submit" id="form_submit" class="btn btn-primary px-10" name="form_action" value="submit">
-                    <span data-i18n="general.submit" class="indicator-label">
+                <input name="_form_token" type="hidden" value="{{.CSRFToken}}">
+                <button class="btn btn-primary px-10" id="form_submit" name="form_action" type="submit" value="submit">
+                    <span class="indicator-label" data-i18n="general.submit">
                         Submit
                     </span>
-                    <span data-i18n="general.wait" class="indicator-progress">
+                    <span class="indicator-progress" data-i18n="general.wait">
                         Please wait...
                         <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                     </span>
@@ -124,18 +136,19 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js"></script>
-<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
+        {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
 
-    $(document).on("i18nload", function(){
+    $(document).on("i18nload", function () {
         onFilesystemChanged('{{.Folder.FsConfig.Provider}}');
 
-        $('#idFilesystem').on("change", function(){
+        $('#idFilesystem').on("change", function () {
             onFilesystemChanged(this.value);
         });
     });
 
-    $(document).on("i18nshow", function(){
+    $(document).on("i18nshow", function () {
         //{{- if eq .Mode 3}}
         initRepeater('#template_folders');
         initRepeaterItems();

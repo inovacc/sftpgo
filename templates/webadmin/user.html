@@ -18,7 +18,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 data-i18n="{{.Title}}" class="card-title section-title"></h3>
+        <h3 class="card-title section-title" data-i18n="{{.Title}}"></h3>
     </div>
     <div class="card-body">
         {{- if eq .Mode 3}}
@@ -33,44 +33,58 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         <span data-i18n="user.template_title">Create one or more new users from this template</span>
                     </h4>
                     <div class="fs-6 text-gray-800 pe-7">
-                        <p data-i18n="general.template_placeholders" class="mt-5">The following placeholders are supported</p>
+                        <p class="mt-5" data-i18n="general.template_placeholders">The following placeholders are
+                            supported</p>
                         <ul>
-                            <li><span class="text-info">%username%</span>, <span data-i18n="user.template_username_placeholder">replaced with the specified username</span></li>
-                            <li><span class="text-info">%password%</span>, <span data-i18n="user.template_password_placeholder">replaced with the specified password</span></li>
+                            <li><span class="text-info">%username%</span>, <span
+                                    data-i18n="user.template_username_placeholder">replaced with the specified username</span>
+                            </li>
+                            <li><span class="text-info">%password%</span>, <span
+                                    data-i18n="user.template_password_placeholder">replaced with the specified password</span>
+                            </li>
                         </ul>
-                        <p data-i18n="user.template_help1">Placeholders will be replaced in paths and credentials of the configured storage backend.</p>
-                        <p data-i18n="user.template_help2">The generated users can be saved or exported. Exported users can be imported from the "Maintenance" section of this SFTPGo instance or another.</p>
+                        <p data-i18n="user.template_help1">Placeholders will be replaced in paths and credentials of the
+                            configured storage backend.</p>
+                        <p data-i18n="user.template_help2">The generated users can be saved or exported. Exported users
+                            can be imported from the "Maintenance" section of this SFTPGo instance or another.</p>
                     </div>
                 </div>
             </div>
         </div>
         {{- end}}
         {{- template "errmsg" .Error}}
-        <form id="user_form" enctype="multipart/form-data" action="{{.CurrentURL}}" method="POST" autocomplete="off" {{if eq .Mode 3}}target="_blank" rel="noopener noreferrer"{{end}}>
+        <form .Mode 3}}target="_blank" action="{{.CurrentURL}}" autocomplete="off" enctype="multipart/form-data"
+              eq id="user_form" method="POST" rel="noopener noreferrer" {{end}} {{if>
             {{- if eq .Mode 3}}
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="title.users" class="card-title section-title-inner">Users</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="title.users">Users</h3>
                 </div>
                 <div class="card-body">
                     <div id="template_users">
-                        <p class="fs-5 fw-semibold mb-4" data-i18n="user.template_help">For each user set the username and at least one of the password and public key</p>
+                        <p class="fs-5 fw-semibold mb-4" data-i18n="user.template_help">For each user set the username
+                            and at least one of the password and public key</p>
                         <div class="form-group">
                             <div data-repeater-list="template_users">
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <input data-i18n="[placeholder]login.username" type="text" class="form-control" name="tpl_username" autocomplete="off" spellcheck="false" value="" />
+                                            <input autocomplete="off" class="form-control"
+                                                   data-i18n="[placeholder]login.username" name="tpl_username" spellcheck="false"
+                                                   type="text" value=""/>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <input data-i18n="[placeholder]login.password" type="password" class="form-control" name="tpl_password" autocomplete="new-password" spellcheck="false" value="" />
+                                            <input autocomplete="new-password" class="form-control"
+                                                   data-i18n="[placeholder]login.password" name="tpl_password" spellcheck="false"
+                                                   type="password" value=""/>
                                         </div>
                                         <div class="col-md-5 mt-3 mt-md-8">
-                                            <textarea class="form-control" name="tpl_public_keys" rows="5" placeholder="Paste your public key here"></textarea>
+                                            <textarea class="form-control" name="tpl_public_keys" placeholder="Paste your public key here"
+                                                      rows="5"></textarea>
                                         </div>
                                         <div class="col-md-1 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger ps-5 pe-4">
+                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-2">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -86,7 +100,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -94,28 +108,32 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     </div>
                 </div>
             </div>
-            <input type="hidden" name="username" id="idUsername" value="{{.User.Username}}">
+            <input id="idUsername" name="username" type="hidden" value="{{.User.Username}}">
             {{- else}}
             <div class="form-group row">
-                <label for="idUsername" data-i18n="login.username" class="col-md-3 col-form-label">Username</label>
+                <label class="col-md-3 col-form-label" data-i18n="login.username" for="idUsername">Username</label>
                 <div class="col-md-9">
-                    <input id="idUsername" type="text" placeholder="" name="username" value="{{.User.Username}}" maxlength="255" autocomplete="off"
-                        spellcheck="false" required {{if ge .Mode 2}}class="form-control-plaintext readonly-input" readonly{{else}}class="form-control"{{end}} />
+                    <input .Mode 2}}class="form-control-plaintext readonly-input" autocomplete="off" ge id="idUsername"
+                           maxlength="255" name="username"
+                           placeholder="" readonly{{else}}class="form-control" required spellcheck="false" type="text" value="{{.User.Username}}"
+                           {{end}} {{if/>
                 </div>
             </div>
             {{- end}}
 
             {{- if .Roles}}
             <div class="form-group row mt-10">
-                <label for="idRole" data-i18n="general.role" class="col-md-3 col-form-label">Role</label>
+                <label class="col-md-3 col-form-label" data-i18n="general.role" for="idRole">Role</label>
                 <div class="col-md-9">
-                    <select id="idRole" name="role" data-i18n="[data-placeholder]general.role_placeholder" class="form-select" data-control="i18n-select2" data-placeholder="Select a role" data-allow-clear="true" aria-describedby="idRoleHelp">
+                    <select aria-describedby="idRoleHelp" class="form-select" data-allow-clear="true"
+                            data-control="i18n-select2" data-i18n="[data-placeholder]general.role_placeholder" data-placeholder="Select a role"
+                            id="idRole" name="role">
                         <option value=""></option>
                         {{- range .Roles}}
-                        <option value="{{.Name}}" {{if eq $.User.Role .Name}}selected{{end}}>{{.Name}}</option>
+                        <option $.User.Role .Name}}selected{{end}} eq value="{{.Name}}" {{if>{{.Name}}</option>
                         {{- end}}
                     </select>
-                    <div id="idRoleHelp" data-i18n="user.role_help" class="form-text">
+                    <div class="form-text" data-i18n="user.role_help" id="idRoleHelp">
                         Users with a role can be managed by global administrators and administrators with the same role
                     </div>
                 </div>
@@ -124,19 +142,24 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             {{- if ne .Mode 3}}
             <div class="form-group row mt-10">
-                <label for="idPassword" data-i18n="login.password" class="col-md-3 col-form-label">Password</label>
+                <label class="col-md-3 col-form-label" data-i18n="login.password" for="idPassword">Password</label>
                 <div class="col-md-9">
-                    <input id="idPassword" type="password" class="form-control" name="password" autocomplete="new-password"
-                        spellcheck="false" value="{{.User.Password}}" />
+                    <input autocomplete="new-password" class="form-control" id="idPassword" name="password"
+                           spellcheck="false"
+                           type="password" value="{{.User.Password}}"/>
                 </div>
             </div>
 
             <div class="form-group row align-items-center mt-10">
-                <label data-i18n="user.require_pwd_change" class="col-md-3 col-form-label" for="idRequirePasswordChange">Require password change</label>
+                <label class="col-md-3 col-form-label" data-i18n="user.require_pwd_change"
+                       for="idRequirePasswordChange">Require password change</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input class="form-check-input" type="checkbox" id="idRequirePasswordChange" name="require_password_change" {{if .User.Filters.RequirePasswordChange}}checked="checked"{{end}}/>
-                        <label data-i18n="user.require_pwd_change_help" class="form-check-label fw-semibold text-gray-800" for="idRequirePasswordChange">
+                        <input .User.Filters.RequirePasswordChange}}checked="checked" class="form-check-input" id="idRequirePasswordChange"
+                               name="require_password_change" type="checkbox"
+                               {{end}} {{if/>
+                        <label class="form-check-label fw-semibold text-gray-800"
+                               data-i18n="user.require_pwd_change_help" for="idRequirePasswordChange">
                             User must change password from the WebClient at next login
                         </label>
                     </div>
@@ -145,7 +168,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="general.pub_keys" class="card-title section-title-inner">Public keys</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="general.pub_keys">Public keys</h3>
                 </div>
                 <div class="card-body">
                     <div id="public_keys">
@@ -156,12 +179,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <textarea data-i18n="[placeholder]general.pub_key_placeholder" class="form-control" name="public_key" rows="4"
-                                                placeholder="Paste your public key here">{{$val}}</textarea>
+                                            <textarea class="form-control"
+                                                      data-i18n="[placeholder]general.pub_key_placeholder" name="public_key" placeholder="Paste your public key here"
+                                                      rows="4">{{$val}}</textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger">
+                                            <a class="btn btn-light-danger" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -178,12 +202,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <textarea data-i18n="[placeholder]general.pub_key_placeholder" class="form-control" name="public_key" rows="4"
-                                                placeholder="Paste your public key here"></textarea>
+                                            <textarea class="form-control"
+                                                      data-i18n="[placeholder]general.pub_key_placeholder" name="public_key" placeholder="Paste your public key here"
+                                                      rows="4"></textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger">
+                                            <a class="btn btn-light-danger" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -201,7 +226,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -212,7 +237,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="card mt-10 {{if not .CanUseTLSCerts}}d-none{{end}}">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="user.tls_certs" class="card-title section-title-inner">TLS certificates</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="user.tls_certs">TLS certificates</h3>
                 </div>
                 <div class="card-body">
                     <div id="tls_certs">
@@ -223,11 +248,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <textarea data-i18n="[placeholder]user.tls_cert_help" class="form-control" name="tls_cert" rows="4">{{$val}}</textarea>
+                                            <textarea class="form-control" data-i18n="[placeholder]user.tls_cert_help"
+                                                      name="tls_cert" rows="4">{{$val}}</textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger">
+                                            <a class="btn btn-light-danger" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -244,11 +270,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <textarea data-i18n="[placeholder]user.tls_cert_help" class="form-control" name="tls_cert" rows="4"></textarea>
+                                            <textarea class="form-control" data-i18n="[placeholder]user.tls_cert_help"
+                                                      name="tls_cert" rows="4"></textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger">
+                                            <a class="btn btn-light-danger" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -266,7 +293,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -279,41 +306,53 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             {{- if .Groups}}
             <div class="card mt-10 {{if .LoggedUser.Filters.Preferences.HideGroups}}d-none{{end}}">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="title.groups" class="card-title section-title-inner">Groups</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="title.groups">Groups</h3>
                 </div>
                 <div class="card-body">
                     {{- template "infomsg" "user.groups_help"}}
                     <div class="form-group row">
-                        <label for="idPrimaryGroup" data-i18n="user.primary_group" class="col-md-3 col-form-label">Primary group</label>
+                        <label class="col-md-3 col-form-label" data-i18n="user.primary_group" for="idPrimaryGroup">Primary
+                            group</label>
                         <div class="col-md-9">
-                            <select id="idPrimaryGroup" name="primary_group" data-i18n="[data-placeholder]general.group_placeholder" class="form-select" data-control="i18n-select2" data-placeholder="Select a group" data-allow-clear="true">
+                            <select class="form-select" data-allow-clear="true"
+                                    data-control="i18n-select2" data-i18n="[data-placeholder]general.group_placeholder"
+                                    data-placeholder="Select a group" id="idPrimaryGroup"
+                                    name="primary_group">
                                 <option value=""></option>
                                 {{- range .Groups}}
-                                <option value="{{.Name}}" {{if $.User.HasPrimaryGroup .Name}}selected{{end}}>{{.Name}}</option>
+                                <option $.User.HasPrimaryGroup .Name}}selected{{end}} value="{{.Name}}" {{if>{{.Name}}
+                                </option>
                                 {{- end}}
                             </select>
                         </div>
                     </div>
                     <div class="form-group row mt-10">
-                        <label for="idSecondaryGroup" data-i18n="user.secondary_groups" class="col-md-3 col-form-label">
+                        <label class="col-md-3 col-form-label" data-i18n="user.secondary_groups" for="idSecondaryGroup">
                             Secondary groups
                         </label>
                         <div class="col-md-9">
-                            <select id="idSecondaryGroup" name="secondary_groups" class="form-select" data-control="i18n-select2" data-close-on-select="false" multiple>
+                            <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                                    id="idSecondaryGroup" multiple name="secondary_groups">
                                 {{- range .Groups}}
-                                <option value="{{.Name}}" {{if $.User.HasSecondaryGroup .Name}}selected{{end}}>{{.Name}}</option>
+                                <option $.User.HasSecondaryGroup .Name}}selected{{end}} value="{{.Name}}" {{if>
+                                    {{.Name}}
+                                </option>
                                 {{- end}}
                             </select>
                         </div>
                     </div>
                     <div class="form-group row mt-10">
-                        <label for="idMembershipGroup" data-i18n="user.membership_groups" class="col-md-3 col-form-label">
+                        <label class="col-md-3 col-form-label" data-i18n="user.membership_groups"
+                               for="idMembershipGroup">
                             Membership groups
                         </label>
                         <div class="col-md-9">
-                            <select id="idMembershipGroup" name="membership_groups" class="form-select" data-control="i18n-select2" data-close-on-select="false" multiple>
+                            <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                                    id="idMembershipGroup" multiple name="membership_groups">
                                 {{- range .Groups}}
-                                <option value="{{.Name}}" {{if $.User.HasMembershipGroup .Name}}selected{{end}}>{{.Name}}</option>
+                                <option $.User.HasMembershipGroup .Name}}selected{{end}} value="{{.Name}}" {{if>
+                                    {{.Name}}
+                                </option>
                                 {{- end}}
                             </select>
                         </div>
@@ -326,7 +365,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             {{- if .VirtualFolders}}
             <div class="card mt-10 {{if .LoggedUser.Filters.Preferences.HideVirtualFolders}}d-none{{end}}">
                 <div class="card-header bg-light">
-                    <h3 data-i18n="title.folders" class="card-title section-title-inner">Virtual folders</h3>
+                    <h3 class="card-title section-title-inner" data-i18n="title.folders">Virtual folders</h3>
                 </div>
                 <div class="card-body">
                     <div id="virtual_folders">
@@ -338,27 +377,36 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div data-repeater-item>
                                         <div class="form-group row">
                                             <div class="col-md-3 mt-3 mt-md-8">
-                                                <input data-i18n="[placeholder]virtual_folders.mount_path" type="text" class="form-control" name="vfolder_path" value="{{$val.VirtualPath}}" />
+                                                <input class="form-control" data-i18n="[placeholder]virtual_folders.mount_path"
+                                                       name="vfolder_path" type="text"
+                                                       value="{{$val.VirtualPath}}"/>
                                             </div>
                                             <div class="col-md-3 mt-3 mt-md-8">
-                                                <select name="vfolder_name" data-i18n="[data-placeholder]general.folder_placeholder" class="form-select select-repetear" data-placeholder="Select a folder" data-allow-clear="true">
+                                                <select class="form-select select-repetear"
+                                                        data-allow-clear="true"
+                                                        data-i18n="[data-placeholder]general.folder_placeholder"
+                                                        data-placeholder="Select a folder" name="vfolder_name">
                                                     <option value=""></option>
                                                     {{- range $.VirtualFolders}}
-                                                    <option value="{{.Name}}" {{- if eq $val.Name .Name}} selected{{- end}}>{{.Name}}</option>
+                                                    <option $val.Name .Name}} end}} eq if selected{{- value="{{.Name}}"
+                                                            {{->{{.Name}}
+                                                    </option>
                                                     {{- end}}
                                                 </select>
                                             </div>
                                             <div class="col-md-3 mt-3 mt-md-8">
-                                                <input type="text" class="form-control" name="vfolder_quota_size" value="{{HumanizeBytes $val.QuotaSize}}" />
+                                                <input class="form-control" name="vfolder_quota_size" type="text"
+                                                       value="{{HumanizeBytes $val.QuotaSize}}"/>
                                                 <div class="form-text" data-i18n="virtual_folders.quota_size"></div>
                                             </div>
                                             <div class="col-md-2 mt-3 mt-md-8">
-                                                <input type="number" min="-1" class="form-control" name="vfolder_quota_files" value="{{$val.QuotaFiles}}" />
+                                                <input class="form-control" min="-1" name="vfolder_quota_files"
+                                                       type="number" value="{{$val.QuotaFiles}}"/>
                                                 <div class="form-text" data-i18n="virtual_folders.quota_files"></div>
                                             </div>
                                             <div class="col-md-1 mt-3 mt-md-8">
-                                                <a href="#" data-repeater-delete
-                                                    class="btn btn-light-danger ps-5 pe-4">
+                                                <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                   href="#">
                                                     <i class="ki-duotone ki-trash fs-2">
                                                         <span class="path1"></span>
                                                         <span class="path2"></span>
@@ -375,10 +423,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <input data-i18n="[placeholder]virtual_folders.mount_path" type="text" class="form-control" name="vfolder_path" value="" />
+                                            <input class="form-control" data-i18n="[placeholder]virtual_folders.mount_path"
+                                                   name="vfolder_path" type="text" value=""/>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <select name="vfolder_name" data-i18n="[data-placeholder]general.folder_placeholder" class="form-select select-repetear" data-placeholder="Select a folder" data-allow-clear="true">
+                                            <select class="form-select select-repetear"
+                                                    data-allow-clear="true"
+                                                    data-i18n="[data-placeholder]general.folder_placeholder"
+                                                    data-placeholder="Select a folder" name="vfolder_name">
                                                 <option value=""></option>
                                                 {{- range .VirtualFolders}}
                                                 <option value="{{.Name}}">{{.Name}}</option>
@@ -386,16 +438,17 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             </select>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <input type="text" class="form-control" name="vfolder_quota_size" value="" />
+                                            <input class="form-control" name="vfolder_quota_size" type="text" value=""/>
                                             <div class="form-text" data-i18n="virtual_folders.quota_size"></div>
                                         </div>
                                         <div class="col-md-2 mt-3 mt-md-8">
-                                            <input type="number" min="-1" class="form-control" name="vfolder_quota_files" value="" />
+                                            <input class="form-control" min="-1" name="vfolder_quota_files"
+                                                   type="number" value=""/>
                                             <div class="form-text" data-i18n="virtual_folders.quota_files"></div>
                                         </div>
                                         <div class="col-md-1 mt-3 mt-md-8">
-                                            <a href="#" data-repeater-delete
-                                                class="btn btn-light-danger ps-5 pe-4">
+                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                               href="#">
                                                 <i class="ki-duotone ki-trash fs-2">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -412,7 +465,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -422,31 +475,43 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
             {{- end}}
 
-            <div class="accordion shadow-sm mt-10 {{- if eq .LoggedUser.Filters.Preferences.VisibleUserPageSections 0}} d-none{{- end}}" id="accordionUser">
+            <div class="accordion shadow-sm mt-10 {{- if eq .LoggedUser.Filters.Preferences.VisibleUserPageSections 0}} d-none{{- end}}"
+                 id="accordionUser">
 
                 <div class="accordion-item {{- if .LoggedUser.Filters.Preferences.HideProfile}} d-none{{- end}}">
                     <h2 class="accordion-header" id="headingProfile">
-                        <button class="accordion-button section-title-inner text-primary collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProfile" aria-expanded="true" aria-controls="collapseProfile">
+                        <button aria-controls="collapseProfile" aria-expanded="true"
+                                class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#collapseProfile" data-bs-toggle="collapse"
+                                type="button">
                             <span data-i18n="title.profile">Profile</span>
                         </button>
                     </h2>
-                    <div id="collapseProfile" class="accordion-collapse collapse" aria-labelledby="headingProfile" data-bs-parent="#accordionUser">
+                    <div aria-labelledby="headingProfile" class="accordion-collapse collapse" data-bs-parent="#accordionUser"
+                         id="collapseProfile">
                         <div class="accordion-body">
 
                             <div class="form-group row">
-                                <label for="idStatus" data-i18n="general.status" class="col-md-3 col-form-label">Status</label>
+                                <label class="col-md-3 col-form-label" data-i18n="general.status"
+                                       for="idStatus">Status</label>
                                 <div class="col-md-9">
-                                    <select id="idStatus" name="status" class="form-select" data-control="i18n-select2" data-hide-search="true">
-                                        <option data-i18n="general.active" value="1" {{- if eq .User.Status 1 }} selected{{- end}}>Active</option>
-                                        <option data-i18n="general.inactive" value="0" {{- if eq .User.Status 0 }} selected{{- end}}>Inactive</option>
+                                    <select class="form-select" data-control="i18n-select2" data-hide-search="true" id="idStatus"
+                                            name="status">
+                                        <option .User.Status 1 data-i18n="general.active" end}} eq if selected{{- value="1"
+                                                {{- }}>Active
+                                        </option>
+                                        <option .User.Status 0 data-i18n="general.inactive" end}} eq if selected{{- value="0"
+                                                {{- }}>Inactive
+                                        </option>
                                     </select>
                                 </div>
                             </div>
 
                             <div class="form-group row mt-10">
-                                <label for="id_expiration" data-i18n="general.expiration" class="col-md-3 col-form-label">Expiration</label>
+                                <label class="col-md-3 col-form-label" data-i18n="general.expiration"
+                                       for="id_expiration">Expiration</label>
                                 <div class="col-md-9 d-flex">
-                                    <input data-i18n="[placeholder]general.expiration_help" id="id_expiration" class="form-control" placeholder="Pick an expiration date" />
+                                    <input class="form-control" data-i18n="[placeholder]general.expiration_help"
+                                           id="id_expiration" placeholder="Pick an expiration date"/>
                                     <button class="btn btn-icon btn-light-danger ms-2 d-none" id="id_expiration_clear">
                                         <i class="ki-solid ki-cross fs-1"></i>
                                     </button>
@@ -454,16 +519,19 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             </div>
 
                             <div class="form-group row mt-10">
-                                <label for="idEmail" data-i18n="general.email" class="col-md-3 col-form-label">Email</label>
+                                <label class="col-md-3 col-form-label" data-i18n="general.email"
+                                       for="idEmail">Email</label>
                                 <div class="col-md-9">
-                                    <input id="idEmail" type="email" class="form-control" placeholder="" name="email" value="{{.User.Email}}"
-                                        maxlength="255" autocomplete="off" spellcheck="false" />
+                                    <input autocomplete="off" class="form-control" id="idEmail" maxlength="255" name="email"
+                                           placeholder=""
+                                           spellcheck="false" type="email" value="{{.User.Email}}"/>
                                 </div>
                             </div>
 
                             <div class="card mt-10">
                                 <div class="card-header bg-light">
-                                    <h3 data-i18n="user.additional_emails" class="card-title section-title-inner">Additional emails</h3>
+                                    <h3 class="card-title section-title-inner" data-i18n="user.additional_emails">
+                                        Additional emails</h3>
                                 </div>
                                 <div class="card-body">
                                     <div id="additional_emails">
@@ -473,11 +541,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                 <div data-repeater-item>
                                                     <div class="form-group row">
                                                         <div class="col-md-10 mt-3 mt-md-8">
-                                                            <input type="email" class="form-control" placeholder="" name="additional_email" value="{{$val}}" maxlength="255" autocomplete="off" spellcheck="false" />
+                                                            <input autocomplete="off" class="form-control" maxlength="255"
+                                                                   name="additional_email" placeholder=""
+                                                                   spellcheck="false" type="email"
+                                                                   value="{{$val}}"/>
                                                         </div>
                                                         <div class="col-md-2 mt-3 mt-md-8">
-                                                            <a href="#" data-repeater-delete
-                                                                class="btn btn-light-danger">
+                                                            <a class="btn btn-light-danger" data-repeater-delete
+                                                               href="#">
                                                                 <i class="ki-duotone ki-trash fs-5">
                                                                     <span class="path1"></span>
                                                                     <span class="path2"></span>
@@ -494,11 +565,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                 <div data-repeater-item>
                                                     <div class="form-group row">
                                                         <div class="col-md-10 mt-3 mt-md-8">
-                                                            <input type="email" class="form-control" placeholder="" name="additional_email" value="" maxlength="255" autocomplete="off" spellcheck="false" />
+                                                            <input autocomplete="off" class="form-control" maxlength="255"
+                                                                   name="additional_email" placeholder="" spellcheck="false"
+                                                                   type="email" value=""/>
                                                         </div>
                                                         <div class="col-md-2 mt-3 mt-md-8">
-                                                            <a href="#" data-repeater-delete
-                                                                class="btn btn-light-danger">
+                                                            <a class="btn btn-light-danger" data-repeater-delete
+                                                               href="#">
                                                                 <i class="ki-duotone ki-trash fs-5">
                                                                     <span class="path1"></span>
                                                                     <span class="path2"></span>
@@ -516,7 +589,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                         </div>
 
                                         <div class="form-group mt-5">
-                                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                                 <i class="ki-duotone ki-plus fs-3"></i>
                                                 <span data-i18n="general.add">Add</span>
                                             </a>
@@ -528,16 +601,20 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             {{- template "user_group_profile" .User.Filters}}
 
                             <div class="form-group row mt-10">
-                                <label for="idDescription" data-i18n="general.description" class="col-md-3 col-form-label">Description</label>
+                                <label class="col-md-3 col-form-label" data-i18n="general.description"
+                                       for="idDescription">Description</label>
                                 <div class="col-md-9">
-                                    <input id="idDescription" type="text" class="form-control" name="description" value="{{.User.Description}}" maxlength="255">
+                                    <input class="form-control" id="idDescription" maxlength="255" name="description"
+                                           type="text" value="{{.User.Description}}">
                                 </div>
                             </div>
 
                             <div class="form-group row mt-10">
-                                <label for="idAdditionalInfo" data-i18n="general.additional_info" class="col-md-3 col-form-label">Additional info</label>
+                                <label class="col-md-3 col-form-label" data-i18n="general.additional_info"
+                                       for="idAdditionalInfo">Additional info</label>
                                 <div class="col-md-9">
-                                    <textarea id="idAdditionalInfo" class="form-control" name="additional_info" rows="3">{{.User.AdditionalInfo}}</textarea>
+                                    <textarea class="form-control" id="idAdditionalInfo" name="additional_info"
+                                              rows="3">{{.User.AdditionalInfo}}</textarea>
                                 </div>
                             </div>
 
@@ -547,21 +624,29 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                 <div class="accordion-item {{- if .LoggedUser.Filters.Preferences.HideACLs}} d-none{{- end}}">
                     <h2 class="accordion-header" id="headingPermissions">
-                        <button class="accordion-button section-title-inner text-primary collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePermissions" aria-expanded="true" aria-controls="collapsePermissions">
+                        <button aria-controls="collapsePermissions" aria-expanded="true"
+                                class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#collapsePermissions" data-bs-toggle="collapse"
+                                type="button">
                             <span data-i18n="general.acls">ACLs</span>
                         </button>
                     </h2>
-                    <div id="collapsePermissions" class="accordion-collapse collapse" aria-labelledby="headingPermissions" data-bs-parent="#accordionUser">
+                    <div aria-labelledby="headingPermissions" class="accordion-collapse collapse"
+                         data-bs-parent="#accordionUser" id="collapsePermissions">
                         <div class="accordion-body">
 
                             <div class="form-group row">
-                                <label for="idPermissions" data-i18n="general.permissions" class="col-md-3 col-form-label">
+                                <label class="col-md-3 col-form-label" data-i18n="general.permissions"
+                                       for="idPermissions">
                                     Permissions
                                 </label>
                                 <div class="col-md-9">
-                                    <select id="idPermissions" name="permissions" class="form-select" data-control="i18n-select2" data-hide-search="true" data-close-on-select="false" multiple>
+                                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                                            data-hide-search="true" id="idPermissions"
+                                            multiple name="permissions">
                                         {{- range $validPerm := .ValidPerms}}
-                                        <option value="{{$validPerm}}" {{- range $perm :=$.RootDirPerms }}{{- if eq $perm $validPerm}} selected{{- end}}{{- end}}>{{$validPerm}}</option>
+                                        <option $perm $perm $validPerm}} :=$.RootDirPerms end}} end}}{{- eq if
+                                                range selected{{- value="{{$validPerm}}" {{- }}{{->{{$validPerm}}
+                                        </option>
                                         {{- end}}
                                     </select>
                                 </div>
@@ -569,7 +654,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                             <div class="card mt-10">
                                 <div class="card-header bg-light">
-                                    <h3 data-i18n="filters.directory_permissions" class="card-title section-title-inner">Per-directory permissions</h3>
+                                    <h3 class="card-title section-title-inner"
+                                        data-i18n="filters.directory_permissions">Per-directory permissions</h3>
                                 </div>
                                 <div class="card-body">
                                     <div id="directory_permissions">
@@ -580,18 +666,28 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                 <div data-repeater-item>
                                                     <div class="form-group row">
                                                         <div class="col-md-6 mt-3 mt-md-8">
-                                                            <input data-i18n="[placeholder]filters.directory_path_help" type="text" class="form-control" name="sub_perm_path" value="{{$dirPerms.Path}}" />
+                                                            <input class="form-control"
+                                                                   data-i18n="[placeholder]filters.directory_path_help" name="sub_perm_path" type="text"
+                                                                   value="{{$dirPerms.Path}}"/>
                                                         </div>
                                                         <div class="col-md-5 mt-3 mt-md-8">
-                                                            <select name="sub_perm_permissions" data-i18n="[data-placeholder]general.permissions" class="form-select select-repetear" data-hide-search="true" data-close-on-select="false" multiple>
+                                                            <select class="form-select select-repetear"
+                                                                    data-close-on-select="false"
+                                                                    data-hide-search="true"
+                                                                    data-i18n="[data-placeholder]general.permissions" multiple
+                                                                    name="sub_perm_permissions">
                                                                 {{- range $validPerm := $.ValidPerms}}
-                                                                <option value="{{$validPerm}}" {{- range $perm := $dirPerms.Permissions }}{{- if eq $perm $validPerm}} selected{{- end}}{{- end}}>{{$validPerm}}</option>
+                                                                <option $perm $perm $validPerm}} :=$dirPerms.Permissions
+                                                                        end}} end}}{{- eq if range
+                                                                        selected{{- value="{{$validPerm}}" {{- }}{{->
+                                                                    {{$validPerm}}
+                                                                </option>
                                                                 {{- end}}
                                                             </select>
                                                         </div>
                                                         <div class="col-md-1 mt-3 mt-md-8">
-                                                            <a href="#" data-repeater-delete
-                                                                class="btn btn-light-danger ps-5 pe-4">
+                                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                               href="#">
                                                                 <i class="ki-duotone ki-trash fs-2">
                                                                     <span class="path1"></span>
                                                                     <span class="path2"></span>
@@ -607,18 +703,24 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                 <div data-repeater-item>
                                                     <div class="form-group row">
                                                         <div class="col-md-6 mt-3 mt-md-8">
-                                                            <input data-i18n="[placeholder]filters.directory_path_help" type="text" class="form-control" name="sub_perm_path" value="" />
+                                                            <input class="form-control"
+                                                                   data-i18n="[placeholder]filters.directory_path_help" name="sub_perm_path" type="text"
+                                                                   value=""/>
                                                         </div>
                                                         <div class="col-md-5 mt-3 mt-md-8">
-                                                            <select name="sub_perm_permissions" data-i18n="[data-placeholder]general.permissions" class="form-select select-repetear" data-hide-search="true" data-close-on-select="false" multiple>
+                                                            <select class="form-select select-repetear"
+                                                                    data-close-on-select="false"
+                                                                    data-hide-search="true"
+                                                                    data-i18n="[data-placeholder]general.permissions" multiple
+                                                                    name="sub_perm_permissions">
                                                                 {{- range $validPerm := .ValidPerms}}
                                                                 <option value="{{$validPerm}}">{{$validPerm}}</option>
                                                                 {{- end}}
                                                             </select>
                                                         </div>
                                                         <div class="col-md-1 mt-3 mt-md-8">
-                                                            <a href="#" data-repeater-delete
-                                                                class="btn btn-light-danger ps-5 pe-4">
+                                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                               href="#">
                                                                 <i class="ki-duotone ki-trash fs-2">
                                                                     <span class="path1"></span>
                                                                     <span class="path2"></span>
@@ -635,7 +737,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                         </div>
 
                                         <div class="form-group mt-5">
-                                            <a href="#" data-repeater-create class="btn btn-light-primary">
+                                            <a class="btn btn-light-primary" data-repeater-create href="#">
                                                 <i class="ki-duotone ki-plus fs-3"></i>
                                                 <span data-i18n="general.add">Add</span>
                                             </a>
@@ -649,82 +751,110 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             {{- template "user_group_access_time" .User.Filters}}
 
                             <div class="form-group row mt-10">
-                                <label for="idMaxSessions" data-i18n="filters.max_sessions" class="col-md-3 col-form-label">Max sessions</label>
+                                <label class="col-md-3 col-form-label" data-i18n="filters.max_sessions"
+                                       for="idMaxSessions">Max sessions</label>
                                 <div class="col-md-9">
-                                    <input id="idMaxSessions" type="number" min="0" class="form-control" name="max_sessions" value="{{.User.MaxSessions}}" aria-describedby="idMaxSessionsHelp" />
-                                    <div id="idMaxSessionsHelp" class="form-text" data-i18n="filters.max_sessions_help"></div>
+                                    <input aria-describedby="idMaxSessionsHelp" class="form-control" id="idMaxSessions" min="0"
+                                           name="max_sessions" type="number"
+                                           value="{{.User.MaxSessions}}"/>
+                                    <div class="form-text" data-i18n="filters.max_sessions_help"
+                                         id="idMaxSessionsHelp"></div>
                                 </div>
                             </div>
 
                             <div class="form-group row mt-10">
-                                <label for="idProtocols" data-i18n="filters.denied_protocols" class="col-md-3 col-form-label">
+                                <label class="col-md-3 col-form-label" data-i18n="filters.denied_protocols"
+                                       for="idProtocols">
                                     Denied protocols
                                 </label>
                                 <div class="col-md-9">
-                                    <select id="idProtocols" name="denied_protocols" class="form-select" data-control="i18n-select2" data-close-on-select="false" multiple>
+                                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                                            id="idProtocols" multiple name="denied_protocols">
                                         {{- range $protocol := .ValidProtocols}}
-                                        <option value="{{$protocol}}" {{- range $p :=$.User.Filters.DeniedProtocols }}{{- if eq $p $protocol}} selected{{- end}}{{- end}}>{{$protocol}}</option>
+                                        <option $p $p $protocol}} :=$.User.Filters.DeniedProtocols end}}
+                                                end}}{{- eq if range selected{{- value="{{$protocol}}" {{- }}{{->{{$protocol}}
+                                        </option>
                                         {{- end}}
                                     </select>
                                 </div>
                             </div>
 
                             <div class="form-group row mt-10">
-                                <label for="idLoginMethods" data-i18n="filters.denied_login_methods" class="col-md-3 col-form-label">
+                                <label class="col-md-3 col-form-label" data-i18n="filters.denied_login_methods"
+                                       for="idLoginMethods">
                                     Denied login methods
                                 </label>
                                 <div class="col-md-9">
-                                    <select id="idLoginMethods" name="denied_login_methods" class="form-select" data-control="i18n-select2" data-close-on-select="false" multiple aria-describedby="idLoginMethodsHelp">
+                                    <select aria-describedby="idLoginMethodsHelp" class="form-select" data-close-on-select="false"
+                                            data-control="i18n-select2" id="idLoginMethods" multiple
+                                            name="denied_login_methods">
                                         {{- range $method := .ValidLoginMethods}}
-                                        <option value="{{$method}}" {{- range $m :=$.User.Filters.DeniedLoginMethods }}{{- if eq $m $method}} selected{{- end}}{{- end}}>{{$method}}</option>
+                                        <option $m $m $method}} :=$.User.Filters.DeniedLoginMethods end}}
+                                                end}}{{- eq if range selected{{- value="{{$method}}" {{- }}{{->{{$method}}
+                                        </option>
                                         {{- end}}
                                     </select>
-                                    <div id="idLoginMethodsHelp" data-i18n="filters.denied_login_methods_help" class="form-text">
+                                    <div class="form-text" data-i18n="filters.denied_login_methods_help"
+                                         id="idLoginMethodsHelp">
                                     </div>
                                 </div>
                             </div>
 
                             <div class="form-group row mt-10">
-                                <label for="idTwoFactorProtocols" data-i18n="2fa.require_for" class="col-md-3 col-form-label">
+                                <label class="col-md-3 col-form-label" data-i18n="2fa.require_for"
+                                       for="idTwoFactorProtocols">
                                     Require 2FA for
                                 </label>
                                 <div class="col-md-9">
-                                    <select id="idTwoFactorProtocols" name="required_two_factor_protocols" class="form-select" data-control="i18n-select2" data-close-on-select="false" multiple>
+                                    <select class="form-select" data-close-on-select="false"
+                                            data-control="i18n-select2" id="idTwoFactorProtocols" multiple
+                                            name="required_two_factor_protocols">
                                         {{- range $protocol := .TwoFactorProtocols}}
-                                        <option value="{{$protocol}}" {{- range $p :=$.User.Filters.TwoFactorAuthProtocols }}{{- if eq $p $protocol}} selected{{- end}}{{- end}}>{{$protocol}}</option>
+                                        <option $p $p $protocol}} :=$.User.Filters.TwoFactorAuthProtocols
+                                                end}} end}}{{- eq if range selected{{-
+                                                value="{{$protocol}}" {{- }}{{->{{$protocol}}
+                                        </option>
                                         {{end}}
                                     </select>
                                 </div>
                             </div>
 
                             <div class="form-group row mt-10">
-                                <label for="idWebClient" data-i18n="filters.web_client_options" class="col-md-3 col-form-label">
+                                <label class="col-md-3 col-form-label" data-i18n="filters.web_client_options"
+                                       for="idWebClient">
                                     Web client/REST API
                                 </label>
                                 <div class="col-md-9">
-                                    <select id="idWebClient" name="web_client_options" class="form-select" data-control="i18n-select2" data-close-on-select="false" multiple>
+                                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                                            id="idWebClient" multiple name="web_client_options">
                                         {{- range $option := .WebClientOptions}}
-                                        <option value="{{$option}}" {{- range $p :=$.User.Filters.WebClient }}{{- if eq $p $option}}selected{{- end}}{{- end}}>{{$option}}</option>
+                                        <option $option}}selected{{- $p $p :=$.User.Filters.WebClient end}} end}}{{- eq if
+                                                range value="{{$option}}" {{- }}{{->{{$option}}
+                                        </option>
                                         {{- end}}
                                     </select>
                                 </div>
                             </div>
 
                             <div class="form-group row mt-10">
-                                <label for="idDeniedIP" data-i18n="general.denied_ip_mask" class="col-md-3 col-form-label">Denied IP/Mask</label>
+                                <label class="col-md-3 col-form-label" data-i18n="general.denied_ip_mask"
+                                       for="idDeniedIP">Denied IP/Mask</label>
                                 <div class="col-md-9">
-                                    <textarea class="form-control" id="idDeniedIP" name="denied_ip" aria-describedby="idDeniedIPHelp"
-                                        rows="3">{{.User.GetDeniedIPAsString}}</textarea>
-                                    <div id="idDeniedIPHelp" class="form-text" data-i18n="general.ip_mask_help"></div>
+                                    <textarea aria-describedby="idDeniedIPHelp" class="form-control" id="idDeniedIP"
+                                              name="denied_ip"
+                                              rows="3">{{.User.GetDeniedIPAsString}}</textarea>
+                                    <div class="form-text" data-i18n="general.ip_mask_help" id="idDeniedIPHelp"></div>
                                 </div>
                             </div>
 
                             <div class="form-group row mt-10">
-                                <label for="idAllowedIP" data-i18n="general.allowed_ip_mask" class="col-md-3 col-form-label">Allowed IP/Mask</label>
+                                <label class="col-md-3 col-form-label" data-i18n="general.allowed_ip_mask"
+                                       for="idAllowedIP">Allowed IP/Mask</label>
                                 <div class="col-md-9">
-                                    <textarea class="form-control" id="idAllowedIP" name="allowed_ip" aria-describedby="idAllowedIPHelp"
-                                        rows="3">{{.User.GetAllowedIPAsString}}</textarea>
-                                    <div id="idAllowedIPHelp" class="form-text" data-i18n="general.ip_mask_help"></div>
+                                    <textarea aria-describedby="idAllowedIPHelp" class="form-control" id="idAllowedIP"
+                                              name="allowed_ip"
+                                              rows="3">{{.User.GetAllowedIPAsString}}</textarea>
+                                    <div class="form-text" data-i18n="general.ip_mask_help" id="idAllowedIPHelp"></div>
                                 </div>
                             </div>
 
@@ -734,11 +864,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                 <div class="accordion-item {{- if .LoggedUser.Filters.Preferences.HideDiskQuotaAndBandwidthLimits}} d-none{{- end}}">
                     <h2 class="accordion-header" id="headingQuota">
-                        <button class="accordion-button section-title-inner text-primary collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseQuota" aria-expanded="true" aria-controls="collapseQuota">
+                        <button aria-controls="collapseQuota" aria-expanded="true"
+                                class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#collapseQuota" data-bs-toggle="collapse"
+                                type="button">
                             <span data-i18n="general.quota_limits">Disk quota and bandwidth limits</span>
                         </button>
                     </h2>
-                    <div id="collapseQuota" class="accordion-collapse collapse" aria-labelledby="headingQuota" data-bs-parent="#accordionUser">
+                    <div aria-labelledby="headingQuota" class="accordion-collapse collapse" data-bs-parent="#accordionUser"
+                         id="collapseQuota">
                         <div class="accordion-body">
 
                             {{template "user_group_quota" .User}}
@@ -749,32 +882,42 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                 <div class="accordion-item {{- if .LoggedUser.Filters.Preferences.HideAdvancedSettings}} d-none{{- end}}">
                     <h2 class="accordion-header" id="headingAdvanced">
-                        <button class="accordion-button section-title-inner text-primary collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdvanced" aria-expanded="true" aria-controls="collapseAdvanced">
+                        <button aria-controls="collapseAdvanced" aria-expanded="true"
+                                class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#collapseAdvanced" data-bs-toggle="collapse"
+                                type="button">
                             <span data-i18n="general.advanced_settings">Advanced settings</span>
                         </button>
                     </h2>
-                    <div id="collapseAdvanced" class="accordion-collapse collapse" aria-labelledby="headingAdvanced" data-bs-parent="#accordionUser">
+                    <div aria-labelledby="headingAdvanced" class="accordion-collapse collapse" data-bs-parent="#accordionUser"
+                         id="collapseAdvanced">
                         <div class="accordion-body">
 
                             {{template "user_group_advanced" .User.Filters}}
 
                             <div class="form-group row mt-10 {{if not .User.HasExternalAuth}}d-none{{end}}">
-                                <label for="idExtAuthCacheTime" data-i18n="filters.external_auth_cache_time" class="col-md-3 col-form-label">External auth cache time</label>
+                                <label class="col-md-3 col-form-label" data-i18n="filters.external_auth_cache_time"
+                                       for="idExtAuthCacheTime">External auth cache time</label>
                                 <div class="col-md-9">
-                                    <input id="idExtAuthCacheTime" type="number" min="0" class="form-control" name="external_auth_cache_time" value="{{.User.Filters.ExternalAuthCacheTime}}" aria-describedby="idExtAuthCacheTimeHelp" />
-                                    <div id="idExtAuthCacheTimeHelp" class="form-text" data-i18n="filters.external_auth_cache_time_help"></div>
+                                    <input aria-describedby="idExtAuthCacheTimeHelp" class="form-control" id="idExtAuthCacheTime" min="0"
+                                           name="external_auth_cache_time"
+                                           type="number"
+                                           value="{{.User.Filters.ExternalAuthCacheTime}}"/>
+                                    <div class="form-text" data-i18n="filters.external_auth_cache_time_help"
+                                         id="idExtAuthCacheTimeHelp"></div>
                                 </div>
                             </div>
 
                             <div class="form-group row mt-10 {{if not .CanImpersonate}}d-none{{end}}">
-                                <label for="idUID" class="col-md-3 col-form-label">UID</label>
+                                <label class="col-md-3 col-form-label" for="idUID">UID</label>
                                 <div class="col-md-3">
-                                    <input id="idUID" type="number" min="0" max="2147483647" class="form-control" name="uid" value="{{.User.UID}}" />
+                                    <input class="form-control" id="idUID" max="2147483647" min="0" name="uid"
+                                           type="number" value="{{.User.UID}}"/>
                                 </div>
                                 <div class="col-md-1"></div>
-                                <label for="idGID" class="col-md-2 col-form-label">GID</label>
+                                <label class="col-md-2 col-form-label" for="idGID">GID</label>
                                 <div class="col-md-3">
-                                    <input id="idGID" type="number" min="0" max="2147483647" class="form-control" name="gid" value="{{.User.GID}}" />
+                                    <input class="form-control" id="idGID" max="2147483647" min="0" name="gid"
+                                           type="number" value="{{.User.GID}}"/>
                                 </div>
                             </div>
 
@@ -786,12 +929,15 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             {{- if eq .Mode 2}}
             <div class="form-group row align-items-center mt-10">
-                <label data-i18n="user.disconnect" class="col-md-3 col-form-label" for="idDisconnect">Disconnect the user after the update</label>
+                <label class="col-md-3 col-form-label" data-i18n="user.disconnect" for="idDisconnect">Disconnect the
+                    user after the update</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input class="form-check-input" type="checkbox" id="idDisconnect" name="disconnect"/>
-                        <label data-i18n="user.disconnect_help" class="form-check-label fw-semibold text-gray-800" for="idDisconnect">
-                            This way you force the user to login again, if connected, and so to use the new configuration
+                        <input class="form-check-input" id="idDisconnect" name="disconnect" type="checkbox"/>
+                        <label class="form-check-label fw-semibold text-gray-800" data-i18n="user.disconnect_help"
+                               for="idDisconnect">
+                            This way you force the user to login again, if connected, and so to use the new
+                            configuration
                         </label>
                     </div>
                 </div>
@@ -799,13 +945,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             {{- end}}
 
             <div class="d-flex justify-content-end mt-12">
-                <input type="hidden" name="expiration_date" id="hidden_start_datetime" value="">
-                <input type="hidden" name="_form_token" value="{{.CSRFToken}}">
-                <button type="submit" id="form_submit" class="btn btn-primary px-10" name="form_action" value="submit">
-                    <span data-i18n="general.submit" class="indicator-label">
+                <input id="hidden_start_datetime" name="expiration_date" type="hidden" value="">
+                <input name="_form_token" type="hidden" value="{{.CSRFToken}}">
+                <button class="btn btn-primary px-10" id="form_submit" name="form_action" type="submit" value="submit">
+                    <span class="indicator-label" data-i18n="general.submit">
                         Submit
                     </span>
-                    <span data-i18n="general.wait" class="indicator-progress">
+                    <span class="indicator-progress" data-i18n="general.wait">
                         Please wait...
                         <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                     </span>
@@ -818,86 +964,88 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js"></script>
-<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/custom/flatpickr/l10n/it.js"></script>
-<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
+        {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/flatpickr/l10n/it.js" {{-
+        {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
 
-    $(document).on("i18nload", function(){
+    $(document).on("i18nload", function () {
         onFilesystemChanged('{{.User.FsConfig.Provider}}');
 
-        $('#idFilesystem').on("change", function(){
+        $('#idFilesystem').on("change", function () {
             onFilesystemChanged(this.value);
         });
     });
 
-    $(document).on("i18nshow", function(){
-            //{{- if eq .Mode 3}}
-            initRepeater('#template_users');
-            //{{- else}}
-            initRepeater('#public_keys');
-            //{{- end}}
-            initRepeater('#virtual_folders');
-            initRepeater('#directory_permissions');
-            initRepeater('#directory_patterns');
-            initRepeater('#src_bandwidth_limits');
-            initRepeater('#tls_certs');
-            initRepeater('#access_time_restrictions');
-            initRepeater('#additional_emails');
-            initRepeaterItems();
-            //{{- if .Error}}
-            //{{- if ne .LoggedUser.Filters.Preferences.VisibleUserPageSections 0}}
-            $('#accordionUser .collapse').removeAttr("data-bs-parent").collapse('show');
-            //{{- end}}
-            //{{- end}}
-            const picker = $('#id_expiration').flatpickr({
-                enableTime: false,
-                time_24hr: true,
-                formatDate: (date, format, locale) => {
-                    return $.t('general.datetime', {
-                                val: new Date(date),
-                                formatParams: {
-                                    val: { year: 'numeric', month: 'numeric', day: 'numeric' },
-                                }
-                            });
-                },
-                defaultHour: 23,
-                defaultMinute: 59,
-                locale: i18next.resolvedLanguage,
-                onChange: function(selectedDates, dateStr, instance) {
-                    if (selectedDates.length > 0){
-                        $('#id_expiration_clear').removeClass("d-none");
-                    } else {
-                        $('#id_expiration_clear').addClass("d-none");
+    $(document).on("i18nshow", function () {
+        //{{- if eq .Mode 3}}
+        initRepeater('#template_users');
+        //{{- else}}
+        initRepeater('#public_keys');
+        //{{- end}}
+        initRepeater('#virtual_folders');
+        initRepeater('#directory_permissions');
+        initRepeater('#directory_patterns');
+        initRepeater('#src_bandwidth_limits');
+        initRepeater('#tls_certs');
+        initRepeater('#access_time_restrictions');
+        initRepeater('#additional_emails');
+        initRepeaterItems();
+        //{{- if .Error}}
+        //{{- if ne .LoggedUser.Filters.Preferences.VisibleUserPageSections 0}}
+        $('#accordionUser .collapse').removeAttr("data-bs-parent").collapse('show');
+        //{{- end}}
+        //{{- end}}
+        const picker = $('#id_expiration').flatpickr({
+            enableTime: false,
+            time_24hr: true,
+            formatDate: (date, format, locale) => {
+                return $.t('general.datetime', {
+                    val: new Date(date),
+                    formatParams: {
+                        val: {year: 'numeric', month: 'numeric', day: 'numeric'},
                     }
+                });
+            },
+            defaultHour: 23,
+            defaultMinute: 59,
+            locale: i18next.resolvedLanguage,
+            onChange: function (selectedDates, dateStr, instance) {
+                if (selectedDates.length > 0) {
+                    $('#id_expiration_clear').removeClass("d-none");
+                } else {
+                    $('#id_expiration_clear').addClass("d-none");
                 }
-            });
-            //{{ if gt .User.ExpirationDate 0 }}
-            let input_dt = moment('{{.User.ExpirationDate }}', 'x').format('YYYY-MM-DD');
-            picker.setDate(input_dt, true);
-            //{{ end }}
-
-            $('#id_expiration_clear').on("click", function(e){
-                e.preventDefault();
-                picker.clear();
-            });
-
-            $("#user_form").submit(function (event) {
-                $('#hidden_start_datetime').val("");
-                let dt = picker.selectedDates;
-                if (dt.length > 0) {
-                    let d = dt[0];
-                    if (d) {
-                        let dateString = moment.utc(d).format('YYYY-MM-DD HH:mm:ss');
-                        $('#hidden_start_datetime').val(dateString);
-                    }
-                }
-                //{{- if ne .Mode 3}}
-                let submitButton = document.querySelector('#form_submit');
-                submitButton.setAttribute('data-kt-indicator', 'on');
-                submitButton.disabled = true;
-                //{{- end}}
-            });
-
+            }
         });
+        //{{ if gt .User.ExpirationDate 0 }}
+        let input_dt = moment('{{.User.ExpirationDate }}', 'x').format('YYYY-MM-DD');
+        picker.setDate(input_dt, true);
+        //{{ end }}
+
+        $('#id_expiration_clear').on("click", function (e) {
+            e.preventDefault();
+            picker.clear();
+        });
+
+        $("#user_form").submit(function (event) {
+            $('#hidden_start_datetime').val("");
+            let dt = picker.selectedDates;
+            if (dt.length > 0) {
+                let d = dt[0];
+                if (d) {
+                    let dateString = moment.utc(d).format('YYYY-MM-DD HH:mm:ss');
+                    $('#hidden_start_datetime').val(dateString);
+                }
+            }
+            //{{- if ne .Mode 3}}
+            let submitButton = document.querySelector('#form_submit');
+            submitButton.setAttribute('data-kt-indicator', 'on');
+            submitButton.disabled = true;
+            //{{- end}}
+        });
+
+    });
 </script>
 {{- end}}

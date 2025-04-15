@@ -7,4 +7,6 @@ Only the current release of the software is actively supported.
 
 ## Reporting a Vulnerability
 
-To report (possible) security issues in SFTPGo, please either send a mail to the [SFTPGo Team](mailto:support@sftpgo.com) or use Github's [private reporting feature](https://github.com/drakkan/sftpgo/security/advisories/new).
+To report (possible) security issues in SFTPGo, please either send a mail to
+the [SFTPGo Team](mailto:support@sftpgo.com) or use
+Github's [private reporting feature](https://github.com/drakkan/sftpgo/security/advisories/new).
