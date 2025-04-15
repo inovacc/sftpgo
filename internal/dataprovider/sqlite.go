@@ -886,12 +886,12 @@ func downgradeSQLiteDatabaseFrom31To30(dbHandle *sql.DB) error {
 	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, []string{sql}, 30, false)
 }
 
-/*func setPragmaFK(dbHandle *sql.DB, value string) error {
+/*func setPragmaFK(jsHandle *sql.DB, value string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), longSQLQueryTimeout)
 	defer cancel()
 
 	sql := fmt.Sprintf("PRAGMA foreign_keys=%v;", value)
 
-	_, err := dbHandle.ExecContext(ctx, sql)
+	_, err := jsHandle.ExecContext(ctx, sql)
 	return err
 }*/
