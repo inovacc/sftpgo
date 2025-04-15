@@ -36,50 +36,36 @@ func init() {
 }
 
 const (
-	usersBucketNats     = "users"
-	groupsBucketNats    = "groups"
-	foldersBucketNats   = "folders"
-	adminsBucketNats    = "admins"
-	apiKeysBucketNats   = "api_keys"
-	sharesBucketNats    = "shares"
-	actionsBucketNats   = "events_actions"
-	rulesBucketNats     = "events_rules"
-	rolesBucketNats     = "roles"
-	ipListsBucketNats   = "ip_lists"
-	configsBucketNats   = "configs"
-	dbVersionBucketNats = "db_version"
-	dbVersionKeyNats    = "version"
-	configsKeyNats      = "configs"
+	usersBucketNATS     = "users"
+	groupsBucketNATS    = "groups"
+	foldersBucketNATS   = "folders"
+	adminsBucketNATS    = "admins"
+	apiKeysBucketNATS   = "api_keys"
+	sharesBucketNATS    = "shares"
+	actionsBucketNATS   = "events_actions"
+	rulesBucketNATS     = "events_rules"
+	rolesBucketNATS     = "roles"
+	ipListsBucketNATS   = "ip_lists"
+	configsBucketNATS   = "configs"
+	dbVersionBucketNATS = "db_version"
+	dbVersionKeyNATS    = "version"
+	configsKeyNATS      = "configs"
 )
 
 var natsBuckets = []string{
-	usersBucketNats, groupsBucketNats, foldersBucketNats, adminsBucketNats, apiKeysBucketNats,
-	sharesBucketNats, actionsBucketNats, rulesBucketNats, rolesBucketNats, ipListsBucketNats,
-	configsBucketNats, dbVersionBucketNats,
-}
-
-func ensureBuckets(js nats.JetStreamContext) error {
-	for _, bucket := range natsBuckets {
-		_, err := js.CreateKeyValue(&nats.KeyValueConfig{
-			Bucket:      bucket,
-			Storage:     nats.FileStorage,
-			Compression: true,
-		})
-		if err != nil && !errors.Is(err, nats.ErrBadBucket) {
-			return fmt.Errorf("failed to create bucket %q: %w", bucket, err)
-		}
-	}
-	return nil
+	usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS,
+	sharesBucketNATS, actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS,
+	configsBucketNATS, dbVersionBucketNATS,
 }
 
 type NATSProvider struct {
 	js nats.JetStreamContext
 }
 
-func initializeNatsProvider() error {
+func initializeNATSProvider() error {
 	var err error
 
-	connString, err := getNatsConnectionString(false)
+	connString, err := getNATSConnectionString(false)
 	if err != nil {
 		providerLog(logger.LevelError, "error creating nats database handler, connection string: %q, error: %v", connString, err)
 		return err
@@ -103,7 +89,7 @@ func initializeNatsProvider() error {
 	return err
 }
 
-func getNatsConnectionString(redactedPwd bool) (string, error) {
+func getNATSConnectionString(redactedPwd bool) (string, error) {
 	var connectionString string
 	if config.ConnectionString == "" {
 		password := config.Password
@@ -112,7 +98,7 @@ func getNatsConnectionString(redactedPwd bool) (string, error) {
 		}
 		sslMode := getSSLMode()
 		if sslMode == "custom" && !redactedPwd {
-			if err := registerMySQLCustomTLSConfig(); err != nil {
+			if err := registerNATSCustomTLSConfig(); err != nil {
 				return "", err
 			}
 		}
@@ -630,11 +616,11 @@ func (p *NATSProvider) migrateDatabase() error {
 		logger.ErrorToConsole("%v", err)
 		return err
 	case version == 29:
-		return updateMySQLDatabaseFromV29(p.dbHandle)
+		return updateNATSDatabaseFromV29(p.dbHandle)
 	case version == 30:
-		return updateMySQLDatabaseFromV30(p.dbHandle)
+		return updateNATSDatabaseFromV30(p.dbHandle)
 	case version == 31:
-		return updateMySQLDatabaseFromV31(p.dbHandle)
+		return updateNATSDatabaseFromV31(p.dbHandle)
 	default:
 		if version > sqlDatabaseVersion {
 			providerLog(logger.LevelError, "database schema version %d is newer than the supported one: %d", version,
@@ -658,11 +644,11 @@ func (p *NATSProvider) revertDatabase(targetVersion int) error {
 
 	switch dbVersion.Version {
 	case 30:
-		return downgradeMySQLDatabaseFromV30(p.dbHandle)
+		return downgradeNATSDatabaseFromV30(p.dbHandle)
 	case 31:
-		return downgradeMySQLDatabaseFromV31(p.dbHandle)
+		return downgradeNATSDatabaseFromV31(p.dbHandle)
 	case 32:
-		return downgradeMySQLDatabaseFromV32(p.dbHandle)
+		return downgradeNATSDatabaseFromV32(p.dbHandle)
 	default:
 		return fmt.Errorf("database schema version not handled: %d", dbVersion.Version)
 	}
@@ -677,7 +663,7 @@ func (p *NATSProvider) normalizeError(err error, fieldType int) error {
 	if err == nil {
 		return nil
 	}
-	var mysqlErr *mysql.MySQLError
+	var mysqlErr *mysql.NATSError
 	if errors.As(err, &mysqlErr) {
 		switch mysqlErr.Number {
 		case 1062:
@@ -701,43 +687,43 @@ func (p *NATSProvider) normalizeError(err error, fieldType int) error {
 	return err
 }
 
-func updateMySQLDatabaseFromV29(dbHandle *sql.DB) error {
-	if err := updateMySQLDatabaseFrom29To30(dbHandle); err != nil {
+func updateNATSDatabaseFromV29(dbHandle *sql.DB) error {
+	if err := updateNATSDatabaseFrom29To30(dbHandle); err != nil {
 		return err
 	}
-	return updateMySQLDatabaseFromV30(dbHandle)
+	return updateNATSDatabaseFromV30(dbHandle)
 }
 
-func updateMySQLDatabaseFromV30(dbHandle *sql.DB) error {
-	if err := updateMySQLDatabaseFrom30To31(dbHandle); err != nil {
+func updateNATSDatabaseFromV30(dbHandle *sql.DB) error {
+	if err := updateNATSDatabaseFrom30To31(dbHandle); err != nil {
 		return err
 	}
-	return updateMySQLDatabaseFromV31(dbHandle)
+	return updateNATSDatabaseFromV31(dbHandle)
 }
 
-func updateMySQLDatabaseFromV31(dbHandle *sql.DB) error {
+func updateNATSDatabaseFromV31(dbHandle *sql.DB) error {
 	return updateSQLDatabaseFrom31To32(dbHandle)
 }
 
-func downgradeMySQLDatabaseFromV30(dbHandle *sql.DB) error {
-	return downgradeMySQLDatabaseFrom30To29(dbHandle)
+func downgradeNATSDatabaseFromV30(dbHandle *sql.DB) error {
+	return downgradeNATSDatabaseFrom30To29(dbHandle)
 }
 
-func downgradeMySQLDatabaseFromV31(dbHandle *sql.DB) error {
-	if err := downgradeMySQLDatabaseFrom31To30(dbHandle); err != nil {
+func downgradeNATSDatabaseFromV31(dbHandle *sql.DB) error {
+	if err := downgradeNATSDatabaseFrom31To30(dbHandle); err != nil {
 		return err
 	}
-	return downgradeMySQLDatabaseFromV30(dbHandle)
+	return downgradeNATSDatabaseFromV30(dbHandle)
 }
 
-func downgradeMySQLDatabaseFromV32(dbHandle *sql.DB) error {
+func downgradeNATSDatabaseFromV32(dbHandle *sql.DB) error {
 	if err := downgradeSQLDatabaseFrom32To31(dbHandle); err != nil {
 		return err
 	}
-	return downgradeMySQLDatabaseFromV31(dbHandle)
+	return downgradeNATSDatabaseFromV31(dbHandle)
 }
 
-func updateMySQLDatabaseFrom29To30(dbHandle *sql.DB) error {
+func updateNATSDatabaseFrom29To30(dbHandle *sql.DB) error {
 	logger.InfoToConsole("updating database schema version: 29 -> 30")
 	providerLog(logger.LevelInfo, "updating database schema version: 29 -> 30")
 
@@ -745,7 +731,7 @@ func updateMySQLDatabaseFrom29To30(dbHandle *sql.DB) error {
 	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 30, true)
 }
 
-func downgradeMySQLDatabaseFrom30To29(dbHandle *sql.DB) error {
+func downgradeNATSDatabaseFrom30To29(dbHandle *sql.DB) error {
 	logger.InfoToConsole("downgrading database schema version: 30 -> 29")
 	providerLog(logger.LevelInfo, "downgrading database schema version: 30 -> 29")
 
@@ -753,7 +739,7 @@ func downgradeMySQLDatabaseFrom30To29(dbHandle *sql.DB) error {
 	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 29, false)
 }
 
-func updateMySQLDatabaseFrom30To31(dbHandle *sql.DB) error {
+func updateNATSDatabaseFrom30To31(dbHandle *sql.DB) error {
 	logger.InfoToConsole("updating database schema version: 30 -> 31")
 	providerLog(logger.LevelInfo, "updating database schema version: 30 -> 31")
 
@@ -762,7 +748,7 @@ func updateMySQLDatabaseFrom30To31(dbHandle *sql.DB) error {
 	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 31, true)
 }
 
-func downgradeMySQLDatabaseFrom31To30(dbHandle *sql.DB) error {
+func downgradeNATSDatabaseFrom31To30(dbHandle *sql.DB) error {
 	logger.InfoToConsole("downgrading database schema version: 31 -> 30")
 	providerLog(logger.LevelInfo, "downgrading database schema version: 31 -> 30")
 
