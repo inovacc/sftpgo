@@ -21,5 +21,5 @@ func init() {
 }
 
 func initializeNatsProvider(_ string) error {
-	return errors.New("nats disabled at build time")
+	return errors.New("NATS disabled at build time")
 }

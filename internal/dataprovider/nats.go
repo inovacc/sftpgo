@@ -12,11 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:build nats
+////go:build nats
 
 package dataprovider
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
 	"errors"
@@ -25,36 +26,16 @@ import (
 	"github.com/drakkan/sftpgo/v2/internal/util"
 	"github.com/drakkan/sftpgo/v2/internal/version"
 	"github.com/drakkan/sftpgo/v2/internal/vfs"
+	"github.com/go-sql-driver/mysql"
 	"github.com/nats-io/nats.go"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
 func init() {
 	version.AddFeature("+nats")
-}
-
-const (
-	usersBucketNATS     = "users"
-	groupsBucketNATS    = "groups"
-	foldersBucketNATS   = "folders"
-	adminsBucketNATS    = "admins"
-	apiKeysBucketNATS   = "api_keys"
-	sharesBucketNATS    = "shares"
-	actionsBucketNATS   = "events_actions"
-	rulesBucketNATS     = "events_rules"
-	rolesBucketNATS     = "roles"
-	ipListsBucketNATS   = "ip_lists"
-	configsBucketNATS   = "configs"
-	dbVersionBucketNATS = "db_version"
-	dbVersionKeyNATS    = "version"
-	configsKeyNATS      = "configs"
-)
-
-var natsBuckets = []string{
-	usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS,
-	sharesBucketNATS, actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS,
-	configsBucketNATS, dbVersionBucketNATS,
 }
 
 type NATSProvider struct {
@@ -109,483 +90,522 @@ func getNATSConnectionString(redactedPwd bool) (string, error) {
 	return connectionString, nil
 }
 
-func (p *NATSProvider) checkAvailability() error {
-	return sqlCommonCheckAvailability(p.dbHandle)
+func registerNATSCustomTLSConfig() error {
+	tlsConfig := &tls.Config{}
+	if config.RootCert != "" {
+		rootCAs, err := x509.SystemCertPool()
+		if err != nil {
+			rootCAs = x509.NewCertPool()
+		}
+		rootCrt, err := os.ReadFile(config.RootCert)
+		if err != nil {
+			return fmt.Errorf("unable to load root certificate %q: %v", config.RootCert, err)
+		}
+		if !rootCAs.AppendCertsFromPEM(rootCrt) {
+			return fmt.Errorf("unable to parse root certificate %q", config.RootCert)
+		}
+		tlsConfig.RootCAs = rootCAs
+	}
+	if config.ClientCert != "" && config.ClientKey != "" {
+		clientCert := make([]tls.Certificate, 0, 1)
+		tlsCert, err := tls.LoadX509KeyPair(config.ClientCert, config.ClientKey)
+		if err != nil {
+			return fmt.Errorf("unable to load key pair %q, %q: %v", config.ClientCert, config.ClientKey, err)
+		}
+		clientCert = append(clientCert, tlsCert)
+		tlsConfig.Certificates = clientCert
+	}
+	if config.SSLMode == 2 || config.SSLMode == 3 {
+		tlsConfig.InsecureSkipVerify = true
+	}
+	if !filepath.IsAbs(config.Host) && !config.DisableSNI {
+		tlsConfig.ServerName = config.Host
+	}
+	providerLog(logger.LevelInfo, "registering custom TLS config, root cert %q, client cert %q, client key %q, disable SNI? %v",
+		config.RootCert, config.ClientCert, config.ClientKey, config.DisableSNI)
+	if err := mysql.RegisterTLSConfig("custom", tlsConfig); err != nil {
+		return fmt.Errorf("unable to register tls config: %v", err)
+	}
+	return nil
 }
 
-func (p *NATSProvider) validateUserAndPass(username, password, ip, protocol string) (User, error) {
-	return sqlCommonValidateUserAndPass(username, password, ip, protocol, p.dbHandle)
+func (n *NATSProvider) checkAvailability() error {
+	return sqlCommonCheckAvailability(n.dbHandle)
 }
 
-func (p *NATSProvider) validateUserAndTLSCert(username, protocol string, tlsCert *x509.Certificate) (User, error) {
-	return sqlCommonValidateUserAndTLSCertificate(username, protocol, tlsCert, p.dbHandle)
+func (n *NATSProvider) validateUserAndPass(username, password, ip, protocol string) (User, error) {
+	return sqlCommonValidateUserAndPass(username, password, ip, protocol, n.dbHandle)
 }
 
-func (p *NATSProvider) validateUserAndPubKey(username string, publicKey []byte, isSSHCert bool) (User, string, error) {
-	return sqlCommonValidateUserAndPubKey(username, publicKey, isSSHCert, p.dbHandle)
+func (n *NATSProvider) validateUserAndTLSCert(username, protocol string, tlsCert *x509.Certificate) (User, error) {
+	return sqlCommonValidateUserAndTLSCertificate(username, protocol, tlsCert, n.dbHandle)
 }
 
-func (p *NATSProvider) updateTransferQuota(username string, uploadSize, downloadSize int64, reset bool) error {
-	return sqlCommonUpdateTransferQuota(username, uploadSize, downloadSize, reset, p.dbHandle)
+func (n *NATSProvider) validateUserAndPubKey(username string, publicKey []byte, isSSHCert bool) (User, string, error) {
+	return sqlCommonValidateUserAndPubKey(username, publicKey, isSSHCert, n.dbHandle)
 }
 
-func (p *NATSProvider) updateQuota(username string, filesAdd int, sizeAdd int64, reset bool) error {
-	return sqlCommonUpdateQuota(username, filesAdd, sizeAdd, reset, p.dbHandle)
+func (n *NATSProvider) updateTransferQuota(username string, uploadSize, downloadSize int64, reset bool) error {
+	return sqlCommonUpdateTransferQuota(username, uploadSize, downloadSize, reset, n.dbHandle)
 }
 
-func (p *NATSProvider) getUsedQuota(username string) (int, int64, int64, int64, error) {
-	return sqlCommonGetUsedQuota(username, p.dbHandle)
+func (n *NATSProvider) updateQuota(username string, filesAdd int, sizeAdd int64, reset bool) error {
+	return sqlCommonUpdateQuota(username, filesAdd, sizeAdd, reset, n.dbHandle)
 }
 
-func (p *NATSProvider) getAdminSignature(username string) (string, error) {
-	return sqlCommonGetAdminSignature(username, p.dbHandle)
+func (n *NATSProvider) getUsedQuota(username string) (int, int64, int64, int64, error) {
+	return sqlCommonGetUsedQuota(username, n.dbHandle)
 }
 
-func (p *NATSProvider) getUserSignature(username string) (string, error) {
-	return sqlCommonGetUserSignature(username, p.dbHandle)
+func (n *NATSProvider) getAdminSignature(username string) (string, error) {
+	return sqlCommonGetAdminSignature(username, n.dbHandle)
 }
 
-func (p *NATSProvider) setUpdatedAt(username string) {
-	sqlCommonSetUpdatedAt(username, p.dbHandle)
+func (n *NATSProvider) getUserSignature(username string) (string, error) {
+	return sqlCommonGetUserSignature(username, n.dbHandle)
 }
 
-func (p *NATSProvider) updateLastLogin(username string) error {
-	return sqlCommonUpdateLastLogin(username, p.dbHandle)
+func (n *NATSProvider) setUpdatedAt(username string) {
+	sqlCommonSetUpdatedAt(username, n.dbHandle)
 }
 
-func (p *NATSProvider) updateAdminLastLogin(username string) error {
-	return sqlCommonUpdateAdminLastLogin(username, p.dbHandle)
+func (n *NATSProvider) updateLastLogin(username string) error {
+	return sqlCommonUpdateLastLogin(username, n.dbHandle)
 }
 
-func (p *NATSProvider) userExists(username, role string) (User, error) {
-	return sqlCommonGetUserByUsername(username, role, p.dbHandle)
+func (n *NATSProvider) updateAdminLastLogin(username string) error {
+	return sqlCommonUpdateAdminLastLogin(username, n.dbHandle)
 }
 
-func (p *NATSProvider) addUser(user *User) error {
-	return p.normalizeError(sqlCommonAddUser(user, p.dbHandle), fieldUsername)
+func (n *NATSProvider) userExists(username, role string) (User, error) {
+	return sqlCommonGetUserByUsername(username, role, n.dbHandle)
 }
 
-func (p *NATSProvider) updateUser(user *User) error {
-	return p.normalizeError(sqlCommonUpdateUser(user, p.dbHandle), -1)
+func (n *NATSProvider) addUser(user *User) error {
+	return n.normalizeError(sqlCommonAddUser(user, n.dbHandle), fieldUsername)
 }
 
-func (p *NATSProvider) deleteUser(user User, softDelete bool) error {
-	return sqlCommonDeleteUser(user, softDelete, p.dbHandle)
+func (n *NATSProvider) updateUser(user *User) error {
+	return n.normalizeError(sqlCommonUpdateUser(user, n.dbHandle), -1)
 }
 
-func (p *NATSProvider) updateUserPassword(username, password string) error {
-	return sqlCommonUpdateUserPassword(username, password, p.dbHandle)
+func (n *NATSProvider) deleteUser(user User, softDelete bool) error {
+	return sqlCommonDeleteUser(user, softDelete, n.dbHandle)
 }
 
-func (p *NATSProvider) dumpUsers() ([]User, error) {
-	return sqlCommonDumpUsers(p.dbHandle)
+func (n *NATSProvider) updateUserPassword(username, password string) error {
+	return sqlCommonUpdateUserPassword(username, password, n.dbHandle)
 }
 
-func (p *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
-	return sqlCommonGetRecentlyUpdatedUsers(after, p.dbHandle)
+func (n *NATSProvider) dumpUsers() ([]User, error) {
+	return sqlCommonDumpUsers(n.dbHandle)
 }
 
-func (p *NATSProvider) getUsers(limit int, offset int, order, role string) ([]User, error) {
-	return sqlCommonGetUsers(limit, offset, order, role, p.dbHandle)
+func (n *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
+	return sqlCommonGetRecentlyUpdatedUsers(after, n.dbHandle)
 }
 
-func (p *NATSProvider) getUsersForQuotaCheck(toFetch map[string]bool) ([]User, error) {
-	return sqlCommonGetUsersForQuotaCheck(toFetch, p.dbHandle)
+func (n *NATSProvider) getUsers(limit int, offset int, order, role string) ([]User, error) {
+	return sqlCommonGetUsers(limit, offset, order, role, n.dbHandle)
 }
 
-func (p *NATSProvider) dumpFolders() ([]vfs.BaseVirtualFolder, error) {
-	return sqlCommonDumpFolders(p.dbHandle)
+func (n *NATSProvider) getUsersForQuotaCheck(toFetch map[string]bool) ([]User, error) {
+	return sqlCommonGetUsersForQuotaCheck(toFetch, n.dbHandle)
 }
 
-func (p *NATSProvider) getFolders(limit, offset int, order string, minimal bool) ([]vfs.BaseVirtualFolder, error) {
-	return sqlCommonGetFolders(limit, offset, order, minimal, p.dbHandle)
+func (n *NATSProvider) dumpFolders() ([]vfs.BaseVirtualFolder, error) {
+	return sqlCommonDumpFolders(n.dbHandle)
 }
 
-func (p *NATSProvider) getFolderByName(name string) (vfs.BaseVirtualFolder, error) {
+func (n *NATSProvider) getFolders(limit, offset int, order string, minimal bool) ([]vfs.BaseVirtualFolder, error) {
+	return sqlCommonGetFolders(limit, offset, order, minimal, n.dbHandle)
+}
+
+func (n *NATSProvider) getFolderByName(name string) (vfs.BaseVirtualFolder, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultSQLQueryTimeout)
 	defer cancel()
-	return sqlCommonGetFolderByName(ctx, name, p.dbHandle)
+	return sqlCommonGetFolderByName(ctx, name, n.dbHandle)
 }
 
-func (p *NATSProvider) addFolder(folder *vfs.BaseVirtualFolder) error {
-	return p.normalizeError(sqlCommonAddFolder(folder, p.dbHandle), fieldName)
+func (n *NATSProvider) addFolder(folder *vfs.BaseVirtualFolder) error {
+	return n.normalizeError(sqlCommonAddFolder(folder, n.dbHandle), fieldName)
 }
 
-func (p *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
-	return sqlCommonUpdateFolder(folder, p.dbHandle)
+func (n *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
+	return sqlCommonUpdateFolder(folder, n.dbHandle)
 }
 
-func (p *NATSProvider) deleteFolder(folder vfs.BaseVirtualFolder) error {
-	return sqlCommonDeleteFolder(folder, p.dbHandle)
+func (n *NATSProvider) deleteFolder(folder vfs.BaseVirtualFolder) error {
+	return sqlCommonDeleteFolder(folder, n.dbHandle)
 }
 
-func (p *NATSProvider) updateFolderQuota(name string, filesAdd int, sizeAdd int64, reset bool) error {
-	return sqlCommonUpdateFolderQuota(name, filesAdd, sizeAdd, reset, p.dbHandle)
+func (n *NATSProvider) updateFolderQuota(name string, filesAdd int, sizeAdd int64, reset bool) error {
+	return sqlCommonUpdateFolderQuota(name, filesAdd, sizeAdd, reset, n.dbHandle)
 }
 
-func (p *NATSProvider) getUsedFolderQuota(name string) (int, int64, error) {
-	return sqlCommonGetFolderUsedQuota(name, p.dbHandle)
+func (n *NATSProvider) getUsedFolderQuota(name string) (int, int64, error) {
+	return sqlCommonGetFolderUsedQuota(name, n.dbHandle)
 }
 
-func (p *NATSProvider) getGroups(limit, offset int, order string, minimal bool) ([]Group, error) {
-	return sqlCommonGetGroups(limit, offset, order, minimal, p.dbHandle)
+func (n *NATSProvider) getGroups(limit, offset int, order string, minimal bool) ([]Group, error) {
+	return sqlCommonGetGroups(limit, offset, order, minimal, n.dbHandle)
 }
 
-func (p *NATSProvider) getGroupsWithNames(names []string) ([]Group, error) {
-	return sqlCommonGetGroupsWithNames(names, p.dbHandle)
+func (n *NATSProvider) getGroupsWithNames(names []string) ([]Group, error) {
+	return sqlCommonGetGroupsWithNames(names, n.dbHandle)
 }
 
-func (p *NATSProvider) getUsersInGroups(names []string) ([]string, error) {
-	return sqlCommonGetUsersInGroups(names, p.dbHandle)
+func (n *NATSProvider) getUsersInGroups(names []string) ([]string, error) {
+	return sqlCommonGetUsersInGroups(names, n.dbHandle)
 }
 
-func (p *NATSProvider) groupExists(name string) (Group, error) {
-	return sqlCommonGetGroupByName(name, p.dbHandle)
+func (n *NATSProvider) groupExists(name string) (Group, error) {
+	return sqlCommonGetGroupByName(name, n.dbHandle)
 }
 
-func (p *NATSProvider) addGroup(group *Group) error {
-	return p.normalizeError(sqlCommonAddGroup(group, p.dbHandle), fieldName)
+func (n *NATSProvider) addGroup(group *Group) error {
+	return n.normalizeError(sqlCommonAddGroup(group, n.dbHandle), fieldName)
 }
 
-func (p *NATSProvider) updateGroup(group *Group) error {
-	return sqlCommonUpdateGroup(group, p.dbHandle)
+func (n *NATSProvider) updateGroup(group *Group) error {
+	return sqlCommonUpdateGroup(group, n.dbHandle)
 }
 
-func (p *NATSProvider) deleteGroup(group Group) error {
-	return sqlCommonDeleteGroup(group, p.dbHandle)
+func (n *NATSProvider) deleteGroup(group Group) error {
+	return sqlCommonDeleteGroup(group, n.dbHandle)
 }
 
-func (p *NATSProvider) dumpGroups() ([]Group, error) {
-	return sqlCommonDumpGroups(p.dbHandle)
+func (n *NATSProvider) dumpGroups() ([]Group, error) {
+	return sqlCommonDumpGroups(n.dbHandle)
 }
 
-func (p *NATSProvider) adminExists(username string) (Admin, error) {
-	return sqlCommonGetAdminByUsername(username, p.dbHandle)
+func (n *NATSProvider) adminExists(username string) (Admin, error) {
+	return sqlCommonGetAdminByUsername(username, n.dbHandle)
 }
 
-func (p *NATSProvider) addAdmin(admin *Admin) error {
-	return p.normalizeError(sqlCommonAddAdmin(admin, p.dbHandle), fieldUsername)
+func (n *NATSProvider) addAdmin(admin *Admin) error {
+	return n.normalizeError(sqlCommonAddAdmin(admin, n.dbHandle), fieldUsername)
 }
 
-func (p *NATSProvider) updateAdmin(admin *Admin) error {
-	return p.normalizeError(sqlCommonUpdateAdmin(admin, p.dbHandle), -1)
+func (n *NATSProvider) updateAdmin(admin *Admin) error {
+	return n.normalizeError(sqlCommonUpdateAdmin(admin, n.dbHandle), -1)
 }
 
-func (p *NATSProvider) deleteAdmin(admin Admin) error {
-	return sqlCommonDeleteAdmin(admin, p.dbHandle)
+func (n *NATSProvider) deleteAdmin(admin Admin) error {
+	return sqlCommonDeleteAdmin(admin, n.dbHandle)
 }
 
-func (p *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, error) {
-	return sqlCommonGetAdmins(limit, offset, order, p.dbHandle)
+func (n *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, error) {
+	return sqlCommonGetAdmins(limit, offset, order, n.dbHandle)
 }
 
-func (p *NATSProvider) dumpAdmins() ([]Admin, error) {
-	return sqlCommonDumpAdmins(p.dbHandle)
+func (n *NATSProvider) dumpAdmins() ([]Admin, error) {
+	return sqlCommonDumpAdmins(n.dbHandle)
 }
 
-func (p *NATSProvider) validateAdminAndPass(username, password, ip string) (Admin, error) {
-	return sqlCommonValidateAdminAndPass(username, password, ip, p.dbHandle)
+func (n *NATSProvider) validateAdminAndPass(username, password, ip string) (Admin, error) {
+	return sqlCommonValidateAdminAndPass(username, password, ip, n.dbHandle)
 }
 
-func (p *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
-	return sqlCommonGetAPIKeyByID(keyID, p.dbHandle)
+func (n *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
+	return sqlCommonGetAPIKeyByID(keyID, n.dbHandle)
 }
 
-func (p *NATSProvider) addAPIKey(apiKey *APIKey) error {
-	return p.normalizeError(sqlCommonAddAPIKey(apiKey, p.dbHandle), -1)
+func (n *NATSProvider) addAPIKey(apiKey *APIKey) error {
+	return n.normalizeError(sqlCommonAddAPIKey(apiKey, n.dbHandle), -1)
 }
 
-func (p *NATSProvider) updateAPIKey(apiKey *APIKey) error {
-	return p.normalizeError(sqlCommonUpdateAPIKey(apiKey, p.dbHandle), -1)
+func (n *NATSProvider) updateAPIKey(apiKey *APIKey) error {
+	return n.normalizeError(sqlCommonUpdateAPIKey(apiKey, n.dbHandle), -1)
 }
 
-func (p *NATSProvider) deleteAPIKey(apiKey APIKey) error {
-	return sqlCommonDeleteAPIKey(apiKey, p.dbHandle)
+func (n *NATSProvider) deleteAPIKey(apiKey APIKey) error {
+	return sqlCommonDeleteAPIKey(apiKey, n.dbHandle)
 }
 
-func (p *NATSProvider) getAPIKeys(limit int, offset int, order string) ([]APIKey, error) {
-	return sqlCommonGetAPIKeys(limit, offset, order, p.dbHandle)
+func (n *NATSProvider) getAPIKeys(limit int, offset int, order string) ([]APIKey, error) {
+	return sqlCommonGetAPIKeys(limit, offset, order, n.dbHandle)
 }
 
-func (p *NATSProvider) dumpAPIKeys() ([]APIKey, error) {
-	return sqlCommonDumpAPIKeys(p.dbHandle)
+func (n *NATSProvider) dumpAPIKeys() ([]APIKey, error) {
+	return sqlCommonDumpAPIKeys(n.dbHandle)
 }
 
-func (p *NATSProvider) updateAPIKeyLastUse(keyID string) error {
-	return sqlCommonUpdateAPIKeyLastUse(keyID, p.dbHandle)
+func (n *NATSProvider) updateAPIKeyLastUse(keyID string) error {
+	return sqlCommonUpdateAPIKeyLastUse(keyID, n.dbHandle)
 }
 
-func (p *NATSProvider) shareExists(shareID, username string) (Share, error) {
-	return sqlCommonGetShareByID(shareID, username, p.dbHandle)
+func (n *NATSProvider) shareExists(shareID, username string) (Share, error) {
+	return sqlCommonGetShareByID(shareID, username, n.dbHandle)
 }
 
-func (p *NATSProvider) addShare(share *Share) error {
-	return p.normalizeError(sqlCommonAddShare(share, p.dbHandle), fieldName)
+func (n *NATSProvider) addShare(share *Share) error {
+	return n.normalizeError(sqlCommonAddShare(share, n.dbHandle), fieldName)
 }
 
-func (p *NATSProvider) updateShare(share *Share) error {
-	return p.normalizeError(sqlCommonUpdateShare(share, p.dbHandle), -1)
+func (n *NATSProvider) updateShare(share *Share) error {
+	return n.normalizeError(sqlCommonUpdateShare(share, n.dbHandle), -1)
 }
 
-func (p *NATSProvider) deleteShare(share Share) error {
-	return sqlCommonDeleteShare(share, p.dbHandle)
+func (n *NATSProvider) deleteShare(share Share) error {
+	return sqlCommonDeleteShare(share, n.dbHandle)
 }
 
-func (p *NATSProvider) getShares(limit int, offset int, order, username string) ([]Share, error) {
-	return sqlCommonGetShares(limit, offset, order, username, p.dbHandle)
+func (n *NATSProvider) getShares(limit int, offset int, order, username string) ([]Share, error) {
+	return sqlCommonGetShares(limit, offset, order, username, n.dbHandle)
 }
 
-func (p *NATSProvider) dumpShares() ([]Share, error) {
-	return sqlCommonDumpShares(p.dbHandle)
+func (n *NATSProvider) dumpShares() ([]Share, error) {
+	return sqlCommonDumpShares(n.dbHandle)
 }
 
-func (p *NATSProvider) updateShareLastUse(shareID string, numTokens int) error {
-	return sqlCommonUpdateShareLastUse(shareID, numTokens, p.dbHandle)
+func (n *NATSProvider) updateShareLastUse(shareID string, numTokens int) error {
+	return sqlCommonUpdateShareLastUse(shareID, numTokens, n.dbHandle)
 }
 
-func (p *NATSProvider) getDefenderHosts(from int64, limit int) ([]DefenderEntry, error) {
-	return sqlCommonGetDefenderHosts(from, limit, p.dbHandle)
+func (n *NATSProvider) getDefenderHosts(from int64, limit int) ([]DefenderEntry, error) {
+	return sqlCommonGetDefenderHosts(from, limit, n.dbHandle)
 }
 
-func (p *NATSProvider) getDefenderHostByIP(ip string, from int64) (DefenderEntry, error) {
-	return sqlCommonGetDefenderHostByIP(ip, from, p.dbHandle)
+func (n *NATSProvider) getDefenderHostByIP(ip string, from int64) (DefenderEntry, error) {
+	return sqlCommonGetDefenderHostByIP(ip, from, n.dbHandle)
 }
 
-func (p *NATSProvider) isDefenderHostBanned(ip string) (DefenderEntry, error) {
-	return sqlCommonIsDefenderHostBanned(ip, p.dbHandle)
+func (n *NATSProvider) isDefenderHostBanned(ip string) (DefenderEntry, error) {
+	return sqlCommonIsDefenderHostBanned(ip, n.dbHandle)
 }
 
-func (p *NATSProvider) updateDefenderBanTime(ip string, minutes int) error {
-	return sqlCommonDefenderIncrementBanTime(ip, minutes, p.dbHandle)
+func (n *NATSProvider) updateDefenderBanTime(ip string, minutes int) error {
+	return sqlCommonDefenderIncrementBanTime(ip, minutes, n.dbHandle)
 }
 
-func (p *NATSProvider) deleteDefenderHost(ip string) error {
-	return sqlCommonDeleteDefenderHost(ip, p.dbHandle)
+func (n *NATSProvider) deleteDefenderHost(ip string) error {
+	return sqlCommonDeleteDefenderHost(ip, n.dbHandle)
 }
 
-func (p *NATSProvider) addDefenderEvent(ip string, score int) error {
-	return sqlCommonAddDefenderHostAndEvent(ip, score, p.dbHandle)
+func (n *NATSProvider) addDefenderEvent(ip string, score int) error {
+	return sqlCommonAddDefenderHostAndEvent(ip, score, n.dbHandle)
 }
 
-func (p *NATSProvider) setDefenderBanTime(ip string, banTime int64) error {
-	return sqlCommonSetDefenderBanTime(ip, banTime, p.dbHandle)
+func (n *NATSProvider) setDefenderBanTime(ip string, banTime int64) error {
+	return sqlCommonSetDefenderBanTime(ip, banTime, n.dbHandle)
 }
 
-func (p *NATSProvider) cleanupDefender(from int64) error {
-	return sqlCommonDefenderCleanup(from, p.dbHandle)
+func (n *NATSProvider) cleanupDefender(from int64) error {
+	return sqlCommonDefenderCleanup(from, n.dbHandle)
 }
 
-func (p *NATSProvider) addActiveTransfer(transfer ActiveTransfer) error {
-	return sqlCommonAddActiveTransfer(transfer, p.dbHandle)
+func (n *NATSProvider) addActiveTransfer(transfer ActiveTransfer) error {
+	return sqlCommonAddActiveTransfer(transfer, n.dbHandle)
 }
 
-func (p *NATSProvider) updateActiveTransferSizes(ulSize, dlSize, transferID int64, connectionID string) error {
-	return sqlCommonUpdateActiveTransferSizes(ulSize, dlSize, transferID, connectionID, p.dbHandle)
+func (n *NATSProvider) updateActiveTransferSizes(ulSize, dlSize, transferID int64, connectionID string) error {
+	return sqlCommonUpdateActiveTransferSizes(ulSize, dlSize, transferID, connectionID, n.dbHandle)
 }
 
-func (p *NATSProvider) removeActiveTransfer(transferID int64, connectionID string) error {
-	return sqlCommonRemoveActiveTransfer(transferID, connectionID, p.dbHandle)
+func (n *NATSProvider) removeActiveTransfer(transferID int64, connectionID string) error {
+	return sqlCommonRemoveActiveTransfer(transferID, connectionID, n.dbHandle)
 }
 
-func (p *NATSProvider) cleanupActiveTransfers(before time.Time) error {
-	return sqlCommonCleanupActiveTransfers(before, p.dbHandle)
+func (n *NATSProvider) cleanupActiveTransfers(before time.Time) error {
+	return sqlCommonCleanupActiveTransfers(before, n.dbHandle)
 }
 
-func (p *NATSProvider) getActiveTransfers(from time.Time) ([]ActiveTransfer, error) {
-	return sqlCommonGetActiveTransfers(from, p.dbHandle)
+func (n *NATSProvider) getActiveTransfers(from time.Time) ([]ActiveTransfer, error) {
+	return sqlCommonGetActiveTransfers(from, n.dbHandle)
 }
 
-func (p *NATSProvider) addSharedSession(session Session) error {
-	return sqlCommonAddSession(session, p.dbHandle)
+func (n *NATSProvider) addSharedSession(session Session) error {
+	return sqlCommonAddSession(session, n.dbHandle)
 }
 
-func (p *NATSProvider) deleteSharedSession(key string, sessionType SessionType) error {
-	return sqlCommonDeleteSession(key, sessionType, p.dbHandle)
+func (n *NATSProvider) deleteSharedSession(key string, sessionType SessionType) error {
+	return sqlCommonDeleteSession(key, sessionType, n.dbHandle)
 }
 
-func (p *NATSProvider) getSharedSession(key string, sessionType SessionType) (Session, error) {
-	return sqlCommonGetSession(key, sessionType, p.dbHandle)
+func (n *NATSProvider) getSharedSession(key string, sessionType SessionType) (Session, error) {
+	return sqlCommonGetSession(key, sessionType, n.dbHandle)
 }
 
-func (p *NATSProvider) cleanupSharedSessions(sessionType SessionType, before int64) error {
-	return sqlCommonCleanupSessions(sessionType, before, p.dbHandle)
+func (n *NATSProvider) cleanupSharedSessions(sessionType SessionType, before int64) error {
+	return sqlCommonCleanupSessions(sessionType, before, n.dbHandle)
 }
 
-func (p *NATSProvider) getEventActions(limit, offset int, order string, minimal bool) ([]BaseEventAction, error) {
-	return sqlCommonGetEventActions(limit, offset, order, minimal, p.dbHandle)
+func (n *NATSProvider) getEventActions(limit, offset int, order string, minimal bool) ([]BaseEventAction, error) {
+	return sqlCommonGetEventActions(limit, offset, order, minimal, n.dbHandle)
 }
 
-func (p *NATSProvider) dumpEventActions() ([]BaseEventAction, error) {
-	return sqlCommonDumpEventActions(p.dbHandle)
+func (n *NATSProvider) dumpEventActions() ([]BaseEventAction, error) {
+	return sqlCommonDumpEventActions(n.dbHandle)
 }
 
-func (p *NATSProvider) eventActionExists(name string) (BaseEventAction, error) {
-	return sqlCommonGetEventActionByName(name, p.dbHandle)
+func (n *NATSProvider) eventActionExists(name string) (BaseEventAction, error) {
+	return sqlCommonGetEventActionByName(name, n.dbHandle)
 }
 
-func (p *NATSProvider) addEventAction(action *BaseEventAction) error {
-	return p.normalizeError(sqlCommonAddEventAction(action, p.dbHandle), fieldName)
+func (n *NATSProvider) addEventAction(action *BaseEventAction) error {
+	return n.normalizeError(sqlCommonAddEventAction(action, n.dbHandle), fieldName)
 }
 
-func (p *NATSProvider) updateEventAction(action *BaseEventAction) error {
-	return sqlCommonUpdateEventAction(action, p.dbHandle)
+func (n *NATSProvider) updateEventAction(action *BaseEventAction) error {
+	return sqlCommonUpdateEventAction(action, n.dbHandle)
 }
 
-func (p *NATSProvider) deleteEventAction(action BaseEventAction) error {
-	return sqlCommonDeleteEventAction(action, p.dbHandle)
+func (n *NATSProvider) deleteEventAction(action BaseEventAction) error {
+	return sqlCommonDeleteEventAction(action, n.dbHandle)
 }
 
-func (p *NATSProvider) getEventRules(limit, offset int, order string) ([]EventRule, error) {
-	return sqlCommonGetEventRules(limit, offset, order, p.dbHandle)
+func (n *NATSProvider) getEventRules(limit, offset int, order string) ([]EventRule, error) {
+	return sqlCommonGetEventRules(limit, offset, order, n.dbHandle)
 }
 
-func (p *NATSProvider) dumpEventRules() ([]EventRule, error) {
-	return sqlCommonDumpEventRules(p.dbHandle)
+func (n *NATSProvider) dumpEventRules() ([]EventRule, error) {
+	return sqlCommonDumpEventRules(n.dbHandle)
 }
 
-func (p *NATSProvider) getRecentlyUpdatedRules(after int64) ([]EventRule, error) {
-	return sqlCommonGetRecentlyUpdatedRules(after, p.dbHandle)
+func (n *NATSProvider) getRecentlyUpdatedRules(after int64) ([]EventRule, error) {
+	return sqlCommonGetRecentlyUpdatedRules(after, n.dbHandle)
 }
 
-func (p *NATSProvider) eventRuleExists(name string) (EventRule, error) {
-	return sqlCommonGetEventRuleByName(name, p.dbHandle)
+func (n *NATSProvider) eventRuleExists(name string) (EventRule, error) {
+	return sqlCommonGetEventRuleByName(name, n.dbHandle)
 }
 
-func (p *NATSProvider) addEventRule(rule *EventRule) error {
-	return p.normalizeError(sqlCommonAddEventRule(rule, p.dbHandle), fieldName)
+func (n *NATSProvider) addEventRule(rule *EventRule) error {
+	return n.normalizeError(sqlCommonAddEventRule(rule, n.dbHandle), fieldName)
 }
 
-func (p *NATSProvider) updateEventRule(rule *EventRule) error {
-	return sqlCommonUpdateEventRule(rule, p.dbHandle)
+func (n *NATSProvider) updateEventRule(rule *EventRule) error {
+	return sqlCommonUpdateEventRule(rule, n.dbHandle)
 }
 
-func (p *NATSProvider) deleteEventRule(rule EventRule, softDelete bool) error {
-	return sqlCommonDeleteEventRule(rule, softDelete, p.dbHandle)
+func (n *NATSProvider) deleteEventRule(rule EventRule, softDelete bool) error {
+	return sqlCommonDeleteEventRule(rule, softDelete, n.dbHandle)
 }
 
-func (p *NATSProvider) getTaskByName(name string) (Task, error) {
-	return sqlCommonGetTaskByName(name, p.dbHandle)
+func (n *NATSProvider) getTaskByName(name string) (Task, error) {
+	return sqlCommonGetTaskByName(name, n.dbHandle)
 }
 
-func (p *NATSProvider) addTask(name string) error {
-	return sqlCommonAddTask(name, p.dbHandle)
+func (n *NATSProvider) addTask(name string) error {
+	return sqlCommonAddTask(name, n.dbHandle)
 }
 
-func (p *NATSProvider) updateTask(name string, version int64) error {
-	return sqlCommonUpdateTask(name, version, p.dbHandle)
+func (n *NATSProvider) updateTask(name string, version int64) error {
+	return sqlCommonUpdateTask(name, version, n.dbHandle)
 }
 
-func (p *NATSProvider) updateTaskTimestamp(name string) error {
-	return sqlCommonUpdateTaskTimestamp(name, p.dbHandle)
+func (n *NATSProvider) updateTaskTimestamp(name string) error {
+	return sqlCommonUpdateTaskTimestamp(name, n.dbHandle)
 }
 
-func (p *NATSProvider) addNode() error {
-	return sqlCommonAddNode(p.dbHandle)
+func (n *NATSProvider) addNode() error {
+	return sqlCommonAddNode(n.dbHandle)
 }
 
-func (p *NATSProvider) getNodeByName(name string) (Node, error) {
-	return sqlCommonGetNodeByName(name, p.dbHandle)
+func (n *NATSProvider) getNodeByName(name string) (Node, error) {
+	return sqlCommonGetNodeByName(name, n.dbHandle)
 }
 
-func (p *NATSProvider) getNodes() ([]Node, error) {
-	return sqlCommonGetNodes(p.dbHandle)
+func (n *NATSProvider) getNodes() ([]Node, error) {
+	return sqlCommonGetNodes(n.dbHandle)
 }
 
-func (p *NATSProvider) updateNodeTimestamp() error {
-	return sqlCommonUpdateNodeTimestamp(p.dbHandle)
+func (n *NATSProvider) updateNodeTimestamp() error {
+	return sqlCommonUpdateNodeTimestamp(n.dbHandle)
 }
 
-func (p *NATSProvider) cleanupNodes() error {
-	return sqlCommonCleanupNodes(p.dbHandle)
+func (n *NATSProvider) cleanupNodes() error {
+	return sqlCommonCleanupNodes(n.dbHandle)
 }
 
-func (p *NATSProvider) roleExists(name string) (Role, error) {
-	return sqlCommonGetRoleByName(name, p.dbHandle)
+func (n *NATSProvider) roleExists(name string) (Role, error) {
+	return sqlCommonGetRoleByName(name, n.dbHandle)
 }
 
-func (p *NATSProvider) addRole(role *Role) error {
-	return p.normalizeError(sqlCommonAddRole(role, p.dbHandle), fieldName)
+func (n *NATSProvider) addRole(role *Role) error {
+	return n.normalizeError(sqlCommonAddRole(role, n.dbHandle), fieldName)
 }
 
-func (p *NATSProvider) updateRole(role *Role) error {
-	return sqlCommonUpdateRole(role, p.dbHandle)
+func (n *NATSProvider) updateRole(role *Role) error {
+	return sqlCommonUpdateRole(role, n.dbHandle)
 }
 
-func (p *NATSProvider) deleteRole(role Role) error {
-	return sqlCommonDeleteRole(role, p.dbHandle)
+func (n *NATSProvider) deleteRole(role Role) error {
+	return sqlCommonDeleteRole(role, n.dbHandle)
 }
 
-func (p *NATSProvider) getRoles(limit int, offset int, order string, minimal bool) ([]Role, error) {
-	return sqlCommonGetRoles(limit, offset, order, minimal, p.dbHandle)
+func (n *NATSProvider) getRoles(limit int, offset int, order string, minimal bool) ([]Role, error) {
+	return sqlCommonGetRoles(limit, offset, order, minimal, n.dbHandle)
 }
 
-func (p *NATSProvider) dumpRoles() ([]Role, error) {
-	return sqlCommonDumpRoles(p.dbHandle)
+func (n *NATSProvider) dumpRoles() ([]Role, error) {
+	return sqlCommonDumpRoles(n.dbHandle)
 }
 
-func (p *NATSProvider) ipListEntryExists(ipOrNet string, listType IPListType) (IPListEntry, error) {
-	return sqlCommonGetIPListEntry(ipOrNet, listType, p.dbHandle)
+func (n *NATSProvider) ipListEntryExists(ipOrNet string, listType IPListType) (IPListEntry, error) {
+	return sqlCommonGetIPListEntry(ipOrNet, listType, n.dbHandle)
 }
 
-func (p *NATSProvider) addIPListEntry(entry *IPListEntry) error {
-	return p.normalizeError(sqlCommonAddIPListEntry(entry, p.dbHandle), fieldIPNet)
+func (n *NATSProvider) addIPListEntry(entry *IPListEntry) error {
+	return n.normalizeError(sqlCommonAddIPListEntry(entry, n.dbHandle), fieldIPNet)
 }
 
-func (p *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
-	return sqlCommonUpdateIPListEntry(entry, p.dbHandle)
+func (n *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
+	return sqlCommonUpdateIPListEntry(entry, n.dbHandle)
 }
 
-func (p *NATSProvider) deleteIPListEntry(entry IPListEntry, softDelete bool) error {
-	return sqlCommonDeleteIPListEntry(entry, softDelete, p.dbHandle)
+func (n *NATSProvider) deleteIPListEntry(entry IPListEntry, softDelete bool) error {
+	return sqlCommonDeleteIPListEntry(entry, softDelete, n.dbHandle)
 }
 
-func (p *NATSProvider) getIPListEntries(listType IPListType, filter, from, order string, limit int) ([]IPListEntry, error) {
-	return sqlCommonGetIPListEntries(listType, filter, from, order, limit, p.dbHandle)
+func (n *NATSProvider) getIPListEntries(listType IPListType, filter, from, order string, limit int) ([]IPListEntry, error) {
+	return sqlCommonGetIPListEntries(listType, filter, from, order, limit, n.dbHandle)
 }
 
-func (p *NATSProvider) getRecentlyUpdatedIPListEntries(after int64) ([]IPListEntry, error) {
-	return sqlCommonGetRecentlyUpdatedIPListEntries(after, p.dbHandle)
+func (n *NATSProvider) getRecentlyUpdatedIPListEntries(after int64) ([]IPListEntry, error) {
+	return sqlCommonGetRecentlyUpdatedIPListEntries(after, n.dbHandle)
 }
 
-func (p *NATSProvider) dumpIPListEntries() ([]IPListEntry, error) {
-	return sqlCommonDumpIPListEntries(p.dbHandle)
+func (n *NATSProvider) dumpIPListEntries() ([]IPListEntry, error) {
+	return sqlCommonDumpIPListEntries(n.dbHandle)
 }
 
-func (p *NATSProvider) countIPListEntries(listType IPListType) (int64, error) {
-	return sqlCommonCountIPListEntries(listType, p.dbHandle)
+func (n *NATSProvider) countIPListEntries(listType IPListType) (int64, error) {
+	return sqlCommonCountIPListEntries(listType, n.dbHandle)
 }
 
-func (p *NATSProvider) getListEntriesForIP(ip string, listType IPListType) ([]IPListEntry, error) {
-	return sqlCommonGetListEntriesForIP(ip, listType, p.dbHandle)
+func (n *NATSProvider) getListEntriesForIP(ip string, listType IPListType) ([]IPListEntry, error) {
+	return sqlCommonGetListEntriesForIP(ip, listType, n.dbHandle)
 }
 
-func (p *NATSProvider) getConfigs() (Configs, error) {
-	return sqlCommonGetConfigs(p.dbHandle)
+func (n *NATSProvider) getConfigs() (Configs, error) {
+	return sqlCommonGetConfigs(n.dbHandle)
 }
 
-func (p *NATSProvider) setConfigs(configs *Configs) error {
-	return sqlCommonSetConfigs(configs, p.dbHandle)
+func (n *NATSProvider) setConfigs(configs *Configs) error {
+	return sqlCommonSetConfigs(configs, n.dbHandle)
 }
 
-func (p *NATSProvider) setFirstDownloadTimestamp(username string) error {
-	return sqlCommonSetFirstDownloadTimestamp(username, p.dbHandle)
+func (n *NATSProvider) setFirstDownloadTimestamp(username string) error {
+	return sqlCommonSetFirstDownloadTimestamp(username, n.dbHandle)
 }
 
-func (p *NATSProvider) setFirstUploadTimestamp(username string) error {
-	return sqlCommonSetFirstUploadTimestamp(username, p.dbHandle)
+func (n *NATSProvider) setFirstUploadTimestamp(username string) error {
+	return sqlCommonSetFirstUploadTimestamp(username, n.dbHandle)
 }
 
-func (p *NATSProvider) close() error {
-	return p.dbHandle.Close()
+func (n *NATSProvider) close() error {
+	return n.dbHandle.Close()
 }
 
-func (p *NATSProvider) reloadConfig() error {
+func (n *NATSProvider) reloadConfig() error {
 	return nil
 }
 
 // initializeDatabase creates the initial database structure
-func (p *NATSProvider) initializeDatabase() error {
-	dbVersion, err := sqlCommonGetDatabaseVersion(p.dbHandle, false)
+func (n *NATSProvider) initializeDatabase() error {
+	dbVersion, err := sqlCommonGetDatabaseVersion(n.dbHandle, false)
 	if err == nil && dbVersion.Version > 0 {
 		return ErrNoInitRequired
 	}
@@ -596,11 +616,11 @@ func (p *NATSProvider) initializeDatabase() error {
 	providerLog(logger.LevelInfo, "creating initial database schema, version 29")
 	initialSQL := sqlReplaceAll(mysqlInitialSQL)
 
-	return sqlCommonExecSQLAndUpdateDBVersion(p.dbHandle, strings.Split(initialSQL, ";"), 29, true)
+	return sqlCommonExecSQLAndUpdateDBVersion(n.dbHandle, strings.Split(initialSQL, ";"), 29, true)
 }
 
-func (p *NATSProvider) migrateDatabase() error {
-	dbVersion, err := sqlCommonGetDatabaseVersion(p.dbHandle, true)
+func (n *NATSProvider) migrateDatabase() error {
+	dbVersion, err := sqlCommonGetDatabaseVersion(n.dbHandle, true)
 	if err != nil {
 		return err
 	}
@@ -615,11 +635,11 @@ func (p *NATSProvider) migrateDatabase() error {
 		logger.ErrorToConsole("%v", err)
 		return err
 	case version == 29:
-		return updateNATSDatabaseFromV29(p.dbHandle)
+		return updateNATSDatabaseFromV29(n.dbHandle)
 	case version == 30:
-		return updateNATSDatabaseFromV30(p.dbHandle)
+		return updateNATSDatabaseFromV30(n.dbHandle)
 	case version == 31:
-		return updateNATSDatabaseFromV31(p.dbHandle)
+		return updateNATSDatabaseFromV31(n.dbHandle)
 	default:
 		if version > sqlDatabaseVersion {
 			providerLog(logger.LevelError, "database schema version %d is newer than the supported one: %d", version,
@@ -632,8 +652,8 @@ func (p *NATSProvider) migrateDatabase() error {
 	}
 }
 
-func (p *NATSProvider) revertDatabase(targetVersion int) error {
-	dbVersion, err := sqlCommonGetDatabaseVersion(p.dbHandle, true)
+func (n *NATSProvider) revertDatabase(targetVersion int) error {
+	dbVersion, err := sqlCommonGetDatabaseVersion(n.dbHandle, true)
 	if err != nil {
 		return err
 	}
@@ -643,22 +663,22 @@ func (p *NATSProvider) revertDatabase(targetVersion int) error {
 
 	switch dbVersion.Version {
 	case 30:
-		return downgradeNATSDatabaseFromV30(p.dbHandle)
+		return downgradeNATSDatabaseFromV30(n.dbHandle)
 	case 31:
-		return downgradeNATSDatabaseFromV31(p.dbHandle)
+		return downgradeNATSDatabaseFromV31(n.dbHandle)
 	case 32:
-		return downgradeNATSDatabaseFromV32(p.dbHandle)
+		return downgradeNATSDatabaseFromV32(n.dbHandle)
 	default:
 		return fmt.Errorf("database schema version not handled: %d", dbVersion.Version)
 	}
 }
 
-func (p *NATSProvider) resetDatabase() error {
+func (n *NATSProvider) resetDatabase() error {
 	sql := sqlReplaceAll(natsReset)
-	return sqlCommonExecSQLAndUpdateDBVersion(p.dbHandle, strings.Split(sql, ";"), 0, false)
+	return sqlCommonExecSQLAndUpdateDBVersion(n.dbHandle, strings.Split(sql, ";"), 0, false)
 }
 
-func (p *NATSProvider) normalizeError(err error, fieldType int) error {
+func (n *NATSProvider) normalizeError(err error, fieldType int) error {
 	if err == nil {
 		return nil
 	}
@@ -684,74 +704,4 @@ func (p *NATSProvider) normalizeError(err error, fieldType int) error {
 		}
 	}
 	return err
-}
-
-func updateNATSDatabaseFromV29(dbHandle *sql.DB) error {
-	if err := updateNATSDatabaseFrom29To30(dbHandle); err != nil {
-		return err
-	}
-	return updateNATSDatabaseFromV30(dbHandle)
-}
-
-func updateNATSDatabaseFromV30(dbHandle *sql.DB) error {
-	if err := updateNATSDatabaseFrom30To31(dbHandle); err != nil {
-		return err
-	}
-	return updateNATSDatabaseFromV31(dbHandle)
-}
-
-func updateNATSDatabaseFromV31(dbHandle *sql.DB) error {
-	return updateSQLDatabaseFrom31To32(dbHandle)
-}
-
-func downgradeNATSDatabaseFromV30(dbHandle *sql.DB) error {
-	return downgradeNATSDatabaseFrom30To29(dbHandle)
-}
-
-func downgradeNATSDatabaseFromV31(dbHandle *sql.DB) error {
-	if err := downgradeNATSDatabaseFrom31To30(dbHandle); err != nil {
-		return err
-	}
-	return downgradeNATSDatabaseFromV30(dbHandle)
-}
-
-func downgradeNATSDatabaseFromV32(dbHandle *sql.DB) error {
-	if err := downgradeSQLDatabaseFrom32To31(dbHandle); err != nil {
-		return err
-	}
-	return downgradeNATSDatabaseFromV31(dbHandle)
-}
-
-func updateNATSDatabaseFrom29To30(dbHandle *sql.DB) error {
-	logger.InfoToConsole("updating database schema version: 29 -> 30")
-	providerLog(logger.LevelInfo, "updating database schema version: 29 -> 30")
-
-	sql := strings.ReplaceAll(mysqlV30SQL, "{{shares}}", sqlTableShares)
-	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 30, true)
-}
-
-func downgradeNATSDatabaseFrom30To29(dbHandle *sql.DB) error {
-	logger.InfoToConsole("downgrading database schema version: 30 -> 29")
-	providerLog(logger.LevelInfo, "downgrading database schema version: 30 -> 29")
-
-	sql := strings.ReplaceAll(mysqlV30DownSQL, "{{shares}}", sqlTableShares)
-	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 29, false)
-}
-
-func updateNATSDatabaseFrom30To31(dbHandle *sql.DB) error {
-	logger.InfoToConsole("updating database schema version: 30 -> 31")
-	providerLog(logger.LevelInfo, "updating database schema version: 30 -> 31")
-
-	sql := strings.ReplaceAll(mysqlV31SQL, "{{shared_sessions}}", sqlTableSharedSessions)
-	sql = strings.ReplaceAll(sql, "{{prefix}}", config.SQLTablesPrefix)
-	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 31, true)
-}
-
-func downgradeNATSDatabaseFrom31To30(dbHandle *sql.DB) error {
-	logger.InfoToConsole("downgrading database schema version: 31 -> 30")
-	providerLog(logger.LevelInfo, "downgrading database schema version: 31 -> 30")
-
-	sql := strings.ReplaceAll(mysqlV31DownSQL, "{{shared_sessions}}", sqlTableSharedSessions)
-	sql = strings.ReplaceAll(sql, "{{prefix}}", config.SQLTablesPrefix)
-	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 30, false)
 }
