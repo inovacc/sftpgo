@@ -234,7 +234,7 @@ func (p *MemoryProvider) getUserSignature(username string) (string, error) {
 	return strconv.FormatInt(user.UpdatedAt, 10), nil
 }
 
-func (p *MemoryProvider) setUpdatedAt(username string) {
+func (p *MemoryProvider) setUpdatedAt(username string) error {
 	p.dbHandle.Lock()
 	defer p.dbHandle.Unlock()
 	if p.dbHandle.isClosed {

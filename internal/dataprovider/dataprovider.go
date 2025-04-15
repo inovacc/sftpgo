@@ -284,7 +284,15 @@ func SetEventRulesCallbacks(reload FnReloadRules, remove FnRemoveRule, handle Fn
 }
 
 type schemaVersion struct {
-	Version int
+	Version int `json:"version"`
+}
+
+func (s *schemaVersion) Marshal() ([]byte, error) {
+	return json.Marshal(s)
+}
+
+func (s *schemaVersion) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, s)
 }
 
 // BcryptOptions defines the options for bcrypt password hashing
@@ -773,7 +781,7 @@ type Provider interface {
 	getUsersForQuotaCheck(toFetch map[string]bool) ([]User, error)
 	updateLastLogin(username string) error
 	updateAdminLastLogin(username string) error
-	setUpdatedAt(username string)
+	setUpdatedAt(username string) error
 	getAdminSignature(username string) (string, error)
 	getUserSignature(username string) (string, error)
 	getFolders(limit, offset int, order string, minimal bool) ([]vfs.BaseVirtualFolder, error)
@@ -1760,7 +1768,7 @@ func DeleteRole(name string, executor, ipAddress, executorRole string) error {
 	if err == nil {
 		executeAction(operationDelete, executor, ipAddress, actionObjectRole, role.Name, executorRole, &role)
 		for _, user := range role.Users {
-			provider.setUpdatedAt(user)
+			_ = provider.setUpdatedAt(user)
 			u, err := provider.userExists(user, "")
 			if err == nil {
 				webDAVUsersCache.swap(&u, "")
@@ -1792,7 +1800,7 @@ func UpdateGroup(group *Group, users []string, executor, ipAddress, role string)
 	err := provider.updateGroup(group)
 	if err == nil {
 		for _, user := range users {
-			provider.setUpdatedAt(user)
+			_ = provider.setUpdatedAt(user)
 			u, err := provider.userExists(user, "")
 			if err == nil {
 				webDAVUsersCache.swap(&u, "")
@@ -1819,7 +1827,7 @@ func DeleteGroup(name string, executor, ipAddress, role string) error {
 	err = provider.deleteGroup(group)
 	if err == nil {
 		for _, user := range group.Users {
-			provider.setUpdatedAt(user)
+			_ = provider.setUpdatedAt(user)
 			u, err := provider.userExists(user, "")
 			if err == nil {
 				executeAction(operationUpdate, executor, ipAddress, actionObjectUser, u.Username, u.Role, &u)
@@ -2337,7 +2345,7 @@ func UpdateFolder(folder *vfs.BaseVirtualFolder, users []string, groups []string
 			providerLog(logger.LevelWarn, "unable to get users in groups %+v: %v", groups, errGrp)
 		}
 		for _, user := range users {
-			provider.setUpdatedAt(user)
+			_ = provider.setUpdatedAt(user)
 			u, err := provider.userExists(user, "")
 			if err == nil {
 				webDAVUsersCache.swap(&u, "")
@@ -2369,7 +2377,7 @@ func DeleteFolder(folderName, executor, ipAddress, role string) error {
 			providerLog(logger.LevelWarn, "unable to get users in groups %+v: %v", folder.Groups, errGrp)
 		}
 		for _, user := range users {
-			provider.setUpdatedAt(user)
+			_ = provider.setUpdatedAt(user)
 			u, err := provider.userExists(user, "")
 			if err == nil {
 				executeAction(operationUpdate, executor, ipAddress, actionObjectUser, u.Username, u.Role, &u)

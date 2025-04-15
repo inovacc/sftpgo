@@ -494,7 +494,7 @@ func (a *Admin) checkUserAndPass(password, ip string) error {
 	return nil
 }
 
-func (a *Admin) AsJSON() ([]byte, error) {
+func (a *Admin) Marshal() ([]byte, error) {
 	admin, err := provider.adminExists(a.Username)
 	if err != nil {
 		providerLog(logger.LevelError, "unable to marshal admin data as json: %v", err)
@@ -503,8 +503,8 @@ func (a *Admin) AsJSON() ([]byte, error) {
 	return json.Marshal(admin)
 }
 
-func (a *Admin) FromJSON(data []byte) error {
-	return json.Unmarshal(a, data)
+func (a *Admin) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, a)
 }
 
 // RenderAsJSON implements the renderer interface used within plugins

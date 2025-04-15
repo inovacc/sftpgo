@@ -40,7 +40,7 @@ type Role struct {
 	Users []string `json:"users,omitempty"`
 }
 
-func (r *Role) AsJSON() ([]byte, error) {
+func (r *Role) Marshal() ([]byte, error) {
 	admin, err := provider.adminExists(r.Admins)
 	if err != nil {
 		providerLog(logger.LevelError, "unable to marshal admin role data as json: %v", err)
@@ -49,7 +49,7 @@ func (r *Role) AsJSON() ([]byte, error) {
 	return json.Marshal(admin)
 }
 
-func (r *Role) FromJSON(data []byte) error {
+func (r *Role) Unmarshal(data []byte) error {
 	return json.Unmarshal(r, data)
 }
 

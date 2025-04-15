@@ -45,8 +45,8 @@ type Group struct {
 	VirtualFolders []vfs.VirtualFolder `json:"virtual_folders,omitempty"`
 }
 
-func (g *Group) AsJSON() ([]byte, error) {
-	admin, err := provider.adminExists(g.Admins)
+func (g *Group) Marshal() ([]byte, error) {
+	admin, err := provider.adminExists(g.use)
 	if err != nil {
 		providerLog(logger.LevelError, "unable to marshal admin role data as json: %v", err)
 		return nil, err
@@ -54,8 +54,8 @@ func (g *Group) AsJSON() ([]byte, error) {
 	return json.Marshal(admin)
 }
 
-func (g *Group) FromJSON(data []byte) error {
-	return json.Unmarshal(r, data)
+func (g *Group) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, g)
 }
 
 // GetPermissions returns the permissions as list

@@ -153,6 +153,19 @@ type User struct {
 	DeletedAt int64 `json:"-"`
 }
 
+func (u *User) Marshal() ([]byte, error) {
+	admin, err := provider.adminExists(u.Username)
+	if err != nil {
+		providerLog(logger.LevelError, "unable to marshal admin data as json: %v", err)
+		return nil, err
+	}
+	return json.Marshal(admin)
+}
+
+func (u *User) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, u)
+}
+
 // GetFilesystem returns the base filesystem for this user
 func (u *User) GetFilesystem(connectionID string) (fs vfs.Fs, err error) {
 	return u.GetFilesystemForPath("/", connectionID)

@@ -345,7 +345,7 @@ func (p *MySQLProvider) getUserSignature(username string) (string, error) {
 	return sqlCommonGetUserSignature(username, p.dbHandle)
 }
 
-func (p *MySQLProvider) setUpdatedAt(username string) {
+func (p *MySQLProvider) setUpdatedAt(username string) error {
 	sqlCommonSetUpdatedAt(username, p.dbHandle)
 }
 

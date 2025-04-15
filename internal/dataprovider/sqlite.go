@@ -269,7 +269,7 @@ func (p *SQLiteProvider) getUserSignature(username string) (string, error) {
 	return sqlCommonGetUserSignature(username, p.dbHandle)
 }
 
-func (p *SQLiteProvider) setUpdatedAt(username string) {
+func (p *SQLiteProvider) setUpdatedAt(username string) error {
 	sqlCommonSetUpdatedAt(username, p.dbHandle)
 }
 

@@ -364,7 +364,7 @@ func (p *PGSQLProvider) getUserSignature(username string) (string, error) {
 	return sqlCommonGetUserSignature(username, p.dbHandle)
 }
 
-func (p *PGSQLProvider) setUpdatedAt(username string) {
+func (p *PGSQLProvider) setUpdatedAt(username string) error {
 	sqlCommonSetUpdatedAt(username, p.dbHandle)
 }
 

@@ -1332,7 +1332,7 @@ func sqlCommonUpdateAdminLastLogin(username string, dbHandle *sql.DB) error {
 	return err
 }
 
-func sqlCommonSetUpdatedAt(username string, dbHandle *sql.DB) {
+func sqlCommonSetUpdatedAt(username string, dbHandle *sql.DB) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultSQLQueryTimeout)
 	defer cancel()
 

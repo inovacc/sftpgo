@@ -72,6 +72,14 @@ type APIKey struct {
 	plainKey string
 }
 
+func (k *APIKey) Marshal() ([]byte, error) {
+	return json.Marshal(k)
+}
+
+func (k *APIKey) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, k)
+}
+
 func (k *APIKey) getACopy() APIKey {
 	return APIKey{
 		ID:          k.ID,
