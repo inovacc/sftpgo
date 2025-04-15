@@ -27,9 +27,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row">
                 <label class="col-md-3 col-form-label" data-i18n="general.name" for="idName">Name</label>
                 <div class="col-md-9">
-                    <input .Mode 2}}class="form-control-plaintext readonly-input" autocomplete="off" eq id="idName" maxlength="255"
+                    <input .Mode 2}}class="form-control-plaintext readonly-input" autocomplete="off" eq id="idName"
+                           maxlength="255"
                            name="name"
-                           placeholder="" readonly{{else}}class="form-control" required spellcheck="false" type="text" value="{{.Action.Name}}"
+                           placeholder="" readonly{{else}}class="form-control" required spellcheck="false" type="text"
+                           value="{{.Action.Name}}"
                            {{end}} {{if/>
                 </div>
             </div>
@@ -64,7 +66,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row action-type action-pwd-expiration mt-10">
                 <label class="col-md-3 col-form-label" data-i18n="actions.threshold" for="idPwdExpirationThreshold">Threshold</label>
                 <div class="col-md-9">
-                    <input aria-describedby="idPwdExpirationThresholdHelp" class="form-control" id="idPwdExpirationThreshold" min="1"
+                    <input aria-describedby="idPwdExpirationThresholdHelp" class="form-control"
+                           id="idPwdExpirationThreshold" min="1"
                            name="pwd_expiration_threshold" type="number"
                            value="{{.Action.Options.PwdExpirationConfig.Threshold}}"/>
                     <div class="form-text" data-i18n="actions.threshold_help" id="idPwdExpirationThresholdHelp"></div>
@@ -75,7 +78,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="actions.disable_threshold"
                        for="idInactivityThresholdDisable">Disable Threshold</label>
                 <div class="col-md-9">
-                    <input aria-describedby="idInactivityThresholdDisableHelp" class="form-control" id="idInactivityThresholdDisable" min="0"
+                    <input aria-describedby="idInactivityThresholdDisableHelp" class="form-control"
+                           id="idInactivityThresholdDisable" min="0"
                            name="inactivity_disable_threshold"
                            type="number"
                            value="{{.Action.Options.UserInactivityConfig.DisableThreshold}}"/>
@@ -88,7 +92,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="actions.delete_threshold"
                        for="idInactivityThresholdDelete">Delete Threshold</label>
                 <div class="col-md-9">
-                    <input aria-describedby="idInactivityThresholdDeleteHelp" class="form-control" id="idInactivityThresholdDelete" min="0"
+                    <input aria-describedby="idInactivityThresholdDeleteHelp" class="form-control"
+                           id="idInactivityThresholdDelete" min="0"
                            name="inactivity_delete_threshold"
                            type="number"
                            value="{{.Action.Options.UserInactivityConfig.DeleteThreshold}}"/>
@@ -136,7 +141,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="actions.http_url"
                        for="idHTTPEndpoint">Endpoint</label>
                 <div class="col-md-9">
-                    <input aria-describedby="idHTTPEndpointHelp" class="form-control" id="idHTTPEndpoint" name="http_endpoint"
+                    <input aria-describedby="idHTTPEndpointHelp" class="form-control" id="idHTTPEndpoint"
+                           name="http_endpoint"
                            type="text" value="{{.Action.Options.HTTPConfig.Endpoint}}"/>
                     <div class="form-text" data-i18n="actions.http_url_help" id="idHTTPEndpointHelp"></div>
                 </div>
@@ -145,7 +151,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row action-type action-http mt-10">
                 <label class="col-md-3 col-form-label" data-i18n="login.username" for="idHTTPUsername">Username</label>
                 <div class="col-md-9">
-                    <input aria-describedby="idHTTPUsernameHelp" autocomplete="off" class="form-control" id="idHTTPUsername"
+                    <input aria-describedby="idHTTPUsernameHelp" autocomplete="off" class="form-control"
+                           id="idHTTPUsername"
                            name="http_username" type="text"
                            value="{{.Action.Options.HTTPConfig.Username}}"/>
                     <div class="form-text" data-i18n="actions.placeholders_help" id="idHTTPUsernameHelp"></div>
@@ -335,7 +342,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row action-type action-http mt-10">
                 <label class="col-md-3 col-form-label" data-i18n="general.timeout" for="idHTTPTimeout">Timeout</label>
                 <div class="col-md-9">
-                    <input aria-describedby="idHTTPTimeoutHelp" class="form-control" id="idHTTPTimeout" max="180" min="1" name="http_timeout"
+                    <input aria-describedby="idHTTPTimeoutHelp" class="form-control" id="idHTTPTimeout" max="180"
+                           min="1" name="http_timeout"
                            type="number" value="{{.Action.Options.HTTPConfig.Timeout}}"/>
                     <div class="form-text" data-i18n="actions.http_timeout_help" id="idHTTPTimeoutHelp"></div>
                 </div>
@@ -344,7 +352,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row align-items-center action-type action-http mt-10">
                 <div class="col-md-12">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .Action.Options.HTTPConfig.SkipTLSVerify}}checked{{end}} class="form-check-input" id="idHTTPSkipTLSVerify"
+                        <input .Action.Options.HTTPConfig.SkipTLSVerify}}checked{{end}} class="form-check-input"
+                               id="idHTTPSkipTLSVerify"
                                name="http_skip_tls_verify" type="checkbox"
                                {{if/>
                         <label class="form-check-label fw-semibold text-gray-800" data-i18n="general.skip_tls_verify"
@@ -378,17 +387,20 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div data-repeater-item>
                                         <div class="form-group row">
                                             <div class="col-md-3 mt-3 mt-md-8">
-                                                <input class="form-control" data-i18n="[placeholder]actions.http_part_name"
+                                                <input class="form-control"
+                                                       data-i18n="[placeholder]actions.http_part_name"
                                                        name="http_part_name" type="text"
                                                        value="{{$val.Name}}"/>
                                             </div>
                                             <div class="col-md-3 mt-3 mt-md-8">
-                                                <input class="form-control" data-i18n="[placeholder]actions.http_part_file"
+                                                <input class="form-control"
+                                                       data-i18n="[placeholder]actions.http_part_file"
                                                        name="http_part_file" type="text"
                                                        value="{{$val.Filepath}}"/>
                                             </div>
                                             <div class="col-md-5 mt-3 mt-md-8">
-                                                <textarea class="form-control" data-i18n="[placeholder]actions.http_part_headers"
+                                                <textarea class="form-control"
+                                                          data-i18n="[placeholder]actions.http_part_headers"
                                                           name="http_part_headers"
                                                           rows="2">{{range $val.Headers}}{{.Key}}: {{.Value}}&#010;{{end}}</textarea>
                                             </div>
@@ -426,7 +438,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                    name="http_part_file" type="text" value=""/>
                                         </div>
                                         <div class="col-md-5 mt-3 mt-md-8">
-                                            <textarea class="form-control" data-i18n="[placeholder]actions.http_part_headers"
+                                            <textarea class="form-control"
+                                                      data-i18n="[placeholder]actions.http_part_headers"
                                                       name="http_part_headers"
                                                       rows="2"></textarea>
                                         </div>
@@ -600,7 +613,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="actions.email_subject"
                        for="idEmailSubject">Subject</label>
                 <div class="col-md-9">
-                    <input aria-describedby="idEmailSubjectHelp" class="form-control" id="idEmailSubject" maxlength="255" name="email_subject"
+                    <input aria-describedby="idEmailSubjectHelp" class="form-control" id="idEmailSubject"
+                           maxlength="255" name="email_subject"
                            type="text" value="{{.Action.Options.EmailConfig.Subject}}"/>
                     <div class="form-text" data-i18n="actions.placeholders_help" id="idEmailSubjectHelp"></div>
                 </div>
@@ -668,9 +682,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                 <select class="form-select select-repetear"
                                                         data-allow-clear="true"
                                                         data-close-on-select="false" data-hide-search="true"
-                                                        data-i18n="[data-placeholder]general.options" multiple name="folder_retention_options">
+                                                        data-i18n="[data-placeholder]general.options" multiple
+                                                        name="folder_retention_options">
                                                     <option value=""></option>
-                                                    <option $val.DeleteEmptyDirs}}selected{{end}} data-i18n="actions.delete_empty_dirs" value="1"
+                                                    <option $val.DeleteEmptyDirs}}selected{{end}}
+                                                            data-i18n="actions.delete_empty_dirs" value="1"
                                                             {{if>Delete empty dirs
                                                     </option>
                                                 </select>
@@ -694,7 +710,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-5 mt-3 mt-md-8">
-                                            <input class="form-control" data-i18n="[placeholder]events.path" name="folder_retention_path"
+                                            <input class="form-control" data-i18n="[placeholder]events.path"
+                                                   name="folder_retention_path"
                                                    type="text" value=""/>
                                         </div>
                                         <div class="col-md-2 mt-3 mt-md-8">
@@ -705,7 +722,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             <select class="form-select select-repetear"
                                                     data-allow-clear="true"
                                                     data-close-on-select="false" data-hide-search="true"
-                                                    data-i18n="[data-placeholder]general.options" multiple name="folder_retention_options">
+                                                    data-i18n="[data-placeholder]general.options" multiple
+                                                    name="folder_retention_options">
                                                 <option value=""></option>
                                                 <option data-i18n="actions.delete_empty_dirs" value="1">Delete empty
                                                     dirs
@@ -781,9 +799,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                 <select class="form-select select-repetear"
                                                         data-allow-clear="true"
                                                         data-close-on-select="false" data-hide-search="true"
-                                                        data-i18n="[data-placeholder]general.options" multiple name="fs_rename_options">
+                                                        data-i18n="[data-placeholder]general.options" multiple
+                                                        name="fs_rename_options">
                                                     <option value=""></option>
-                                                    <option $val.UpdateModTime}}selected{{end}} data-i18n="actions.update_mod_times" value="1"
+                                                    <option $val.UpdateModTime}}selected{{end}}
+                                                            data-i18n="actions.update_mod_times" value="1"
                                                             {{if>Change times
                                                     </option>
                                                 </select>
@@ -820,7 +840,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             <select class="form-select select-repetear"
                                                     data-allow-clear="true"
                                                     data-close-on-select="false" data-hide-search="true"
-                                                    data-i18n="[data-placeholder]general.options" multiple name="fs_rename_options">
+                                                    data-i18n="[data-placeholder]general.options" multiple
+                                                    name="fs_rename_options">
                                                 <option value=""></option>
                                                 <option data-i18n="actions.update_mod_times" value="1">Update
                                                     timestamps
@@ -966,7 +987,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="actions.archive_path" for="idFsCompressName">Archive
                     path</label>
                 <div class="col-md-9">
-                    <input aria-describedby="idFsCompressNameHelp" class="form-control" id="idFsCompressName" maxlength="255"
+                    <input aria-describedby="idFsCompressNameHelp" class="form-control" id="idFsCompressName"
+                           maxlength="255"
                            name="fs_compress_name" type="text"
                            value="{{.Action.Options.FsConfig.Compress.Name}}"/>
                     <div class="form-text" data-i18n="actions.archive_path_help" id="idFsCompressNameHelp"></div>
@@ -1175,7 +1197,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
     function onTypeChanged(val) {

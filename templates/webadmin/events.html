@@ -36,7 +36,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 </select>
             </div>
             <div class="col-md-4 mt-5">
-                <select class="form-select" data-close-on-select="false" data-control="i18n-select2" data-hide-search="true"
+                <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                        data-hide-search="true"
                         data-i18n="[data-placeholder]general.actions"
                         id="idActions" multiple name="actions">
                 </select>
@@ -51,7 +52,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         </div>
         <div class="form-group row">
             <div class="col-md-3 mt-5">
-                <select class="form-select fs-events" data-close-on-select="false" data-control="i18n-select2" data-hide-search="true"
+                <select class="form-select fs-events" data-close-on-select="false" data-control="i18n-select2"
+                        data-hide-search="true"
                         data-i18n="[data-placeholder]general.status"
                         id="idStatuses" multiple name="statuses">
                     <option data-i18n="general.ok" value="1">OK</option>
@@ -60,7 +62,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 </select>
             </div>
             <div class="col-md-4 mt-5">
-                <select class="form-select fs-events log-events" data-close-on-select="false" data-control="i18n-select2"
+                <select class="form-select fs-events log-events" data-close-on-select="false"
+                        data-control="i18n-select2"
                         data-hide-search="true" data-i18n="[data-placeholder]ip_list.protocols"
                         id="idProtocols" multiple name="protocols">
                     <option value="SFTP">SFTP</option>
@@ -145,7 +148,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
         <div class="d-flex mt-4 mb-4 justify-content-end d-none" id="paginationContainer">
             <div aria-label="Pagination" class="btn-group" role="group">
-                <button class="btn btn-outline btn-active-primary disabled" data-i18n="general.previous" id="pagePrevious"
+                <button class="btn btn-outline btn-active-primary disabled" data-i18n="general.previous"
+                        id="pagePrevious"
                         type="button">Previous
                 </button>
                 <button class="btn btn-outline btn-active-primary disabled" data-i18n="general.next" id="pageNext"
@@ -159,11 +163,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/flatpickr/l10n/it.js" {{-
         {{-></script>
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/humanize-duration/humanize-duration.min.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/vendor/humanize-duration/humanize-duration.min.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
     const pageSize = 20;

@@ -26,7 +26,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row">
                 <label class="col-md-3 col-form-label" data-i18n="general.email" for="idEmail">Email</label>
                 <div class="col-md-9">
-                    <input .Email}}class="form-control-plaintext readonly-input" .LoggedUser.CanChangeInfo}}{{if autocomplete="off" id="idEmail" maxlength="255" name="email"
+                    <input .Email}}class="form-control-plaintext readonly-input" .LoggedUser.CanChangeInfo}}{{if
+                           autocomplete="off" id="idEmail" maxlength="255" name="email"
                            not
                            placeholder="" readonly{{else}}class="form-control" spellcheck="false" type="email"
                            value="{{.Email}}" {{else}}class="form-control" {{end}}
@@ -71,7 +72,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div class="form-group row">
                                         <div class="col-md-10 mt-3 mt-md-8">
                                             <input autocomplete="off" class="form-control" maxlength="255"
-                                                   name="additional_email" placeholder="" spellcheck="false" type="email"
+                                                   name="additional_email" placeholder="" spellcheck="false"
+                                                   type="email"
                                                    value=""/>
                                         </div>
                                         <div class="col-md-2 mt-3 mt-md-8">
@@ -107,7 +109,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="user.additional_emails" for="idAdditionalEmails">Additional
                     emails</label>
                 <div class="col-md-9">
-                    <input class="form-control-plaintext readonly-input" id="idAdditionalEmails" name="description" placeholder=""
+                    <input class="form-control-plaintext readonly-input" id="idAdditionalEmails" name="description"
+                           placeholder=""
                            readonly
                            type="text" value="{{.AdditionalEmailsString}}">
                 </div>
@@ -118,7 +121,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="general.description"
                        for="idDescription">Description</label>
                 <div class="col-md-9">
-                    <input .Description}}class="form-control-plaintext readonly-input" .LoggedUser.CanChangeInfo}}{{if id="idDescription" maxlength="255" name="description"
+                    <input .Description}}class="form-control-plaintext readonly-input" .LoggedUser.CanChangeInfo}}{{if
+                           id="idDescription" maxlength="255" name="description"
                            not
                            placeholder="" readonly{{else}}class="form-control" type="text"
                            value="{{.Description}}" {{else}}class="form-control"
@@ -131,7 +135,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     authentication</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .AllowAPIKeyAuth}}checked="checked" .LoggedUser.CanChangeAPIKeyAuth}}disabled="disabled" class="form-check-input" id="idAllowAPIKeyAuth"
+                        <input .AllowAPIKeyAuth}}checked="checked" .LoggedUser.CanChangeAPIKeyAuth}}disabled="disabled"
+                               class="form-check-input" id="idAllowAPIKeyAuth"
                                name="allow_api_key_auth" not type="checkbox" {{end}} {{end}}
                                {{if {{if/>
                         <label class="form-check-label fw-semibold text-gray-800" data-i18n="general.api_key_auth_help"
@@ -157,7 +162,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
                                             <textarea class="form-control"
-                                                      data-i18n="[placeholder]general.pub_key_placeholder" name="public_key" placeholder="Paste your public key here"
+                                                      data-i18n="[placeholder]general.pub_key_placeholder"
+                                                      name="public_key" placeholder="Paste your public key here"
                                                       rows="4">{{$val}}</textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
@@ -180,7 +186,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
                                             <textarea class="form-control"
-                                                      data-i18n="[placeholder]general.pub_key_placeholder" name="public_key" placeholder="Paste your public key here"
+                                                      data-i18n="[placeholder]general.pub_key_placeholder"
+                                                      name="public_key" placeholder="Paste your public key here"
                                                       rows="4"></textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
@@ -301,7 +308,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
 {{- define "extra_js"}}
 {{- if or .LoggedUser.CanManagePublicKeys .LoggedUser.CanManageTLSCerts}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
         {{-></script>
 {{- end}}
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->

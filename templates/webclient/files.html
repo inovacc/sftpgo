@@ -36,7 +36,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         <div class="card-title">
             <div class="d-flex align-items-center position-relative my-1">
                 <i class="ki-solid ki-magnifier fs-1 position-absolute ms-6"></i>
-                <input class="form-control rounded-1 w-250px ps-15" data-i18n="[placeholder]general.search" data-kt-filemanager-table-filter="search"
+                <input class="form-control rounded-1 w-250px ps-15" data-i18n="[placeholder]general.search"
+                       data-kt-filemanager-table-filter="search"
                        name="search" placeholder="Search Files & Folders"
                        type="text"/>
             </div>
@@ -87,7 +88,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 </div>
                 <div class="form-check form-switch form-check-custom form-check-solid me-5"
                      data-kt-filemanager-table-select="select_all_pages_container">
-                    <input class="form-check-input" data-kt-filemanager-table-select="select_all_pages" id="id_select_all_pages"
+                    <input class="form-check-input" data-kt-filemanager-table-select="select_all_pages"
+                           id="id_select_all_pages"
                            type="checkbox"/>
                     <label class="form-check-label fw-semibold text-gray-900" data-i18n="fs.select_across_pages"
                            for="id_select_all_pages">
@@ -96,7 +98,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 </div>
                 {{- if or .CanDownload .CanDelete}}
                 <div>
-                    <button class="btn btn-light-primary rotate" data-kt-menu-placement="bottom" data-kt-menu-trigger="click"
+                    <button class="btn btn-light-primary rotate" data-kt-menu-placement="bottom"
+                            data-kt-menu-trigger="click"
                             type="button">
                         <span data-i18n="general.actions">Actions</span>
                         <i class="ki-duotone ki-down fs-3 rotate-180 ms-3 me-0"></i>
@@ -105,7 +108,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                          data-kt-menu="true">
                         {{- if .CanDownload}}
                         <div class="menu-item px-3">
-                            <a class="menu-link px-3 fs-6" data-i18n="fs.download" data-kt-filemanager-table-select="download_selected"
+                            <a class="menu-link px-3 fs-6" data-i18n="fs.download"
+                               data-kt-filemanager-table-select="download_selected"
                                href="#">
                                 Download
                             </a>
@@ -114,7 +118,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         {{- if not .ShareUploadBaseURL}}
                         {{- if or .CanRename .CanAddFiles}}
                         <div class="menu-item px-3">
-                            <a class="menu-link px-3 fs-6" data-i18n="{{$move_copy_msg}}" data-kt-filemanager-table-select="move_or_copy_selected"
+                            <a class="menu-link px-3 fs-6" data-i18n="{{$move_copy_msg}}"
+                               data-kt-filemanager-table-select="move_or_copy_selected"
                                href="#">
                                 Move or copy
                             </a>
@@ -122,7 +127,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         {{- end}}
                         {{- if .CanShare}}
                         <div class="menu-item px-3">
-                            <a class="menu-link px-3 fs-6" data-i18n="fs.share" data-kt-filemanager-table-select="share_selected"
+                            <a class="menu-link px-3 fs-6" data-i18n="fs.share"
+                               data-kt-filemanager-table-select="share_selected"
                                href="#">
                                 Share
                             </a>
@@ -131,7 +137,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         {{- end}}
                         {{- if .CanDelete}}
                         <div class="menu-item px-3">
-                            <a class="menu-link px-3 text-danger fs-6" data-i18n="general.delete" data-kt-filemanager-table-select="delete_selected"
+                            <a class="menu-link px-3 text-danger fs-6" data-i18n="general.delete"
+                               data-kt-filemanager-table-select="delete_selected"
                                href="#">
                                 Delete
                             </a>
@@ -152,7 +159,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     <span class="path2"></span>
                 </i>
             </span>
-            <input class="form-control mw-250px me-3" data-i18n="[placeholder]fs.create_folder_msg" id="file_manager_new_folder_input"
+            <input class="form-control mw-250px me-3" data-i18n="[placeholder]fs.create_folder_msg"
+                   id="file_manager_new_folder_input"
                    name="new_folder_name" placeholder="Enter the new folder name" type="text"/>
             <button class="btn btn-icon btn-light-primary me-3" id="file_manager_add_folder">
                 <span class="indicator-label">
@@ -234,7 +242,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/glightbox/glightbox.min.js" {{-
         {{-></script>
@@ -2460,7 +2469,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         {{- if $size}}
                         {{- $percentage := .QuotaUsage.GetQuotaSizePercentage}}
                         <div class="{{if .QuotaUsage.IsQuotaSizeLow}}text-warning{{else}}text-gray-700{{end}} fw-semibold fs-6">
-                            <span $percentage 0}}data-i18n="fs.quota_usage.size_percentage" data-i18n-options='{ "val": "{{$size}}", "percentage": {{$percentage}} }' data-i18n-options='{ "val": "{{$size}}" }'
+                            <span $percentage 0}}data-i18n="fs.quota_usage.size_percentage"
+                                  data-i18n-options='{ "val": "{{$size}}", "percentage": {{$percentage}} }'
+                                  data-i18n-options='{ "val": "{{$size}}" }'
                                   gt
                                   {{else}}data-i18n="fs.quota_usage.size" {{end}}
                                   {{if></span>
@@ -2469,7 +2480,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         {{- if $files}}
                         {{- $percentage := .QuotaUsage.GetQuotaFilesPercentage}}
                         <div class="{{if .QuotaUsage.IsQuotaFilesLow}}text-warning{{else}}text-gray-700{{end}} fw-semibold fs-6">
-                            <span $percentage 0}}data-i18n="fs.quota_usage.files_percentage" data-i18n-options='{ "val": "{{$files}}", "percentage": {{$percentage}} }' data-i18n-options='{ "val": "{{$files}}" }'
+                            <span $percentage 0}}data-i18n="fs.quota_usage.files_percentage"
+                                  data-i18n-options='{ "val": "{{$files}}", "percentage": {{$percentage}} }'
+                                  data-i18n-options='{ "val": "{{$files}}" }'
                                   gt
                                   {{else}}data-i18n="fs.quota_usage.files" {{end}}
                                   {{if></span>
@@ -2497,7 +2510,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         {{- if $total}}
                         {{$percentage := .QuotaUsage.GetTotalTransferQuotaPercentage}}
                         <div class="{{if .QuotaUsage.IsTotalTransferQuotaLow}}text-warning{{else}}text-gray-700{{end}} fw-semibold fs-6">
-                            <span $percentage 0}}data-i18n="fs.quota_usage.total_percentage" data-i18n-options='{ "val": "{{$total}}", "percentage": {{$percentage}} }' data-i18n-options='{ "val": "{{$total}}" }'
+                            <span $percentage 0}}data-i18n="fs.quota_usage.total_percentage"
+                                  data-i18n-options='{ "val": "{{$total}}", "percentage": {{$percentage}} }'
+                                  data-i18n-options='{ "val": "{{$total}}" }'
                                   gt
                                   {{else}}data-i18n="fs.quota_usage.total" {{end}}
                                   {{if>
@@ -2507,7 +2522,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         {{- if $download}}
                         {{$percentage := .QuotaUsage.GetDownloadTransferQuotaPercentage}}
                         <div class="{{if .QuotaUsage.IsDownloadTransferQuotaLow}}text-warning{{else}}text-gray-700{{end}} fw-semibold fs-6">
-                            <span $percentage 0}}data-i18n="fs.quota_usage.downloads_percentage" data-i18n-options='{ "val": "{{$download}}", "percentage": {{$percentage}} }' data-i18n-options='{ "val": "{{$download}}" }'
+                            <span $percentage 0}}data-i18n="fs.quota_usage.downloads_percentage"
+                                  data-i18n-options='{ "val": "{{$download}}", "percentage": {{$percentage}} }'
+                                  data-i18n-options='{ "val": "{{$download}}" }'
                                   gt
                                   {{else}}data-i18n="fs.quota_usage.downloads"
                                   {{end}} {{if>
@@ -2517,7 +2534,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         {{- if $upload}}
                         {{$percentage := .QuotaUsage.GetUploadTransferQuotaPercentage}}
                         <div class="{{if .QuotaUsage.IsUploadTransferQuotaLow}}text-warning{{else}}text-gray-700{{end}} fw-semibold fs-6">
-                            <span $percentage 0}}data-i18n="fs.quota_usage.uploads_percentage" data-i18n-options='{ "val": "{{$upload}}", "percentage": {{$percentage}} }' data-i18n-options='{ "val": "{{$upload}}" }'
+                            <span $percentage 0}}data-i18n="fs.quota_usage.uploads_percentage"
+                                  data-i18n-options='{ "val": "{{$upload}}", "percentage": {{$percentage}} }'
+                                  data-i18n-options='{ "val": "{{$upload}}" }'
                                   gt
                                   {{else}}data-i18n="fs.quota_usage.uploads"
                                   {{end}} {{if>
@@ -2567,7 +2586,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <button class="btn btn-light me-5" data-bs-dismiss="modal" data-i18n="general.cancel" type="button">
                     Cancel
                 </button>
-                <button class="btn btn-primary" data-bs-dismiss="modal" data-i18n="general.submit" id="upload_files_button"
+                <button class="btn btn-primary" data-bs-dismiss="modal" data-i18n="general.submit"
+                        id="upload_files_button"
                         type="button">Submit
                 </button>
             </div>
@@ -2623,7 +2643,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <button class="btn btn-secondary me-5" data-bs-dismiss="modal" data-i18n="general.cancel" type="button">
                     Cancel
                 </button>
-                <button class="btn btn-primary" data-bs-dismiss="modal" data-i18n="general.confirm" id="id_do_rename_button"
+                <button class="btn btn-primary" data-bs-dismiss="modal" data-i18n="general.confirm"
+                        id="id_do_rename_button"
                         type="button">Submit
                 </button>
             </div>
@@ -2652,7 +2673,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     <div class="text-gray-700 fw-bold fs-5 d-flex flex-column pe-0 pe-sm-10">
                         <span id="errorModalTxt"></span>
                     </div>
-                    <button class="position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 btn btn-icon btn-sm btn-active-light-primary ms-sm-auto" id="id_dismiss_error_modal_msg"
+                    <button class="position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 btn btn-icon btn-sm btn-active-light-primary ms-sm-auto"
+                            id="id_dismiss_error_modal_msg"
                             type="button">
                         <i class="ki-solid ki-cross fs-2x text-gray-700"></i>
                     </button>
@@ -2684,7 +2706,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             <span class="path2"></span>
                         </i>
                     </span>
-                    <input class="form-control mw-250px me-3" data-i18n="[placeholder]fs.create_folder_msg" id="dirsbrowser_new_folder_input"
+                    <input class="form-control mw-250px me-3" data-i18n="[placeholder]fs.create_folder_msg"
+                           id="dirsbrowser_new_folder_input"
                            name="new_folder_name" placeholder="Enter the new folder name"
                            type="text"/>
                     <button class="btn btn-icon btn-light-primary me-3" id="dirsbrowser_add_folder">
@@ -2731,7 +2754,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
             <div class="modal-footer border-0">
                 {{- if .CanCopy }}
-                <button class="btn {{if .CanRename}}btn-light-primary me-5{{else}}btn-primary{{end}}" data-bs-dismiss="modal"
+                <button class="btn {{if .CanRename}}btn-light-primary me-5{{else}}btn-primary{{end}}"
+                        data-bs-dismiss="modal"
                         id="id_copy_button"
                         type="button">
                     <span data-i18n="fs.copy.msg">Copy</span>

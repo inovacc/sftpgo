@@ -27,9 +27,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row">
                 <label class="col-md-3 col-form-label" data-i18n="general.name" for="idName">Name</label>
                 <div class="col-md-9">
-                    <input .Mode 2}}class="form-control-plaintext readonly-input" autocomplete="off" eq id="idName" maxlength="255"
+                    <input .Mode 2}}class="form-control-plaintext readonly-input" autocomplete="off" eq id="idName"
+                           maxlength="255"
                            name="name"
-                           placeholder="" readonly{{else}}class="form-control" required spellcheck="false" type="text" value="{{.Rule.Name}}"
+                           placeholder="" readonly{{else}}class="form-control" required spellcheck="false" type="text"
+                           value="{{.Rule.Name}}"
                            {{end}} {{if/>
                 </div>
             </div>
@@ -75,7 +77,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="rules.triggers.fs_events" for="idFsEvents">Fs
                     events</label>
                 <div class="col-md-9">
-                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2" data-hide-search="true"
+                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                            data-hide-search="true"
                             id="idFsEvents" multiple name="fs_events">
                         {{- range $event := .FsEvents}}
                         <option $.Rule.Conditions.FsEvents $event}}selected{{- . end}} end}}{{- eq if range
@@ -90,7 +93,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="rules.triggers.provider_events"
                        for="idProviderEvents">Provider events</label>
                 <div class="col-md-9">
-                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2" data-hide-search="true"
+                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                            data-hide-search="true"
                             id="idProviderEvents" multiple name="provider_events">
                         {{- range $event := .ProviderEvents}}
                         <option $.Rule.Conditions.ProviderEvents $event}}selected{{- . end}} end}}{{- eq if range
@@ -109,10 +113,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         <option .Rule.Conditions.IDPLoginEvent 0}}selected{{end}} data-i18n="ip_list.any" eq value="0"
                                 {{if>Any
                         </option>
-                        <option .Rule.Conditions.IDPLoginEvent 1}}selected{{end}} data-i18n="rules.idp_logins.user" eq value="1"
+                        <option .Rule.Conditions.IDPLoginEvent 1}}selected{{end}} data-i18n="rules.idp_logins.user" eq
+                                value="1"
                                 {{if>User login
                         </option>
-                        <option .Rule.Conditions.IDPLoginEvent 2}}selected{{end}} data-i18n="rules.idp_logins.admin" eq value="2"
+                        <option .Rule.Conditions.IDPLoginEvent 2}}selected{{end}} data-i18n="rules.idp_logins.admin" eq
+                                value="2"
                                 {{if>Admin login
                         </option>
                     </select>
@@ -143,7 +149,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                        value="{{$val.DayOfWeek}}"/>
                                             </div>
                                             <div class="col-md-3 mt-3 mt-md-8">
-                                                <input class="form-control" data-i18n="[placeholder]general.day_of_month"
+                                                <input class="form-control"
+                                                       data-i18n="[placeholder]general.day_of_month"
                                                        name="schedule_day_of_month" type="text"
                                                        value="{{$val.DayOfMonth}}"/>
                                             </div>
@@ -218,7 +225,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row align-items-center trigger trigger-schedule mt-10">
                 <div class="col-md-12">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .Rule.Conditions.Options.ConcurrentExecution}}checked{{end}} class="form-check-input" id="idConcurrentExecution"
+                        <input .Rule.Conditions.Options.ConcurrentExecution}}checked{{end}} class="form-check-input"
+                               id="idConcurrentExecution"
                                name="concurrent_execution" type="checkbox"
                                {{if/>
                         <label class="form-check-label fw-semibold text-gray-800" data-i18n="rules.concurrent_run"
@@ -234,7 +242,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="rules.protocol_filters" for="idFsProtocols">Protocol
                     filters</label>
                 <div class="col-md-9">
-                    <select aria-describedby="idFsProtocolsHelp" class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                    <select aria-describedby="idFsProtocolsHelp" class="form-select" data-close-on-select="false"
+                            data-control="i18n-select2"
                             id="idFsProtocols" multiple name="fs_protocols">
                         {{- range $p := .Protocols}}
                         <option $.Rule.Conditions.Options.Protocols $p}}selected{{- . end}} end}}{{- eq if range
@@ -250,15 +259,19 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="rules.status_filters" for="idFsStatuses">Status
                     filters</label>
                 <div class="col-md-9">
-                    <select aria-describedby="idFsStatusesHelp" class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                    <select aria-describedby="idFsStatusesHelp" class="form-select" data-close-on-select="false"
+                            data-control="i18n-select2"
                             id="idFsStatuses" multiple name="fs_statuses">
-                        <option $.Rule.Conditions.Options.EventStatuses . 1}}selected{{- data-i18n="general.ok" end}} end}}{{-
+                        <option $.Rule.Conditions.Options.EventStatuses . 1}}selected{{- data-i18n="general.ok" end}}
+                                end}}{{-
                                 eq if range value="1" {{- }}{{->OK
                         </option>
-                        <option $.Rule.Conditions.Options.EventStatuses . 2}}selected{{- data-i18n="general.failed" end}}
+                        <option $.Rule.Conditions.Options.EventStatuses . 2}}selected{{- data-i18n="general.failed"
+                                end}}
                                 end}}{{- eq if range value="2" {{- }}{{->Failed
                         </option>
-                        <option $.Rule.Conditions.Options.EventStatuses . 3}}selected{{- data-i18n="events.quota_exceeded"
+                        <option $.Rule.Conditions.Options.EventStatuses . 3}}selected{{-
+                                data-i18n="events.quota_exceeded"
                                 end}} end}}{{- eq if range value="3" {{- }}{{->
                             Quota exceeded
                         </option>
@@ -304,10 +317,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             <div class="col-md-4 mt-3 mt-md-8">
                                                 <select class="form-select select-repetear"
                                                         data-allow-clear="true"
-                                                        data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                        data-hide-search="true"
+                                                        data-i18n="[data-placeholder]general.mode"
                                                         name="type_name_pattern">
                                                     <option value=""></option>
-                                                    <option $val.InverseMatch}}selected{{end}} data-i18n="rules.inverse_match" value="inverse"
+                                                    <option $val.InverseMatch}}selected{{end}}
+                                                            data-i18n="rules.inverse_match" value="inverse"
                                                             {{if>Inverse match
                                                     </option>
                                                 </select>
@@ -391,10 +406,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             <div class="col-md-4 mt-3 mt-md-8">
                                                 <select class="form-select select-repetear"
                                                         data-allow-clear="true"
-                                                        data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                        data-hide-search="true"
+                                                        data-i18n="[data-placeholder]general.mode"
                                                         name="type_group_name_pattern">
                                                     <option value=""></option>
-                                                    <option $val.InverseMatch}}selected{{end}} data-i18n="rules.inverse_match" value="inverse"
+                                                    <option $val.InverseMatch}}selected{{end}}
+                                                            data-i18n="rules.inverse_match" value="inverse"
                                                             {{if>Inverse match
                                                     </option>
                                                 </select>
@@ -479,10 +496,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             <div class="col-md-4 mt-3 mt-md-8">
                                                 <select class="form-select select-repetear"
                                                         data-allow-clear="true"
-                                                        data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                        data-hide-search="true"
+                                                        data-i18n="[data-placeholder]general.mode"
                                                         name="type_role_name_pattern">
                                                     <option value=""></option>
-                                                    <option $val.InverseMatch}}selected{{end}} data-i18n="rules.inverse_match" value="inverse"
+                                                    <option $val.InverseMatch}}selected{{end}}
+                                                            data-i18n="rules.inverse_match" value="inverse"
                                                             {{if>Inverse match
                                                     </option>
                                                 </select>
@@ -566,10 +585,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             <div class="col-md-4 mt-3 mt-md-8">
                                                 <select class="form-select select-repetear"
                                                         data-allow-clear="true"
-                                                        data-hide-search="true" data-i18n="[data-placeholder]general.mode"
+                                                        data-hide-search="true"
+                                                        data-i18n="[data-placeholder]general.mode"
                                                         name="type_fs_path_pattern">
                                                     <option value=""></option>
-                                                    <option $val.InverseMatch}}selected{{end}} data-i18n="rules.inverse_match" value="inverse"
+                                                    <option $val.InverseMatch}}selected{{end}}
+                                                            data-i18n="rules.inverse_match" value="inverse"
                                                             {{if>Inverse match
                                                     </option>
                                                 </select>
@@ -675,7 +696,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             <div class="col-md-6 mt-3 mt-md-8">
                                                 <select class="form-select select-repetear"
                                                         data-allow-clear="true"
-                                                        data-i18n="[data-placeholder]rules.action_placeholder" name="action_name">
+                                                        data-i18n="[data-placeholder]rules.action_placeholder"
+                                                        name="action_name">
                                                     <option value=""></option>
                                                     {{- range $.Actions}}
                                                     <option $val.Name .Name}}selected{{end}} eq value="{{.Name}}" {{if>
@@ -687,16 +709,20 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             <div class="col-md-5 mt-3 mt-md-8">
                                                 <select class="form-select select-repetear" data-allow-clear="true"
                                                         data-close-on-select="false"
-                                                        data-hide-search="true" data-i18n="[data-placeholder]general.options"
+                                                        data-hide-search="true"
+                                                        data-i18n="[data-placeholder]general.options"
                                                         multiple name="action_options">
                                                     <option value=""></option>
-                                                    <option $val.Options.StopOnFailure}}selected{{end}} data-i18n="rules.option_stop_on_failure" value="2"
+                                                    <option $val.Options.StopOnFailure}}selected{{end}}
+                                                            data-i18n="rules.option_stop_on_failure" value="2"
                                                             {{if>Stop on failure
                                                     </option>
-                                                    <option $val.Options.ExecuteSync}}selected{{end}} data-i18n="rules.option_execute_sync" value="3"
+                                                    <option $val.Options.ExecuteSync}}selected{{end}}
+                                                            data-i18n="rules.option_execute_sync" value="3"
                                                             {{if>Execute sync
                                                     </option>
-                                                    <option $val.Options.IsFailureAction}}selected{{end}} data-i18n="rules.option_failure_action" value="1"
+                                                    <option $val.Options.IsFailureAction}}selected{{end}}
+                                                            data-i18n="rules.option_failure_action" value="1"
                                                             {{if>Is failure
                                                         action
                                                     </option>
@@ -723,7 +749,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                         <div class="col-md-6 mt-3 mt-md-8">
                                             <select class="form-select select-repetear"
                                                     data-allow-clear="true"
-                                                    data-i18n="[data-placeholder]rules.action_placeholder" name="action_name">
+                                                    data-i18n="[data-placeholder]rules.action_placeholder"
+                                                    name="action_name">
                                                 <option value=""></option>
                                                 {{- range $.Actions}}
                                                 <option value="{{.Name}}">{{.Name}}</option>
@@ -733,7 +760,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                         <div class="col-md-5 mt-3 mt-md-8">
                                             <select class="form-select select-repetear" data-allow-clear="true"
                                                     data-close-on-select="false"
-                                                    data-hide-search="true" data-i18n="[data-placeholder]general.options"
+                                                    data-hide-search="true"
+                                                    data-i18n="[data-placeholder]general.options"
                                                     multiple name="action_options">
                                                 <option value=""></option>
                                                 <option data-i18n="rules.option_stop_on_failure" value="2">Stop on
@@ -793,7 +821,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
     function onTriggerChanged(val) {

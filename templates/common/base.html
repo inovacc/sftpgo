@@ -25,7 +25,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         <span .HasArgs}}data-i18n-options="{{.Args}}" .}}data-i18n="{{.Message}}" id="errorTxt" {{end}}{{end}} {{if
               {{if></span>
     </div>
-    <button class="position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 btn btn-icon btn-sm btn-active-light-primary ms-sm-auto" id="id_dismiss_error_msg"
+    <button class="position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 btn btn-icon btn-sm btn-active-light-primary ms-sm-auto"
+            id="id_dismiss_error_msg"
             type="button">
         <i class="ki-solid ki-cross fs-2x text-gray-700"></i>
     </button>
@@ -906,9 +907,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                 </div>
             </div> -->
-            <div class="app-sidebar flex-column" data-kt-drawer="true" data-kt-drawer-activate="{default: true, lg: false}"
+            <div class="app-sidebar flex-column" data-kt-drawer="true"
+                 data-kt-drawer-activate="{default: true, lg: false}"
                  data-kt-drawer-direction="start" data-kt-drawer-name="app-sidebar"
-                 data-kt-drawer-overlay="true" data-kt-drawer-toggle="#kt_app_sidebar_mobile_toggle" data-kt-drawer-width="300px"
+                 data-kt-drawer-overlay="true" data-kt-drawer-toggle="#kt_app_sidebar_mobile_toggle"
+                 data-kt-drawer-width="300px"
                  id="kt_app_sidebar">
                 <div class="app-sidebar-header flex-column mx-10 pt-8" id="kt_app_sidebar_header">
                     <div class="d-flex flex-stack d-none d-lg-flex mb-13">
@@ -924,7 +927,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                          data-kt-scroll-dependencies="#kt_app_sidebar_header" data-kt-scroll-height="auto"
                          data-kt-scroll-offset="5px"
                          data-kt-scroll-wrappers="#kt_app_sidebar_navs" id="kt_app_sidebar_navs_wrappers">
-                        <div class="menu menu-column menu-rounded menu-sub-indention menu-active-bg mb-7" data-kt-menu="true" data-kt-menu-expand="false"
+                        <div class="menu menu-column menu-rounded menu-sub-indention menu-active-bg mb-7"
+                             data-kt-menu="true" data-kt-menu-expand="false"
                              id="#kt_app_sidebar_menu">
                             {{- template "sidebaritems" .}}
                         </div>
@@ -993,7 +997,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         <div class="toast-body border-0 d-flex align-items-center">
             <span id="toast_icon"></span>
             <span class="fs-5 fw-semibold text-gray-800 me-auto" id="toast_msg"></span>
-            <button aria-label="Close" class="btn btn-icon btn-sm btn-active-light-primary position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 ms-sm-auto"
+            <button aria-label="Close"
+                    class="btn btn-icon btn-sm btn-active-light-primary position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 ms-sm-auto"
                     data-bs-dismiss="toast"
                     data-i18n="[aria-label]general.close" type="button">
                 <i class="ki-solid ki-cross fs-2x text-gray-700"></i>
@@ -1009,11 +1014,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18next.min.js" {{- {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/jquery-i18next.min.js" {{-
         {{-></script>
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18nextBrowserLanguageDetector.min.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/vendor/i18next/i18nextBrowserLanguageDetector.min.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18nextChainedBackend.min.js" {{-
         {{-></script>
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18nextLocalStorageBackend.min.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18nextLocalStorageBackend.min.js"
+        {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18nextHttpBackend.min.js" {{-
         {{-></script>

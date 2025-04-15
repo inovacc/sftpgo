@@ -40,6 +40,19 @@ type Role struct {
 	Users []string `json:"users,omitempty"`
 }
 
+func (r *Role) AsJSON() ([]byte, error) {
+	admin, err := provider.adminExists(r.Admins)
+	if err != nil {
+		providerLog(logger.LevelError, "unable to marshal admin role data as json: %v", err)
+		return nil, err
+	}
+	return json.Marshal(admin)
+}
+
+func (r *Role) FromJSON(data []byte) error {
+	return json.Unmarshal(r, data)
+}
+
 // RenderAsJSON implements the renderer interface used within plugins
 func (r *Role) RenderAsJSON(reload bool) ([]byte, error) {
 	if reload {

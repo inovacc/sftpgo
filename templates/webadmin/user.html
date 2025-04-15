@@ -70,16 +70,19 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div class="form-group row">
                                         <div class="col-md-3 mt-3 mt-md-8">
                                             <input autocomplete="off" class="form-control"
-                                                   data-i18n="[placeholder]login.username" name="tpl_username" spellcheck="false"
+                                                   data-i18n="[placeholder]login.username" name="tpl_username"
+                                                   spellcheck="false"
                                                    type="text" value=""/>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
                                             <input autocomplete="new-password" class="form-control"
-                                                   data-i18n="[placeholder]login.password" name="tpl_password" spellcheck="false"
+                                                   data-i18n="[placeholder]login.password" name="tpl_password"
+                                                   spellcheck="false"
                                                    type="password" value=""/>
                                         </div>
                                         <div class="col-md-5 mt-3 mt-md-8">
-                                            <textarea class="form-control" name="tpl_public_keys" placeholder="Paste your public key here"
+                                            <textarea class="form-control" name="tpl_public_keys"
+                                                      placeholder="Paste your public key here"
                                                       rows="5"></textarea>
                                         </div>
                                         <div class="col-md-1 mt-3 mt-md-8">
@@ -115,7 +118,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <div class="col-md-9">
                     <input .Mode 2}}class="form-control-plaintext readonly-input" autocomplete="off" ge id="idUsername"
                            maxlength="255" name="username"
-                           placeholder="" readonly{{else}}class="form-control" required spellcheck="false" type="text" value="{{.User.Username}}"
+                           placeholder="" readonly{{else}}class="form-control" required spellcheck="false" type="text"
+                           value="{{.User.Username}}"
                            {{end}} {{if/>
                 </div>
             </div>
@@ -126,7 +130,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="general.role" for="idRole">Role</label>
                 <div class="col-md-9">
                     <select aria-describedby="idRoleHelp" class="form-select" data-allow-clear="true"
-                            data-control="i18n-select2" data-i18n="[data-placeholder]general.role_placeholder" data-placeholder="Select a role"
+                            data-control="i18n-select2" data-i18n="[data-placeholder]general.role_placeholder"
+                            data-placeholder="Select a role"
                             id="idRole" name="role">
                         <option value=""></option>
                         {{- range .Roles}}
@@ -155,7 +160,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                        for="idRequirePasswordChange">Require password change</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .User.Filters.RequirePasswordChange}}checked="checked" class="form-check-input" id="idRequirePasswordChange"
+                        <input .User.Filters.RequirePasswordChange}}checked="checked" class="form-check-input"
+                               id="idRequirePasswordChange"
                                name="require_password_change" type="checkbox"
                                {{end}} {{if/>
                         <label class="form-check-label fw-semibold text-gray-800"
@@ -180,7 +186,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
                                             <textarea class="form-control"
-                                                      data-i18n="[placeholder]general.pub_key_placeholder" name="public_key" placeholder="Paste your public key here"
+                                                      data-i18n="[placeholder]general.pub_key_placeholder"
+                                                      name="public_key" placeholder="Paste your public key here"
                                                       rows="4">{{$val}}</textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
@@ -203,7 +210,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
                                             <textarea class="form-control"
-                                                      data-i18n="[placeholder]general.pub_key_placeholder" name="public_key" placeholder="Paste your public key here"
+                                                      data-i18n="[placeholder]general.pub_key_placeholder"
+                                                      name="public_key" placeholder="Paste your public key here"
                                                       rows="4"></textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
@@ -377,7 +385,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div data-repeater-item>
                                         <div class="form-group row">
                                             <div class="col-md-3 mt-3 mt-md-8">
-                                                <input class="form-control" data-i18n="[placeholder]virtual_folders.mount_path"
+                                                <input class="form-control"
+                                                       data-i18n="[placeholder]virtual_folders.mount_path"
                                                        name="vfolder_path" type="text"
                                                        value="{{$val.VirtualPath}}"/>
                                             </div>
@@ -423,7 +432,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <input class="form-control" data-i18n="[placeholder]virtual_folders.mount_path"
+                                            <input class="form-control"
+                                                   data-i18n="[placeholder]virtual_folders.mount_path"
                                                    name="vfolder_path" type="text" value=""/>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
@@ -481,12 +491,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <div class="accordion-item {{- if .LoggedUser.Filters.Preferences.HideProfile}} d-none{{- end}}">
                     <h2 class="accordion-header" id="headingProfile">
                         <button aria-controls="collapseProfile" aria-expanded="true"
-                                class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#collapseProfile" data-bs-toggle="collapse"
+                                class="accordion-button section-title-inner text-primary collapsed"
+                                data-bs-target="#collapseProfile" data-bs-toggle="collapse"
                                 type="button">
                             <span data-i18n="title.profile">Profile</span>
                         </button>
                     </h2>
-                    <div aria-labelledby="headingProfile" class="accordion-collapse collapse" data-bs-parent="#accordionUser"
+                    <div aria-labelledby="headingProfile" class="accordion-collapse collapse"
+                         data-bs-parent="#accordionUser"
                          id="collapseProfile">
                         <div class="accordion-body">
 
@@ -494,12 +506,15 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <label class="col-md-3 col-form-label" data-i18n="general.status"
                                        for="idStatus">Status</label>
                                 <div class="col-md-9">
-                                    <select class="form-select" data-control="i18n-select2" data-hide-search="true" id="idStatus"
+                                    <select class="form-select" data-control="i18n-select2" data-hide-search="true"
+                                            id="idStatus"
                                             name="status">
-                                        <option .User.Status 1 data-i18n="general.active" end}} eq if selected{{- value="1"
+                                        <option .User.Status 1 data-i18n="general.active" end}} eq if selected{{-
+                                                value="1"
                                                 {{- }}>Active
                                         </option>
-                                        <option .User.Status 0 data-i18n="general.inactive" end}} eq if selected{{- value="0"
+                                        <option .User.Status 0 data-i18n="general.inactive" end}} eq if selected{{-
+                                                value="0"
                                                 {{- }}>Inactive
                                         </option>
                                     </select>
@@ -522,7 +537,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <label class="col-md-3 col-form-label" data-i18n="general.email"
                                        for="idEmail">Email</label>
                                 <div class="col-md-9">
-                                    <input autocomplete="off" class="form-control" id="idEmail" maxlength="255" name="email"
+                                    <input autocomplete="off" class="form-control" id="idEmail" maxlength="255"
+                                           name="email"
                                            placeholder=""
                                            spellcheck="false" type="email" value="{{.User.Email}}"/>
                                 </div>
@@ -541,7 +557,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                 <div data-repeater-item>
                                                     <div class="form-group row">
                                                         <div class="col-md-10 mt-3 mt-md-8">
-                                                            <input autocomplete="off" class="form-control" maxlength="255"
+                                                            <input autocomplete="off" class="form-control"
+                                                                   maxlength="255"
                                                                    name="additional_email" placeholder=""
                                                                    spellcheck="false" type="email"
                                                                    value="{{$val}}"/>
@@ -565,8 +582,10 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                 <div data-repeater-item>
                                                     <div class="form-group row">
                                                         <div class="col-md-10 mt-3 mt-md-8">
-                                                            <input autocomplete="off" class="form-control" maxlength="255"
-                                                                   name="additional_email" placeholder="" spellcheck="false"
+                                                            <input autocomplete="off" class="form-control"
+                                                                   maxlength="255"
+                                                                   name="additional_email" placeholder=""
+                                                                   spellcheck="false"
                                                                    type="email" value=""/>
                                                         </div>
                                                         <div class="col-md-2 mt-3 mt-md-8">
@@ -625,7 +644,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <div class="accordion-item {{- if .LoggedUser.Filters.Preferences.HideACLs}} d-none{{- end}}">
                     <h2 class="accordion-header" id="headingPermissions">
                         <button aria-controls="collapsePermissions" aria-expanded="true"
-                                class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#collapsePermissions" data-bs-toggle="collapse"
+                                class="accordion-button section-title-inner text-primary collapsed"
+                                data-bs-target="#collapsePermissions" data-bs-toggle="collapse"
                                 type="button">
                             <span data-i18n="general.acls">ACLs</span>
                         </button>
@@ -667,14 +687,16 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                     <div class="form-group row">
                                                         <div class="col-md-6 mt-3 mt-md-8">
                                                             <input class="form-control"
-                                                                   data-i18n="[placeholder]filters.directory_path_help" name="sub_perm_path" type="text"
+                                                                   data-i18n="[placeholder]filters.directory_path_help"
+                                                                   name="sub_perm_path" type="text"
                                                                    value="{{$dirPerms.Path}}"/>
                                                         </div>
                                                         <div class="col-md-5 mt-3 mt-md-8">
                                                             <select class="form-select select-repetear"
                                                                     data-close-on-select="false"
                                                                     data-hide-search="true"
-                                                                    data-i18n="[data-placeholder]general.permissions" multiple
+                                                                    data-i18n="[data-placeholder]general.permissions"
+                                                                    multiple
                                                                     name="sub_perm_permissions">
                                                                 {{- range $validPerm := $.ValidPerms}}
                                                                 <option $perm $perm $validPerm}} :=$dirPerms.Permissions
@@ -686,7 +708,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                             </select>
                                                         </div>
                                                         <div class="col-md-1 mt-3 mt-md-8">
-                                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                            <a class="btn btn-light-danger ps-5 pe-4"
+                                                               data-repeater-delete
                                                                href="#">
                                                                 <i class="ki-duotone ki-trash fs-2">
                                                                     <span class="path1"></span>
@@ -704,14 +727,16 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                     <div class="form-group row">
                                                         <div class="col-md-6 mt-3 mt-md-8">
                                                             <input class="form-control"
-                                                                   data-i18n="[placeholder]filters.directory_path_help" name="sub_perm_path" type="text"
+                                                                   data-i18n="[placeholder]filters.directory_path_help"
+                                                                   name="sub_perm_path" type="text"
                                                                    value=""/>
                                                         </div>
                                                         <div class="col-md-5 mt-3 mt-md-8">
                                                             <select class="form-select select-repetear"
                                                                     data-close-on-select="false"
                                                                     data-hide-search="true"
-                                                                    data-i18n="[data-placeholder]general.permissions" multiple
+                                                                    data-i18n="[data-placeholder]general.permissions"
+                                                                    multiple
                                                                     name="sub_perm_permissions">
                                                                 {{- range $validPerm := .ValidPerms}}
                                                                 <option value="{{$validPerm}}">{{$validPerm}}</option>
@@ -719,7 +744,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                                             </select>
                                                         </div>
                                                         <div class="col-md-1 mt-3 mt-md-8">
-                                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
+                                                            <a class="btn btn-light-danger ps-5 pe-4"
+                                                               data-repeater-delete
                                                                href="#">
                                                                 <i class="ki-duotone ki-trash fs-2">
                                                                     <span class="path1"></span>
@@ -754,7 +780,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <label class="col-md-3 col-form-label" data-i18n="filters.max_sessions"
                                        for="idMaxSessions">Max sessions</label>
                                 <div class="col-md-9">
-                                    <input aria-describedby="idMaxSessionsHelp" class="form-control" id="idMaxSessions" min="0"
+                                    <input aria-describedby="idMaxSessionsHelp" class="form-control" id="idMaxSessions"
+                                           min="0"
                                            name="max_sessions" type="number"
                                            value="{{.User.MaxSessions}}"/>
                                     <div class="form-text" data-i18n="filters.max_sessions_help"
@@ -772,7 +799,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             id="idProtocols" multiple name="denied_protocols">
                                         {{- range $protocol := .ValidProtocols}}
                                         <option $p $p $protocol}} :=$.User.Filters.DeniedProtocols end}}
-                                                end}}{{- eq if range selected{{- value="{{$protocol}}" {{- }}{{->{{$protocol}}
+                                                end}}{{- eq if range selected{{- value="{{$protocol}}" {{- }}{{->
+                                            {{$protocol}}
                                         </option>
                                         {{- end}}
                                     </select>
@@ -785,12 +813,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     Denied login methods
                                 </label>
                                 <div class="col-md-9">
-                                    <select aria-describedby="idLoginMethodsHelp" class="form-select" data-close-on-select="false"
+                                    <select aria-describedby="idLoginMethodsHelp" class="form-select"
+                                            data-close-on-select="false"
                                             data-control="i18n-select2" id="idLoginMethods" multiple
                                             name="denied_login_methods">
                                         {{- range $method := .ValidLoginMethods}}
                                         <option $m $m $method}} :=$.User.Filters.DeniedLoginMethods end}}
-                                                end}}{{- eq if range selected{{- value="{{$method}}" {{- }}{{->{{$method}}
+                                                end}}{{- eq if range selected{{- value="{{$method}}" {{- }}{{->
+                                            {{$method}}
                                         </option>
                                         {{- end}}
                                     </select>
@@ -828,7 +858,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
                                             id="idWebClient" multiple name="web_client_options">
                                         {{- range $option := .WebClientOptions}}
-                                        <option $option}}selected{{- $p $p :=$.User.Filters.WebClient end}} end}}{{- eq if
+                                        <option $option}}selected{{- $p $p :=$.User.Filters.WebClient end}} end}}{{- eq
+                                                if
                                                 range value="{{$option}}" {{- }}{{->{{$option}}
                                         </option>
                                         {{- end}}
@@ -865,12 +896,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <div class="accordion-item {{- if .LoggedUser.Filters.Preferences.HideDiskQuotaAndBandwidthLimits}} d-none{{- end}}">
                     <h2 class="accordion-header" id="headingQuota">
                         <button aria-controls="collapseQuota" aria-expanded="true"
-                                class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#collapseQuota" data-bs-toggle="collapse"
+                                class="accordion-button section-title-inner text-primary collapsed"
+                                data-bs-target="#collapseQuota" data-bs-toggle="collapse"
                                 type="button">
                             <span data-i18n="general.quota_limits">Disk quota and bandwidth limits</span>
                         </button>
                     </h2>
-                    <div aria-labelledby="headingQuota" class="accordion-collapse collapse" data-bs-parent="#accordionUser"
+                    <div aria-labelledby="headingQuota" class="accordion-collapse collapse"
+                         data-bs-parent="#accordionUser"
                          id="collapseQuota">
                         <div class="accordion-body">
 
@@ -883,12 +916,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <div class="accordion-item {{- if .LoggedUser.Filters.Preferences.HideAdvancedSettings}} d-none{{- end}}">
                     <h2 class="accordion-header" id="headingAdvanced">
                         <button aria-controls="collapseAdvanced" aria-expanded="true"
-                                class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#collapseAdvanced" data-bs-toggle="collapse"
+                                class="accordion-button section-title-inner text-primary collapsed"
+                                data-bs-target="#collapseAdvanced" data-bs-toggle="collapse"
                                 type="button">
                             <span data-i18n="general.advanced_settings">Advanced settings</span>
                         </button>
                     </h2>
-                    <div aria-labelledby="headingAdvanced" class="accordion-collapse collapse" data-bs-parent="#accordionUser"
+                    <div aria-labelledby="headingAdvanced" class="accordion-collapse collapse"
+                         data-bs-parent="#accordionUser"
                          id="collapseAdvanced">
                         <div class="accordion-body">
 
@@ -898,7 +933,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <label class="col-md-3 col-form-label" data-i18n="filters.external_auth_cache_time"
                                        for="idExtAuthCacheTime">External auth cache time</label>
                                 <div class="col-md-9">
-                                    <input aria-describedby="idExtAuthCacheTimeHelp" class="form-control" id="idExtAuthCacheTime" min="0"
+                                    <input aria-describedby="idExtAuthCacheTimeHelp" class="form-control"
+                                           id="idExtAuthCacheTime" min="0"
                                            name="external_auth_cache_time"
                                            type="number"
                                            value="{{.User.Filters.ExternalAuthCacheTime}}"/>
@@ -964,7 +1000,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/flatpickr/l10n/it.js" {{-
         {{-></script>

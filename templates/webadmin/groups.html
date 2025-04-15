@@ -34,7 +34,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="d-flex flex-stack flex-wrap mb-5">
                 <div class="d-flex align-items-center position-relative my-2">
                     <i class="ki-solid ki-magnifier fs-1 position-absolute ms-6"></i>
-                    <input class="form-control rounded-1 w-250px ps-15 me-5" data-i18n="[placeholder]general.search" data-table-filter="search" name="search"
+                    <input class="form-control rounded-1 w-250px ps-15 me-5" data-i18n="[placeholder]general.search"
+                           data-table-filter="search" name="search"
                            placeholder="Search" type="text"/>
                     <button class="btn btn-light-primary ms-3" data-table-filter="export" id="export_button"
                             type="button">
@@ -49,7 +50,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 </div>
 
                 <div class="d-flex justify-content-end my-2" data-table-toolbar="base">
-                    <button class="btn btn-light-primary rotate" data-kt-menu-permanent="true" data-kt-menu-placement="bottom"
+                    <button class="btn btn-light-primary rotate" data-kt-menu-permanent="true"
+                            data-kt-menu-placement="bottom"
                             data-kt-menu-trigger="click" type="button">
                         <span data-i18n="general.colvis">Column visibility</span>
                         <i class="ki-duotone ki-down fs-3 rotate-180 ms-3 me-0"></i>
@@ -94,7 +96,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 </div>
 {{- end}}
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/papaparse/papaparse.min.js" {{-
         {{-></script>

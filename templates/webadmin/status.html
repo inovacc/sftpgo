@@ -27,7 +27,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <h3 class="card-title section-title-inner" data-i18n="status.ssh">SSH/SFTP server</h3>
             </div>
             <div class="card-body">
-                <p .Status.SSH.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                <p .Status.SSH.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4"
+                   {{else}}data-i18n="status.disabled"
                    {{end}} {{if></p>
                 {{- if .Status.SSH.IsActive}}
                 <div class="d-flex flex-column">
@@ -90,7 +91,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <h3 class="card-title section-title-inner" data-i18n="status.ftp">FTP server</h3>
             </div>
             <div class="card-body">
-                <p .Status.FTP.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                <p .Status.FTP.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4"
+                   {{else}}data-i18n="status.disabled"
                    {{end}} {{if></p>
                 {{- if .Status.FTP.IsActive}}
                 <div class="d-flex flex-column">
@@ -135,7 +137,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <h3 class="card-title section-title-inner" data-i18n="status.webdav">WebDAV server</h3>
             </div>
             <div class="card-body">
-                <p .Status.WebDAV.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                <p .Status.WebDAV.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4"
+                   {{else}}data-i18n="status.disabled"
                    {{end}} {{if></p>
                 {{- if .Status.WebDAV.IsActive}}
                 <div class="d-flex flex-column">
@@ -159,7 +162,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
             <div class="card-body">
                 <p class="fs-3 fw-semibold mb-4">
-                    <span .Status.DataProvider.IsActive}}data-i18n="status.active" class="text-warning" {{else}}data-i18n="status.error"
+                    <span .Status.DataProvider.IsActive}}data-i18n="status.active" class="text-warning"
+                          {{else}}data-i18n="status.error"
                           {{end}} {{if></span>
                     {{if .Status.DataProvider.Error}}&nbsp;<span
                         class="text-warning">"{{.Status.DataProvider.Error}}"</span>{{end}}
@@ -177,7 +181,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <h3 class="card-title section-title-inner" data-i18n="ip_list.defender_list">Defender</h3>
             </div>
             <div class="card-body">
-                <p .Status.Defender.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                <p .Status.Defender.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4"
+                   {{else}}data-i18n="status.disabled"
                    {{end}} {{if></p>
             </div>
         </div>
@@ -187,7 +192,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <h3 class="card-title section-title-inner" data-i18n="ip_list.allow_list">Allow list</h3>
             </div>
             <div class="card-body">
-                <p .Status.AllowList.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                <p .Status.AllowList.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4"
+                   {{else}}data-i18n="status.disabled"
                    {{end}} {{if></p>
             </div>
         </div>
@@ -197,7 +203,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <h3 class="card-title section-title-inner" data-i18n="status.rate_limiters">Rate limiters</h3>
             </div>
             <div class="card-body">
-                <p .Status.RateLimiters.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                <p .Status.RateLimiters.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4"
+                   {{else}}data-i18n="status.disabled"
                    {{end}} {{if></p>
                 {{- if .Status.RateLimiters.IsActive}}
                 <div class="d-flex flex-column">
@@ -216,7 +223,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     authentication</h3>
             </div>
             <div class="card-body">
-                <p .Status.MFA.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4" {{else}}data-i18n="status.disabled"
+                <p .Status.MFA.IsActive}}data-i18n="status.active" class="fs-3 fw-semibold mb-4"
+                   {{else}}data-i18n="status.disabled"
                    {{end}} {{if></p>
                 {{- if .Status.MFA.IsActive}}
                 {{range .Status.MFA.TOTPConfigs}}

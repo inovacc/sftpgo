@@ -34,7 +34,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="d-flex flex-stack flex-wrap mb-5">
                 <div class="d-flex align-items-center position-relative my-2">
                     <div class="input-group">
-                        <input class="form-control rounded-left w-250px" data-i18n="[placeholder]ip_list.search" id="idSearch" name="search"
+                        <input class="form-control rounded-left w-250px" data-i18n="[placeholder]ip_list.search"
+                               id="idSearch" name="search"
                                placeholder="Search" type="text"/>
                         <button class="btn btn-primary" id="search_button" type="button">
                             <i class="ki-solid ki-magnifier fs-2"></i>
@@ -44,7 +45,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                 <div class="d-flex justify-content-end my-2" data-table-toolbar="base">
                     <div>
-                        <select class="form-select me-3" data-control="i18n-select2" data-hide-search="true" id="idListType"
+                        <select class="form-select me-3" data-control="i18n-select2" data-hide-search="true"
+                                id="idListType"
                                 name="list_type">
                             <option data-i18n="ip_list.defender_list" value="2">Defender</option>
                             <option data-i18n="ip_list.allow_list" value="1">Allow list</option>
@@ -75,7 +77,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="d-flex mt-4 mb-4 justify-content-end d-none" id="paginationContainer">
                 <div aria-label="Pagination" class="btn-group" role="group">
-                    <button class="btn btn-outline btn-active-primary disabled" data-i18n="general.previous" id="pagePrevious"
+                    <button class="btn btn-outline btn-active-primary disabled" data-i18n="general.previous"
+                            id="pagePrevious"
                             type="button">Previous
                     </button>
                     <button class="btn btn-outline btn-active-primary disabled" data-i18n="general.next" id="pageNext"
@@ -90,7 +93,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
 

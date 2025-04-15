@@ -89,11 +89,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 Require 2FA for
             </label>
             <div class="col-md-9">
-                <select class="form-select" data-close-on-select="false" data-control="i18n-select2" data-hide-search="true"
+                <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                        data-hide-search="true"
                         id="id_protocols" multiple="multiple" name="multi_factor_protocols">
                     <option></option>
                     {{range $protocol := .Protocols}}
-                    <option $p $p $protocol}}selected{{end}}{{end}} :=$.TOTPConfig.Protocols eq value="{{$protocol}}" {{range
+                    <option $p $p $protocol}}selected{{end}}{{end}} :=$.TOTPConfig.Protocols eq value="{{$protocol}}"
+                            {{range
                             }}{{if>{{$protocol}}
                     </option>
                     {{end}}
@@ -130,7 +132,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
     <div class="accordion-item">
         <h2 class="accordion-header" id="accordion_rec_codes">
             <button aria-controls="accordion_rec_codes_body" aria-expanded="false"
-                    class="accordion-button section-title text-primary collapsed" data-bs-target="#accordion_rec_codes_body" data-bs-toggle="collapse"
+                    class="accordion-button section-title text-primary collapsed"
+                    data-bs-target="#accordion_rec_codes_body" data-bs-toggle="collapse"
                     type="button">
                 <span data-i18n="2fa.recovery_codes">
                     Recovery codes
@@ -287,14 +290,16 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     <div class="text-gray-700 fw-bold fs-5 d-flex flex-column pe-0 pe-sm-10">
                         <span id="errorModalTxt"></span>
                     </div>
-                    <button class="position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 btn btn-icon btn-sm btn-active-light-primary ms-sm-auto" id="id_dismiss_error_modal_msg"
+                    <button class="position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 btn btn-icon btn-sm btn-active-light-primary ms-sm-auto"
+                            id="id_dismiss_error_modal_msg"
                             type="button">
                         <i class="ki-solid ki-cross fs-2x text-gray-700"></i>
                     </button>
                 </div>
 
                 <div class="fv-row">
-                    <input class="form-control form-control-lg form-control-solid" data-i18n="[placeholder]login.auth_code" id="id_passcode" name="passcode"
+                    <input class="form-control form-control-lg form-control-solid"
+                           data-i18n="[placeholder]login.auth_code" id="id_passcode" name="passcode"
                            placeholder="Enter authentication code"
                            spellcheck="false" type="text"/>
                 </div>

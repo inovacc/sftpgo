@@ -27,7 +27,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row">
                 <label class="col-md-3 col-form-label" data-i18n="general.type" for="idType">Type</label>
                 <div class="col-md-9">
-                    <input .Entry.Type .Entry.Type .Entry.Type 1}}data-i18n="[value]ip_list.allow_list" 2}}data-i18n="[value]ip_list.defender_list" 3}}data-i18n="[value]ip_list.ratelimiters_safe_list"
+                    <input .Entry.Type .Entry.Type .Entry.Type 1}}data-i18n="[value]ip_list.allow_list"
+                           2}}data-i18n="[value]ip_list.defender_list"
+                           3}}data-i18n="[value]ip_list.ratelimiters_safe_list"
                            class="form-control-plaintext readonly-input" eq eq eq id="idType" maxlength="50"
                            name="type" readonly type="text" {{end}}
                            {{end}}{{if
@@ -38,7 +40,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row mt-10">
                 <label class="col-md-3 col-form-label" data-i18n="ip_list.ip_net" for="idIPOrNet">IP/Network</label>
                 <div class="col-md-9">
-                    <input .Mode 2}}class="form-control-plaintext readonly-input" aria-describedby="idIPOrNetHelp" autocomplete="off" eq
+                    <input .Mode 2}}class="form-control-plaintext readonly-input" aria-describedby="idIPOrNetHelp"
+                           autocomplete="off" eq
                            id="idIPOrNet"
                            maxlength="50" name="ipornet" readonly{{else}}class="form-control" required type="text"
                            value="{{.Entry.IPOrNet}}" {{end}} {{if/>

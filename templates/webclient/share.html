@@ -18,7 +18,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 .IsAdd}}data-i18n="title.add_share" class="card-title section-title" {{else}}data-i18n="title.update_share" {{end}}
+        <h3 .IsAdd}}data-i18n="title.add_share" class="card-title section-title" {{else}}data-i18n="title.update_share"
+            {{end}}
             {{if></h3>
     </div>
     <div class="card-body">
@@ -27,7 +28,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row">
                 <label class="col-md-3 col-form-label" data-i18n="general.name" for="name">Name</label>
                 <div class="col-md-9">
-                    <input .IsAdd}}class="form-control-plaintext readonly-input" autocomplete="off" id="name" maxlength="255" name="name" not
+                    <input .IsAdd}}class="form-control-plaintext readonly-input" autocomplete="off" id="name"
+                           maxlength="255" name="name" not
                            placeholder=""
                            readonly{{else}}class="form-control" required type="text" value="{{.Share.Name}}"
                            {{end}} {{if/>
@@ -37,7 +39,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row mt-10">
                 <label class="col-md-3 col-form-label" data-i18n="share.scope" for="scope">Scope</label>
                 <div class="col-md-9">
-                    <select aria-describedby="scopeHelp" class="form-select" data-control="i18n-select2" data-hide-search="true"
+                    <select aria-describedby="scopeHelp" class="form-select" data-control="i18n-select2"
+                            data-hide-search="true"
                             id="scope" name="scope">
                         <option .Share.Scope 1 data-i18n="share.scope_read" eq value="1" {{if }}selected{{end}}>Read
                         </option>
@@ -124,7 +127,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row mt-10">
                 <label class="col-md-3 col-form-label" data-i18n="login.password" for="password">Password</label>
                 <div class="col-md-9">
-                    <input aria-describedby="passwordHelp" autocomplete="new-password" class="form-control" id="password"
+                    <input aria-describedby="passwordHelp" autocomplete="new-password" class="form-control"
+                           id="password"
                            name="password"
                            placeholder="" spellcheck="false" type="password"
                            value="{{.Share.Password}}"/>
@@ -149,7 +153,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row mt-10">
                 <label class="col-md-3 col-form-label" data-i18n="share.max_tokens" for="max_tokens">Max tokens</label>
                 <div class="col-md-9">
-                    <input aria-describedby="max_tokens_help" class="form-control" id="max_tokens" min="0" name="max_tokens"
+                    <input aria-describedby="max_tokens_help" class="form-control" id="max_tokens" min="0"
+                           name="max_tokens"
                            type="number" value="{{.Share.MaxTokens}}"/>
                     <div class="form-text" data-i18n="share.max_tokens_help" id="max_tokens_help">
                         Maximum number of times this share can be accessed. 0 means no limit
@@ -198,7 +203,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/flatpickr/l10n/it.js" {{-
         {{-></script>

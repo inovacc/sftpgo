@@ -26,7 +26,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row">
                 <label class="col-md-3 col-form-label" data-i18n="login.username" for="idUsername">Username</label>
                 <div class="col-md-9">
-                    <input .IsAdd}}class="form-control" autocomplete="off" id="idUsername" maxlength="255" name="username"
+                    <input .IsAdd}}class="form-control" autocomplete="off" id="idUsername" maxlength="255"
+                           name="username"
                            placeholder="" readonly{{end}}
                            required spellcheck="false" type="text" value="{{.Admin.Username}}"
                            {{else}}class="form-control-plaintext readonly-input" {{if/>
@@ -36,7 +37,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <div class="form-group row mt-10">
                 <label class="col-md-3 col-form-label" data-i18n="login.password" for="idPassword">Password</label>
                 <div class="col-md-9">
-                    <input .IsAdd}}aria-describedby="idPasswordHelp" autocomplete="new-password" class="form-control" id="idPassword"
+                    <input .IsAdd}}aria-describedby="idPasswordHelp" autocomplete="new-password" class="form-control"
+                           id="idPassword"
                            name="password"
                            not spellcheck="false" type="password" value="" {{end}} {{if/>
                     {{- if not .IsAdd}}
@@ -50,7 +52,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                        for="idRequirePasswordChange">Require password change</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .Admin.Filters.RequirePasswordChange}}checked="checked" class="form-check-input" id="idRequirePasswordChange"
+                        <input .Admin.Filters.RequirePasswordChange}}checked="checked" class="form-check-input"
+                               id="idRequirePasswordChange"
                                name="require_password_change" type="checkbox"
                                {{end}} {{if/>
                         <label class="form-check-label fw-semibold text-gray-800"
@@ -80,7 +83,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <label class="col-md-3 col-form-label" data-i18n="general.permissions"
                        for="idPermissions">Permissions</label>
                 <div class="col-md-9">
-                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2" data-hide-search="true"
+                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
+                            data-hide-search="true"
                             id="idPermissions" multiple name="permissions">
                         {{- range $validPerm := .Admin.GetValidPerms}}
                         <option $perm $perm $validPerm}} :=$.Admin.Permissions end}} end}}{{- eq if range
@@ -102,7 +106,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         <label class="col-md-3 col-form-label" data-i18n="general.role" for="idRole">Role</label>
                         <div class="col-md-9">
                             <select class="form-select" data-allow-clear="true" data-control="i18n-select2"
-                                    data-i18n="[data-placeholder]general.role_placeholder" data-placeholder="Select a role" id="idRole"
+                                    data-i18n="[data-placeholder]general.role_placeholder"
+                                    data-placeholder="Select a role" id="idRole"
                                     name="role">
                                 <option value=""></option>
                                 {{- range .Roles}}
@@ -132,7 +137,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             <div class="col-md-6 mt-3 mt-md-8">
                                                 <select class="form-select select-repetear"
                                                         data-allow-clear="true"
-                                                        data-i18n="[data-placeholder]general.group_placeholder" name="group">
+                                                        data-i18n="[data-placeholder]general.group_placeholder"
+                                                        name="group">
                                                     <option value=""></option>
                                                     {{- range $.Groups}}
                                                     <option $val.Name .Name}} end}} eq if selected{{- value="{{.Name}}"
@@ -143,14 +149,17 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             </div>
                                             <div class="col-md-5 mt-3 mt-md-8">
                                                 <select class="form-select select-repetear" name="group_type">
-                                                    <option $val.Options.AddToUsersAs 0}}selected{{end}} data-i18n="admin.group_membership" eq
+                                                    <option $val.Options.AddToUsersAs 0}}selected{{end}}
+                                                            data-i18n="admin.group_membership" eq
                                                             value="0" {{if>Add as
                                                         membership
                                                     </option>
-                                                    <option $val.Options.AddToUsersAs 1}}selected{{end}} data-i18n="admin.group_primary" eq
+                                                    <option $val.Options.AddToUsersAs 1}}selected{{end}}
+                                                            data-i18n="admin.group_primary" eq
                                                             value="1" {{if>Add as primary
                                                     </option>
-                                                    <option $val.Options.AddToUsersAs 2}}selected{{end}} data-i18n="admin.group_secondary" eq
+                                                    <option $val.Options.AddToUsersAs 2}}selected{{end}}
+                                                            data-i18n="admin.group_secondary" eq
                                                             value="2" {{if>Add as
                                                         secondary
                                                     </option>
@@ -176,7 +185,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div class="form-group row">
                                         <div class="col-md-6 mt-3 mt-md-8">
                                             <select class="form-select select-repetear" data-allow-clear="true"
-                                                    data-i18n="[data-placeholder]general.group_placeholder" name="group">
+                                                    data-i18n="[data-placeholder]general.group_placeholder"
+                                                    name="group">
                                                 <option value=""></option>
                                                 {{- range $.Groups}}
                                                 <option value="{{.Name}}">{{.Name}}</option>
@@ -237,26 +247,33 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
                                     data-hide-search="true" id="idUserPageHiddenSections" multiple
                                     name="user_page_hidden_sections">
-                                <option .Admin.Filters.Preferences.HideGroups}}selected{{end}} data-i18n="title.groups" value="1"
+                                <option .Admin.Filters.Preferences.HideGroups}}selected{{end}} data-i18n="title.groups"
+                                        value="1"
                                         {{if>Groups
                                 </option>
-                                <option .Admin.Filters.Preferences.HideFilesystem}}selected{{end}} data-i18n="storage.title" value="2"
+                                <option .Admin.Filters.Preferences.HideFilesystem}}selected{{end}}
+                                        data-i18n="storage.title" value="2"
                                         {{if>Filesystem
                                 </option>
-                                <option .Admin.Filters.Preferences.HideVirtualFolders}}selected{{end}} data-i18n="title.folders" value="3"
+                                <option .Admin.Filters.Preferences.HideVirtualFolders}}selected{{end}}
+                                        data-i18n="title.folders" value="3"
                                         {{if>Virtual Folders
                                 </option>
-                                <option .Admin.Filters.Preferences.HideProfile}}selected{{end}} data-i18n="title.profile" value="4"
+                                <option .Admin.Filters.Preferences.HideProfile}}selected{{end}}
+                                        data-i18n="title.profile" value="4"
                                         {{if>Profile
                                 </option>
-                                <option .Admin.Filters.Preferences.HideACLs}}selected{{end}} data-i18n="general.acls" value="5"
+                                <option .Admin.Filters.Preferences.HideACLs}}selected{{end}} data-i18n="general.acls"
+                                        value="5"
                                         {{if>ACLs
                                 </option>
-                                <option .Admin.Filters.Preferences.HideDiskQuotaAndBandwidthLimits}}selected{{end}} data-i18n="general.quota_limits" value="6"
+                                <option .Admin.Filters.Preferences.HideDiskQuotaAndBandwidthLimits}}selected{{end}}
+                                        data-i18n="general.quota_limits" value="6"
                                         {{if>Disk
                                     quota and bandwidth limits
                                 </option>
-                                <option .Admin.Filters.Preferences.HideAdvancedSettings}}selected{{end}} data-i18n="general.advanced_settings" value="7"
+                                <option .Admin.Filters.Preferences.HideAdvancedSettings}}selected{{end}}
+                                        data-i18n="general.advanced_settings" value="7"
                                         {{if>Advanced
                                     settings
                                 </option>
@@ -268,7 +285,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         <label class="col-md-3 col-form-label" data-i18n="admin.default_users_expiration"
                                for="idDefaultUsersExpiration">Default users expiration</label>
                         <div class="col-md-9">
-                            <input aria-describedby="idDefaultUsersExpirationHelp" class="form-control" id="idDefaultUsersExpiration" min="0"
+                            <input aria-describedby="idDefaultUsersExpirationHelp" class="form-control"
+                                   id="idDefaultUsersExpiration" min="0"
                                    name="default_users_expiration"
                                    type="number"
                                    value="{{.Admin.Filters.Preferences.DefaultUsersExpiration}}"/>
@@ -313,7 +331,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     authentication</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .Admin.Filters.AllowAPIKeyAuth}}checked{{end}} class="form-check-input" id="idAllowAPIKeyAuth" name="allow_api_key_auth"
+                        <input .Admin.Filters.AllowAPIKeyAuth}}checked{{end}} class="form-check-input"
+                               id="idAllowAPIKeyAuth" name="allow_api_key_auth"
                                type="checkbox" {{if/>
                         <label class="form-check-label fw-semibold text-gray-800" data-i18n="filters.api_key_auth_help"
                                for="idAllowAPIKeyAuth">
@@ -328,7 +347,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                        for="idRequire2FA">2FA</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .Admin.Filters.RequireTwoFactor}}checked{{end}} class="form-check-input" id="idRequire2FA" name="require_two_factor" type="checkbox"
+                        <input .Admin.Filters.RequireTwoFactor}}checked{{end}} class="form-check-input"
+                               id="idRequire2FA" name="require_two_factor" type="checkbox"
                                {{if/>
                         <label class="form-check-label fw-semibold text-gray-800" data-i18n="2fa.require"
                                for="idRequire2FA">
@@ -364,7 +384,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}"
+        src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
         {{-></script>
 <script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
 

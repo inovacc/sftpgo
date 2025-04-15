@@ -59,14 +59,17 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         <div class="accordion" id="accordion_configs">
             <div class="accordion-item">
                 <h2 class="accordion-header" id="accordion_header_sftp">
-                    <button aria-controls="accordion_sftp_body" aria-expanded="{{if eq .ConfigSection 1}}true{{else}}false{{end}}"
-                            class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#accordion_sftp_body"
+                    <button aria-controls="accordion_sftp_body"
+                            aria-expanded="{{if eq .ConfigSection 1}}true{{else}}false{{end}}"
+                            class="accordion-button section-title-inner text-primary collapsed"
+                            data-bs-target="#accordion_sftp_body"
                             data-bs-toggle="collapse"
                             type="button">
                         <span data-i18n="storage.sftp">SFTP</span>
                     </button>
                 </h2>
-                <div aria-labelledby="accordion_header_sftp" class="accordion-collapse collapse {{if eq .ConfigSection 1}}show{{end}}"
+                <div aria-labelledby="accordion_header_sftp"
+                     class="accordion-collapse collapse {{if eq .ConfigSection 1}}show{{end}}"
                      data-bs-parent="#accordion_configs" id="accordion_sftp_body">
                     <div class="accordion-body">
                         {{- template "infomsg" "sftp.help"}}
@@ -82,7 +85,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
                                             id="idHostKeyAlgos" multiple name="sftp_host_key_algos">
                                         {{- range $val := .Configs.SFTPD.GetSupportedHostKeyAlgos}}
-                                        <option $algo $algo $val}}selected{{end}}{{end}} :=$.Configs.SFTPD.HostKeyAlgos eq value="{{$val}}"
+                                        <option $algo $algo $val}}selected{{end}}{{end}} :=$.Configs.SFTPD.HostKeyAlgos
+                                                eq value="{{$val}}"
                                                 {{range }}{{if>{{$val}}
                                         </option>
                                         {{- end}}
@@ -99,7 +103,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
                                             id="idPubKeyAlgos" multiple name="sftp_pub_key_algos">
                                         {{- range $val := .Configs.SFTPD.GetSupportedPublicKeyAlgos}}
-                                        <option $algo $algo $val}}selected{{end}}{{end}} :=$.Configs.SFTPD.PublicKeyAlgos eq
+                                        <option $algo $algo $val}}selected{{end}}{{end}}
+                                                :=$.Configs.SFTPD.PublicKeyAlgos eq
                                                 value="{{$val}}" {{range }}{{if>{{$val}}
                                         </option>
                                         {{- end}}
@@ -115,7 +120,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
                                             id="idKEXAlgos" multiple name="sftp_kex_algos">
                                         {{- range $val := .Configs.SFTPD.GetSupportedKEXAlgos}}
-                                        <option $algo $algo $val}}selected{{end}}{{end}} :=$.Configs.SFTPD.KexAlgorithms eq value="{{$val}}"
+                                        <option $algo $algo $val}}selected{{end}}{{end}} :=$.Configs.SFTPD.KexAlgorithms
+                                                eq value="{{$val}}"
                                                 {{range }}{{if>{{$val}}
                                         </option>
                                         {{- end}}
@@ -131,7 +137,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
                                             id="idMACAlgos" multiple name="sftp_macs">
                                         {{- range $val := .Configs.SFTPD.GetSupportedMACs}}
-                                        <option $algo $algo $val}}selected{{end}}{{end}} :=$.Configs.SFTPD.MACs eq value="{{$val}}" {{range
+                                        <option $algo $algo $val}}selected{{end}}{{end}} :=$.Configs.SFTPD.MACs eq
+                                                value="{{$val}}" {{range
                                                 }}{{if>{{$val}}
                                         </option>
                                         {{- end}}
@@ -148,7 +155,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
                                             id="idCiphers" multiple name="sftp_ciphers">
                                         {{range $val := .Configs.SFTPD.GetSupportedCiphers}}
-                                        <option $algo $algo $val}}selected{{end}}{{end}} :=$.Configs.SFTPD.Ciphers eq value="{{$val}}" {{range
+                                        <option $algo $algo $val}}selected{{end}}{{end}} :=$.Configs.SFTPD.Ciphers eq
+                                                value="{{$val}}" {{range
                                                 }}{{if>{{$val}}
                                         </option>
                                         {{end}}
@@ -177,14 +185,17 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="accordion-item">
                 <h2 class="accordion-header" id="accordion_header_acme">
-                    <button aria-controls="accordion_acme_body" aria-expanded="{{if eq .ConfigSection 2}}true{{else}}false{{end}}"
-                            class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#accordion_acme_body"
+                    <button aria-controls="accordion_acme_body"
+                            aria-expanded="{{if eq .ConfigSection 2}}true{{else}}false{{end}}"
+                            class="accordion-button section-title-inner text-primary collapsed"
+                            data-bs-target="#accordion_acme_body"
                             data-bs-toggle="collapse"
                             type="button">
                         <span data-i18n="acme.title">ACME</span>
                     </button>
                 </h2>
-                <div aria-labelledby="accordion_header_acme" class="accordion-collapse collapse {{if eq .ConfigSection 2}}show{{end}}"
+                <div aria-labelledby="accordion_header_acme"
+                     class="accordion-collapse collapse {{if eq .ConfigSection 2}}show{{end}}"
                      data-bs-parent="#accordion_configs" id="accordion_acme_body">
                     <div class="accordion-body">
                         {{- template "infomsg" "acme.help"}}
@@ -195,7 +206,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             <div class="form-group row">
                                 <label class="col-md-3 col-form-label" data-i18n="general.domain" for="idACMEDomain">Domain</label>
                                 <div class="col-md-9">
-                                    <input aria-describedby="idACMEDomainHelp" class="form-control" id="idACMEDomain" name="acme_domain"
+                                    <input aria-describedby="idACMEDomainHelp" class="form-control" id="idACMEDomain"
+                                           name="acme_domain"
                                            type="text" value="{{.Configs.ACME.Domain}}"/>
                                     <div class="form-text" data-i18n="acme.domain_help" id="idACMEDomainHelp"></div>
                                 </div>
@@ -205,7 +217,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <label class="col-md-3 col-form-label" data-i18n="general.email"
                                        for="idACMEEmail">Email</label>
                                 <div class="col-md-9">
-                                    <input aria-describedby="idACMEEmailHelp" autocomplete="off" class="form-control" id="idACMEEmail"
+                                    <input aria-describedby="idACMEEmailHelp" autocomplete="off" class="form-control"
+                                           id="idACMEEmail"
                                            maxlength="255" name="acme_email"
                                            placeholder=""
                                            spellcheck="false" type="email" value="{{.Configs.ACME.Email}}"/>
@@ -217,7 +230,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <label class="col-md-3 col-form-label" data-i18n="general.port"
                                        for="idACMEPort">Port</label>
                                 <div class="col-md-9">
-                                    <input aria-describedby="idACMEPortHelp" class="form-control" id="idACMEPort" max="65535" min="1"
+                                    <input aria-describedby="idACMEPortHelp" class="form-control" id="idACMEPort"
+                                           max="65535" min="1"
                                            name="acme_port" type="number"
                                            value="{{.Configs.ACME.HTTP01Challenge.Port}}"/>
                                     <div class="form-text" data-i18n="acme.port_help" id="idACMEPortHelp"></div>
@@ -230,7 +244,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     Protocols
                                 </label>
                                 <div class="col-md-9">
-                                    <select aria-describedby="idACMEProtocolsHelp" class="form-select" data-close-on-select="false"
+                                    <select aria-describedby="idACMEProtocolsHelp" class="form-select"
+                                            data-close-on-select="false"
                                             data-control="i18n-select2" id="idACMEProtocols" multiple
                                             name="acme_protocols">
                                         <option .Configs.ACME.HasProtocol value="1" {{if
@@ -265,14 +280,17 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="accordion-item">
                 <h2 class="accordion-header" id="accordion_header_smtp">
-                    <button aria-controls="accordion_smtp_body" aria-expanded="{{if eq .ConfigSection 3}}true{{else}}false{{end}}"
-                            class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#accordion_smtp_body"
+                    <button aria-controls="accordion_smtp_body"
+                            aria-expanded="{{if eq .ConfigSection 3}}true{{else}}false{{end}}"
+                            class="accordion-button section-title-inner text-primary collapsed"
+                            data-bs-target="#accordion_smtp_body"
                             data-bs-toggle="collapse"
                             type="button">
                         <span data-i18n="smtp.title">SMTP</span>
                     </button>
                 </h2>
-                <div aria-labelledby="accordion_header_smtp" class="accordion-collapse collapse {{if eq .ConfigSection 3}}show{{end}}"
+                <div aria-labelledby="accordion_header_smtp"
+                     class="accordion-collapse collapse {{if eq .ConfigSection 3}}show{{end}}"
                      data-bs-parent="#accordion_configs" id="accordion_smtp_body">
                     <div class="accordion-body">
                         {{- template "infomsg" "smtp.help"}}
@@ -284,7 +302,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <label class="col-md-3 col-form-label" data-i18n="smtp.host" for="idSMTPHost">Server
                                     name</label>
                                 <div class="col-md-5">
-                                    <input aria-describedby="idSMTPHostHelp" class="form-control" id="idSMTPHost" maxlength="512"
+                                    <input aria-describedby="idSMTPHostHelp" class="form-control" id="idSMTPHost"
+                                           maxlength="512"
                                            name="smtp_host" spellcheck="false" type="text"
                                            value="{{.Configs.SMTP.Host}}"/>
                                     <div class="form-text" data-i18n="smtp.host_help" id="idSMTPHostHelp"></div>
@@ -310,7 +329,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             <div class="form-group row mt-10">
                                 <label class="col-md-3 col-form-label" data-i18n="login.password" for="idSMTPPassword">Password</label>
                                 <div class="col-md-9">
-                                    <input autocomplete="new-password" class="form-control" id="idSMTPPassword" name="smtp_password"
+                                    <input autocomplete="new-password" class="form-control" id="idSMTPPassword"
+                                           name="smtp_password"
                                            spellcheck="false"
                                            type="password"
                                            value="{{if .Configs.SMTP.Password.IsEncrypted}}{{.RedactedSecret}}{{else}}{{.Configs.SMTP.Password.GetPayload}}{{end}}"/>
@@ -353,7 +373,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <label class="col-md-3 col-form-label" data-i18n="smtp.oauth2_provider"
                                        for="idSMTPOAuth2Provider">OAuth2 provider</label>
                                 <div class="col-md-9">
-                                    <select aria-describedby="idSMTPOAuth2ProviderHelp" class="form-select" data-control="i18n-select2"
+                                    <select aria-describedby="idSMTPOAuth2ProviderHelp" class="form-select"
+                                            data-control="i18n-select2"
                                             data-hide-search="true" id="idSMTPOAuth2Provider"
                                             name="smtp_oauth2_provider">
                                         <option .Configs.SMTP.OAuth2.Provider 0}}selected{{end}} eq value="0" {{if>
@@ -371,7 +392,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <label class="col-md-3 col-form-label" data-i18n="smtp.oauth2_tenant"
                                        for="idSMTPOauth2Tenant">OAuth2 Tenant</label>
                                 <div class="col-md-9">
-                                    <input aria-describedby="idSMTPOauth2TenantHelp" class="form-control" id="idSMTPOauth2Tenant"
+                                    <input aria-describedby="idSMTPOauth2TenantHelp" class="form-control"
+                                           id="idSMTPOauth2Tenant"
                                            name="smtp_oauth2_tenant" type="text"
                                            value="{{.Configs.SMTP.OAuth2.Tenant}}"/>
                                     <div class="form-text" data-i18n="smtp.oauth2_tenant_help"
@@ -393,7 +415,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <label class="col-md-3 col-form-label" data-i18n="smtp.oauth2_client_secret"
                                        for="idSMTPOAuth2ClientSecret">OAuth2 Client secret</label>
                                 <div class="col-md-9">
-                                    <input autocomplete="new-password" class="form-control" id="idSMTPOAuth2ClientSecret"
+                                    <input autocomplete="new-password" class="form-control"
+                                           id="idSMTPOAuth2ClientSecret"
                                            name="smtp_oauth2_client_secret" spellcheck="false"
                                            type="password"
                                            value="{{if .Configs.SMTP.OAuth2.ClientSecret.IsEncrypted}}{{.RedactedSecret}}{{else}}{{.Configs.SMTP.OAuth2.ClientSecret.GetPayload}}{{end}}"/>
@@ -429,7 +452,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             <div class="form-group row mt-10">
                                 <label class="col-md-3 col-form-label" data-i18n="general.domain" for="idSMTPDomain">Domain</label>
                                 <div class="col-md-9">
-                                    <input aria-describedby="idSMTPDomainHelp" class="form-control" id="idSMTPDomain" maxlength="512"
+                                    <input aria-describedby="idSMTPDomainHelp" class="form-control" id="idSMTPDomain"
+                                           maxlength="512"
                                            name="smtp_domain" placeholder=""
                                            spellcheck="false" type="text" value="{{.Configs.SMTP.Domain}}"/>
                                     <div class="form-text" data-i18n="smtp.domain_help" id="idSMTPDomainHelp"></div>
@@ -450,7 +474,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             <div class="form-group row mt-10">
                                 <div class="col-md-12">
                                     <div class="input-group">
-                                        <input class="form-control rounded-left" data-i18n="[placeholder]smtp.test_recipient" id="idSMTPRecipient"
+                                        <input class="form-control rounded-left"
+                                               data-i18n="[placeholder]smtp.test_recipient" id="idSMTPRecipient"
                                                name="smtp_oauth2_refresh_token"
                                                spellcheck="false" type="email"/>
                                         <button class="btn btn-primary" id="smtp_test_button" type="button">
@@ -480,8 +505,10 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="accordion-item">
                 <h2 class="accordion-header" id="accordion_header_branding">
-                    <button aria-controls="accordion_branding_body" aria-expanded="{{if eq .ConfigSection 4}}true{{else}}false{{end}}"
-                            class="accordion-button section-title-inner text-primary collapsed" data-bs-target="#accordion_branding_body"
+                    <button aria-controls="accordion_branding_body"
+                            aria-expanded="{{if eq .ConfigSection 4}}true{{else}}false{{end}}"
+                            class="accordion-button section-title-inner text-primary collapsed"
+                            data-bs-target="#accordion_branding_body"
                             data-bs-toggle="collapse"
                             type="button">
                         <span data-i18n="branding.title">Branding</span>
@@ -586,10 +613,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                                     <div class="form-group row mt-10">
                                         <label class="col-md-3 col-form-label"
-                                               data-i18n="branding.disclaimer_name" for="idBrandingWebAdminDisclaimerName">Disclaimer
+                                               data-i18n="branding.disclaimer_name"
+                                               for="idBrandingWebAdminDisclaimerName">Disclaimer
                                             Name</label>
                                         <div class="col-md-9">
-                                            <input class="form-control" id="idBrandingWebAdminDisclaimerName" maxlength="255"
+                                            <input class="form-control" id="idBrandingWebAdminDisclaimerName"
+                                                   maxlength="255"
                                                    name="branding_webadmin_disclaimer_name"
                                                    placeholder="" type="text"
                                                    value="{{.Configs.Branding.WebAdmin.DisclaimerName}}"/>
@@ -600,7 +629,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                         <label class="col-md-3 col-form-label" data-i18n="branding.disclaimer_url"
                                                for="idBrandingWebAdminDisclaimerURL">Disclaimer URL</label>
                                         <div class="col-md-9">
-                                            <input class="form-control" id="idBrandingWebAdminDisclaimerURL" maxlength="1024"
+                                            <input class="form-control" id="idBrandingWebAdminDisclaimerURL"
+                                                   maxlength="1024"
                                                    name="branding_webadmin_disclaimer_url"
                                                    placeholder="" type="text"
                                                    value="{{.Configs.Branding.WebAdmin.DisclaimerURL}}"/>
@@ -630,7 +660,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                         <label class="col-md-3 col-form-label" data-i18n="branding.short_name"
                                                for="idBrandingWebClientShortName">Short Name</label>
                                         <div class="col-md-9">
-                                            <input class="form-control" id="idBrandingWebClientShortName" maxlength="255"
+                                            <input class="form-control" id="idBrandingWebClientShortName"
+                                                   maxlength="255"
                                                    name="branding_webclient_short_name"
                                                    placeholder="WebClient" type="text"
                                                    value="{{.Configs.Branding.WebClient.ShortName}}"/>
@@ -702,10 +733,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                                     <div class="form-group row mt-10">
                                         <label class="col-md-3 col-form-label"
-                                               data-i18n="branding.disclaimer_name" for="idBrandingWebClientDisclaimerName">Disclaimer
+                                               data-i18n="branding.disclaimer_name"
+                                               for="idBrandingWebClientDisclaimerName">Disclaimer
                                             Name</label>
                                         <div class="col-md-9">
-                                            <input class="form-control" id="idBrandingWebClientDisclaimerName" maxlength="255"
+                                            <input class="form-control" id="idBrandingWebClientDisclaimerName"
+                                                   maxlength="255"
                                                    name="branding_webclient_disclaimer_name"
                                                    placeholder=""
                                                    type="text"
@@ -715,10 +748,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                                     <div class="form-group row mt-10">
                                         <label class="col-md-3 col-form-label"
-                                               data-i18n="branding.disclaimer_url" for="idBrandingWebClientDisclaimerURL">Disclaimer
+                                               data-i18n="branding.disclaimer_url"
+                                               for="idBrandingWebClientDisclaimerURL">Disclaimer
                                             URL</label>
                                         <div class="col-md-9">
-                                            <input class="form-control" id="idBrandingWebClientDisclaimerURL" maxlength="1024"
+                                            <input class="form-control" id="idBrandingWebClientDisclaimerURL"
+                                                   maxlength="1024"
                                                    name="branding_webclient_disclaimer_url"
                                                    placeholder=""
                                                    type="text"
