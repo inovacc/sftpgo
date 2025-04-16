@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
+	"github.com/inovacc/utils/v2/uid"
 	"github.com/nats-io/nats.go"
 	"log"
 	"os"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -64,30 +63,18 @@ func init() {
 		NatsKvAdmin, NatsKvGroup, NatsKvRole, NatsKvRule, NatsKvUser, NatsKvFolder, NatsKvShare, NatsKvApiKey,
 		NatsKvEventAction, NatsKvEventRule, NatsKvNode, NatsKvTask, NatsKvTransfer, NatsKvDefender, NatsKvIplist,
 		NatsKvSession, NatsKvConfig, NatsKvActions, NatsKvSchemaVersion, NatsKvBucketVersion, NatsKvDbVersion,
-		usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS,
-		actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS, configsBucketNATS,
-		dbVersionBucketNATS, dbVersionKeyNATS, configsKeyNATS,
+		//usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS,
+		//actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS, configsBucketNATS,
+		//dbVersionBucketNATS, dbVersionKeyNATS, configsKeyNATS,
 	}
 
 	for _, name := range bucketNames {
 		buckets[name] = &nats.KeyValueConfig{
 			Bucket:      name,
-			Description: bucketLabel(name),
 			Storage:     nats.FileStorage,
 			Compression: true,
 		}
 	}
-}
-
-func bucketLabel(bucket string) string {
-	const prefix = "SFTP_KV_"
-	name := strings.TrimPrefix(bucket, prefix)
-	words := strings.Split(name, "_")
-
-	for i, w := range words {
-		words[i] = strings.Title(strings.ToLower(w))
-	}
-	return fmt.Sprintf("Key Value Store for %s", strings.Join(words, " "))
 }
 
 type user struct {
@@ -132,11 +119,9 @@ func TestMain(m *testing.M) {
 	}
 
 	newBulkInit := NewBulkInit(testObj.js)
-	if err := newBulkInit.Init(buckets, include); err != nil {
+	if err := newBulkInit.Init(buckets, include, bucketsKv); err != nil {
 		log.Fatalf("Error inserting bucket metadata")
 	}
-
-	newBulkInit.Export(bucketsKv)
 
 	os.Exit(m.Run())
 }
@@ -185,7 +170,7 @@ func TestWatchAndSync(t *testing.T) {
 	}
 
 	wg := sync.WaitGroup{}
-	key := uuid.NewString()
+	key := uid.GenerateUUID()
 
 	load := func() {
 		defer wg.Done()

@@ -76,38 +76,14 @@ func registerNATSCustomTLSConfig() error {
 	return nil
 }
 
-func (n *NATSProvider) updateLastLogin(username string) error {
-	return n.jsHandle.Update(func() error {
-		bucket, err := n.getUsersBucket(tx)
-		if err != nil {
-			return err
-		}
-		var u []byte
-		entry, err := n.buckets[].Get(username)
-		u == nil{
-			return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update last login", username))
-		}
-		var user User
-		err = json.Unmarshal(u, &user)
-		if err != nil {
-			return err
-		}
-		user.LastLogin = util.GetTimeAsMsSinceEpoch(time.Now())
-		buf, err := json.Marshal(user)
-		if err != nil {
-			return err
-		}
-		_, err = n.buckets[].Put(username, buf)
-		if err != nil {
-			providerLog(logger.LevelWarn, "error updating last login for user %q: %v", username, err)
-		} else {
-			providerLog(logger.LevelDebug, "last login updated for user %q", username)
-		}
-		return err
-	})
-}
+
 
 func (n *NATSProvider) updateAdminLastLogin(username string) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getAdminsBucket(tx)
 		if err != nil {
@@ -139,6 +115,11 @@ func (n *NATSProvider) updateAdminLastLogin(username string) error {
 }
 
 func (n *NATSProvider) updateTransferQuota(username string, uploadSize, downloadSize int64, reset bool) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getUsersBucket(tx)
 		if err != nil {
@@ -175,6 +156,11 @@ func (n *NATSProvider) updateTransferQuota(username string, uploadSize, download
 }
 
 func (n *NATSProvider) updateQuota(username string, filesAdd int, sizeAdd int64, reset bool) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getUsersBucket(tx)
 		if err != nil {
@@ -209,8 +195,12 @@ func (n *NATSProvider) updateQuota(username string, filesAdd int, sizeAdd int64,
 }
 
 func (n *NATSProvider) updateAdmin(admin *Admin) error {
-	err := admin.validate()
-	if err != nil {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
+	if err := admin.validate(); err != nil {
 		return err
 	}
 	return n.jsHandle.Update(func() error {
@@ -270,6 +260,11 @@ func (n *NATSProvider) updateAdmin(admin *Admin) error {
 }
 
 func (n *NATSProvider) deleteAdmin(admin Admin) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getAdminsBucket(tx)
 		if err != nil {
@@ -316,6 +311,11 @@ func (n *NATSProvider) deleteAdmin(admin Admin) error {
 }
 
 func (n *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	admins := make([]Admin, 0, limit)
 
 	err := n.jsHandle.View(func() error {
@@ -367,6 +367,11 @@ func (n *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, 
 }
 
 func (n *NATSProvider) dumpAdmins() ([]Admin, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	admins := make([]Admin, 0, 30)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getAdminsBucket(tx)
@@ -389,32 +394,13 @@ func (n *NATSProvider) dumpAdmins() ([]Admin, error) {
 	return admins, err
 }
 
-func (n *NATSProvider) userExists(username, role string) (User, error) {
-	var user User
-	entry, err := n.buckets[NatsKvUser].Get(username)
-	if entry.Value() == nil {
-		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
-	}
-
-	foldersBucket, err := n.getFoldersBucket(tx)
-	if err != nil {
-		return err
-	}
-	user, err = n.joinUserAndFolders(u, foldersBucket)
-	if err != nil {
-		return err
-	}
-	if !user.hasRole(role) {
-		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
-	}
-	return nil
-})
-return user, err
-}
-
 func (n *NATSProvider) addUser(user *User) error {
-	err := ValidateUser(user)
-	if err != nil {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
+	if err := ValidateUser(user); err != nil {
 		return err
 	}
 	return n.jsHandle.Update(func() error {
@@ -485,8 +471,12 @@ func (n *NATSProvider) addUser(user *User) error {
 }
 
 func (n *NATSProvider) updateUser(user *User) error {
-	err := ValidateUser(user)
-	if err != nil {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
+	if err := ValidateUser(user); err != nil {
 		return err
 	}
 	return n.jsHandle.Update(func() error {
@@ -522,8 +512,7 @@ func (n *NATSProvider) updateUser(user *User) error {
 			return err
 		}
 
-		err = bucket.Put([]byte(user.Username), buf)
-		if err == nil {
+		if err = bucket.Put([]byte(user.Username), buf); err == nil {
 			setLastUserUpdate()
 		}
 		return err
@@ -531,6 +520,11 @@ func (n *NATSProvider) updateUser(user *User) error {
 }
 
 func (n *NATSProvider) deleteUser(user User, _ bool) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getUsersBucket(tx)
 		if err != nil {
@@ -583,6 +577,11 @@ func (n *NATSProvider) deleteUser(user User, _ bool) error {
 }
 
 func (n *NATSProvider) updateUserPassword(username, password string) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getUsersBucket(tx)
 		if err != nil {
@@ -608,6 +607,11 @@ func (n *NATSProvider) updateUserPassword(username, password string) error {
 }
 
 func (n *NATSProvider) dumpUsers() ([]User, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	users := make([]User, 0, 100)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getUsersBucket(tx)
@@ -632,6 +636,11 @@ func (n *NATSProvider) dumpUsers() ([]User, error) {
 }
 
 func (n *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if getLastUserUpdate() < after {
 		return nil, nil
 	}
@@ -692,6 +701,11 @@ func (n *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
 }
 
 func (n *NATSProvider) getUsersForQuotaCheck(toFetch map[string]bool) ([]User, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	users := make([]User, 0, 10)
 
 	err := n.jsHandle.View(func() error {
@@ -752,6 +766,11 @@ func (n *NATSProvider) getUsersForQuotaCheck(toFetch map[string]bool) ([]User, e
 }
 
 func (n *NATSProvider) getUsers(limit int, offset int, order, role string) ([]User, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	users := make([]User, 0, limit)
 	var err error
 	if limit <= 0 {
@@ -813,6 +832,11 @@ func (n *NATSProvider) getUsers(limit int, offset int, order, role string) ([]Us
 }
 
 func (n *NATSProvider) dumpFolders() ([]vfs.BaseVirtualFolder, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	folders := make([]vfs.BaseVirtualFolder, 0, 50)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getFoldersBucket(tx)
@@ -834,6 +858,11 @@ func (n *NATSProvider) dumpFolders() ([]vfs.BaseVirtualFolder, error) {
 }
 
 func (n *NATSProvider) getFolders(limit, offset int, order string, _ bool) ([]vfs.BaseVirtualFolder, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	folders := make([]vfs.BaseVirtualFolder, 0, limit)
 	var err error
 	if limit <= 0 {
@@ -887,6 +916,11 @@ func (n *NATSProvider) getFolders(limit, offset int, order string, _ bool) ([]vf
 }
 
 func (n *NATSProvider) getFolderByName(name string) (vfs.BaseVirtualFolder, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var folder vfs.BaseVirtualFolder
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getFoldersBucket(tx)
@@ -900,8 +934,12 @@ func (n *NATSProvider) getFolderByName(name string) (vfs.BaseVirtualFolder, erro
 }
 
 func (n *NATSProvider) addFolder(folder *vfs.BaseVirtualFolder) error {
-	err := ValidateFolder(folder)
-	if err != nil {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
+	if err := ValidateFolder(folder); err != nil {
 		return err
 	}
 	return n.jsHandle.Update(func() error {
@@ -922,8 +960,12 @@ func (n *NATSProvider) addFolder(folder *vfs.BaseVirtualFolder) error {
 }
 
 func (n *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
-	err := ValidateFolder(folder)
-	if err != nil {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
+	if err := ValidateFolder(folder); err != nil {
 		return err
 	}
 	return n.jsHandle.Update(func() error {
@@ -957,6 +999,11 @@ func (n *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
 }
 
 func (n *NATSProvider) deleteFolderMappings(folder vfs.BaseVirtualFolder, usersBucket, groupsBucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	for _, username := range folder.Users {
 		var u []byte
 		if u = usersBucket.Get([]byte(username)); u == nil {
@@ -1013,6 +1060,11 @@ func (n *NATSProvider) deleteFolderMappings(folder vfs.BaseVirtualFolder, usersB
 }
 
 func (n *NATSProvider) deleteFolder(baseFolder vfs.BaseVirtualFolder) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getFoldersBucket(tx)
 		if err != nil {
@@ -1045,6 +1097,11 @@ func (n *NATSProvider) deleteFolder(baseFolder vfs.BaseVirtualFolder) error {
 }
 
 func (n *NATSProvider) updateFolderQuota(name string, filesAdd int, sizeAdd int64, reset bool) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getFoldersBucket(tx)
 		if err != nil {
@@ -1076,6 +1133,11 @@ func (n *NATSProvider) updateFolderQuota(name string, filesAdd int, sizeAdd int6
 }
 
 func (n *NATSProvider) getGroups(limit, offset int, order string, _ bool) ([]Group, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	groups := make([]Group, 0, limit)
 	var err error
 	if limit <= 0 {
@@ -1133,6 +1195,11 @@ func (n *NATSProvider) getGroups(limit, offset int, order string, _ bool) ([]Gro
 }
 
 func (n *NATSProvider) getGroupsWithNames(names []string) ([]Group, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var groups []Group
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getGroupsBucket(tx)
@@ -1160,6 +1227,11 @@ func (n *NATSProvider) getGroupsWithNames(names []string) ([]Group, error) {
 }
 
 func (n *NATSProvider) getUsersInGroups(names []string) ([]string, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var usernames []string
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getGroupsBucket(tx)
@@ -1184,6 +1256,11 @@ func (n *NATSProvider) getUsersInGroups(names []string) ([]string, error) {
 }
 
 func (n *NATSProvider) groupExists(name string) (Group, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var group Group
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getGroupsBucket(tx)
@@ -1205,6 +1282,11 @@ func (n *NATSProvider) groupExists(name string) (Group, error) {
 }
 
 func (n *NATSProvider) addGroup(group *Group) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if err := group.validate(); err != nil {
 		return err
 	}
@@ -1250,6 +1332,11 @@ func (n *NATSProvider) addGroup(group *Group) error {
 }
 
 func (n *NATSProvider) updateGroup(group *Group) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if err := group.validate(); err != nil {
 		return err
 	}
@@ -1300,6 +1387,11 @@ func (n *NATSProvider) updateGroup(group *Group) error {
 }
 
 func (n *NATSProvider) deleteGroup(group Group) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getGroupsBucket(tx)
 		if err != nil {
@@ -1347,6 +1439,11 @@ func (n *NATSProvider) deleteGroup(group Group) error {
 }
 
 func (n *NATSProvider) dumpGroups() ([]Group, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	groups := make([]Group, 0, 50)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getGroupsBucket(tx)
@@ -1371,6 +1468,11 @@ func (n *NATSProvider) dumpGroups() ([]Group, error) {
 }
 
 func (n *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var apiKey APIKey
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getAPIKeysBucket(tx)
@@ -1388,6 +1490,11 @@ func (n *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
 }
 
 func (n *NATSProvider) addAPIKey(apiKey *APIKey) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	err := apiKey.validate()
 	if err != nil {
 		return err
@@ -1427,6 +1534,11 @@ func (n *NATSProvider) addAPIKey(apiKey *APIKey) error {
 }
 
 func (n *NATSProvider) updateAPIKey(apiKey *APIKey) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	err := apiKey.validate()
 	if err != nil {
 		return err
@@ -1472,6 +1584,11 @@ func (n *NATSProvider) updateAPIKey(apiKey *APIKey) error {
 }
 
 func (n *NATSProvider) deleteAPIKey(apiKey APIKey) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getAPIKeysBucket(tx)
 		if err != nil {
@@ -1487,6 +1604,11 @@ func (n *NATSProvider) deleteAPIKey(apiKey APIKey) error {
 }
 
 func (n *NATSProvider) getAPIKeys(limit int, offset int, order string) ([]APIKey, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	apiKeys := make([]APIKey, 0, limit)
 
 	err := n.jsHandle.View(func() error {
@@ -1538,6 +1660,11 @@ func (n *NATSProvider) getAPIKeys(limit int, offset int, order string) ([]APIKey
 }
 
 func (n *NATSProvider) dumpAPIKeys() ([]APIKey, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	apiKeys := make([]APIKey, 0, 30)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getAPIKeysBucket(tx)
@@ -1561,6 +1688,11 @@ func (n *NATSProvider) dumpAPIKeys() ([]APIKey, error) {
 }
 
 func (n *NATSProvider) shareExists(shareID, username string) (Share, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var share Share
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getSharesBucket(tx)
@@ -1584,6 +1716,11 @@ func (n *NATSProvider) shareExists(shareID, username string) (Share, error) {
 }
 
 func (n *NATSProvider) addShare(share *Share) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	err := share.validate()
 	if err != nil {
 		return err
@@ -1625,6 +1762,11 @@ func (n *NATSProvider) addShare(share *Share) error {
 }
 
 func (n *NATSProvider) updateShare(share *Share) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if err := share.validate(); err != nil {
 		return err
 	}
@@ -1673,6 +1815,11 @@ func (n *NATSProvider) updateShare(share *Share) error {
 }
 
 func (n *NATSProvider) deleteShare(share Share) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getSharesBucket(tx)
 		if err != nil {
@@ -1697,6 +1844,11 @@ func (n *NATSProvider) deleteShare(share Share) error {
 }
 
 func (n *NATSProvider) getShares(limit int, offset int, order, username string) ([]Share, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	shares := make([]Share, 0, limit)
 
 	err := n.jsHandle.View(func() error {
@@ -1753,6 +1905,11 @@ func (n *NATSProvider) getShares(limit int, offset int, order, username string) 
 }
 
 func (n *NATSProvider) dumpShares() ([]Share, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	shares := make([]Share, 0, 30)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getSharesBucket(tx)
@@ -1776,6 +1933,11 @@ func (n *NATSProvider) dumpShares() ([]Share, error) {
 }
 
 func (n *NATSProvider) updateShareLastUse(shareID string, numTokens int) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getSharesBucket(tx)
 		if err != nil {
@@ -1875,6 +2037,11 @@ func (n *NATSProvider) cleanupSharedSessions(_ SessionType, _ int64) error {
 }
 
 func (n *NATSProvider) getEventActions(limit, offset int, order string, _ bool) ([]BaseEventAction, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if limit <= 0 {
 		return nil, nil
 	}
@@ -1927,6 +2094,11 @@ func (n *NATSProvider) getEventActions(limit, offset int, order string, _ bool) 
 }
 
 func (n *NATSProvider) dumpEventActions() ([]BaseEventAction, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	actions := make([]BaseEventAction, 0, 50)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getActionsBucket(tx)
@@ -1948,6 +2120,11 @@ func (n *NATSProvider) dumpEventActions() ([]BaseEventAction, error) {
 }
 
 func (n *NATSProvider) eventActionExists(name string) (BaseEventAction, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var action BaseEventAction
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getActionsBucket(tx)
@@ -1964,6 +2141,11 @@ func (n *NATSProvider) eventActionExists(name string) (BaseEventAction, error) {
 }
 
 func (n *NATSProvider) addEventAction(action *BaseEventAction) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	err := action.validate()
 	if err != nil {
 		return err
@@ -1994,6 +2176,11 @@ func (n *NATSProvider) addEventAction(action *BaseEventAction) error {
 }
 
 func (n *NATSProvider) updateEventAction(action *BaseEventAction) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	err := action.validate()
 	if err != nil {
 		return err
@@ -2053,6 +2240,11 @@ func (n *NATSProvider) updateEventAction(action *BaseEventAction) error {
 }
 
 func (n *NATSProvider) deleteEventAction(action BaseEventAction) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getActionsBucket(tx)
 		if err != nil {
@@ -2076,6 +2268,11 @@ func (n *NATSProvider) deleteEventAction(action BaseEventAction) error {
 }
 
 func (n *NATSProvider) getEventRules(limit, offset int, order string) ([]EventRule, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if limit <= 0 {
 		return nil, nil
 	}
@@ -2132,6 +2329,11 @@ func (n *NATSProvider) getEventRules(limit, offset int, order string) ([]EventRu
 }
 
 func (n *NATSProvider) dumpEventRules() ([]EventRule, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	rules := make([]EventRule, 0, 50)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getRulesBucket(tx)
@@ -2156,6 +2358,11 @@ func (n *NATSProvider) dumpEventRules() ([]EventRule, error) {
 }
 
 func (n *NATSProvider) getRecentlyUpdatedRules(after int64) ([]EventRule, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if getLastRuleUpdate() < after {
 		return nil, nil
 	}
@@ -2204,6 +2411,11 @@ func (n *NATSProvider) getRecentlyUpdatedRules(after int64) ([]EventRule, error)
 }
 
 func (n *NATSProvider) eventRuleExists(name string) (EventRule, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var rule EventRule
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getRulesBucket(tx)
@@ -2225,6 +2437,11 @@ func (n *NATSProvider) eventRuleExists(name string) (EventRule, error) {
 }
 
 func (n *NATSProvider) addEventRule(rule *EventRule) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if err := rule.validate(); err != nil {
 		return err
 	}
@@ -2271,6 +2488,11 @@ func (n *NATSProvider) addEventRule(rule *EventRule) error {
 }
 
 func (n *NATSProvider) updateEventRule(rule *EventRule) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if err := rule.validate(); err != nil {
 		return err
 	}
@@ -2320,6 +2542,11 @@ func (n *NATSProvider) updateEventRule(rule *EventRule) error {
 }
 
 func (n *NATSProvider) deleteEventRule(rule EventRule, _ bool) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getRulesBucket(tx)
 		if err != nil {
@@ -2385,6 +2612,11 @@ func (*NATSProvider) cleanupNodes() error {
 }
 
 func (n *NATSProvider) roleExists(name string) (Role, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var role Role
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getRolesBucket(tx)
@@ -2401,6 +2633,11 @@ func (n *NATSProvider) roleExists(name string) (Role, error) {
 }
 
 func (n *NATSProvider) addRole(role *Role) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if err := role.validate(); err != nil {
 		return err
 	}
@@ -2433,6 +2670,11 @@ func (n *NATSProvider) addRole(role *Role) error {
 }
 
 func (n *NATSProvider) updateRole(role *Role) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if err := role.validate(); err != nil {
 		return err
 	}
@@ -2464,6 +2706,11 @@ func (n *NATSProvider) updateRole(role *Role) error {
 }
 
 func (n *NATSProvider) deleteRole(role Role) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getRolesBucket(tx)
 		if err != nil {
@@ -2498,6 +2745,11 @@ func (n *NATSProvider) deleteRole(role Role) error {
 }
 
 func (n *NATSProvider) getRoles(limit int, offset int, order string, _ bool) ([]Role, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	roles := make([]Role, 0, limit)
 	if limit <= 0 {
 		return roles, nil
@@ -2548,6 +2800,11 @@ func (n *NATSProvider) getRoles(limit int, offset int, order string, _ bool) ([]
 }
 
 func (n *NATSProvider) dumpRoles() ([]Role, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	roles := make([]Role, 0, 10)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getRolesBucket(tx)
@@ -2569,6 +2826,11 @@ func (n *NATSProvider) dumpRoles() ([]Role, error) {
 }
 
 func (n *NATSProvider) ipListEntryExists(ipOrNet string, listType IPListType) (IPListEntry, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	entry := IPListEntry{
 		IPOrNet: ipOrNet,
 		Type:    listType,
@@ -2592,6 +2854,11 @@ func (n *NATSProvider) ipListEntryExists(ipOrNet string, listType IPListType) (I
 }
 
 func (n *NATSProvider) addIPListEntry(entry *IPListEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if err := entry.validate(); err != nil {
 		return err
 	}
@@ -2617,6 +2884,11 @@ func (n *NATSProvider) addIPListEntry(entry *IPListEntry) error {
 }
 
 func (n *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if err := entry.validate(); err != nil {
 		return err
 	}
@@ -2645,6 +2917,11 @@ func (n *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
 }
 
 func (n *NATSProvider) deleteIPListEntry(entry IPListEntry, _ bool) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getIPListsBucket(tx)
 		if err != nil {
@@ -2658,6 +2935,11 @@ func (n *NATSProvider) deleteIPListEntry(entry IPListEntry, _ bool) error {
 }
 
 func (n *NATSProvider) getIPListEntries(listType IPListType, filter, from, order string, limit int) ([]IPListEntry, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	entries := make([]IPListEntry, 0, 15)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getIPListsBucket(tx)
@@ -2710,6 +2992,11 @@ func (n *NATSProvider) getRecentlyUpdatedIPListEntries(_ int64) ([]IPListEntry, 
 }
 
 func (n *NATSProvider) dumpIPListEntries() ([]IPListEntry, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	entries := make([]IPListEntry, 0, 10)
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getIPListsBucket(tx)
@@ -2736,6 +3023,11 @@ func (n *NATSProvider) dumpIPListEntries() ([]IPListEntry, error) {
 }
 
 func (n *NATSProvider) countIPListEntries(listType IPListType) (int64, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var count int64
 	err := n.jsHandle.View(func() error {
 		bucket, err := n.getIPListsBucket(tx)
@@ -2757,6 +3049,11 @@ func (n *NATSProvider) countIPListEntries(listType IPListType) (int64, error) {
 }
 
 func (n *NATSProvider) getListEntriesForIP(ip string, listType IPListType) ([]IPListEntry, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	entries := make([]IPListEntry, 0, 3)
 	ipAddr, err := netip.ParseAddr(ip)
 	if err != nil {
@@ -2797,6 +3094,11 @@ func (n *NATSProvider) getListEntriesForIP(ip string, listType IPListType) ([]IP
 }
 
 func (n *NATSProvider) getConfigs() (Configs, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var configs Configs
 	err := n.jsHandle.View(func() error {
 		bucket := tx.Bucket(configsBucket)
@@ -2813,6 +3115,11 @@ func (n *NATSProvider) getConfigs() (Configs, error) {
 }
 
 func (n *NATSProvider) setConfigs(configs *Configs) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if err := configs.validate(); err != nil {
 		return err
 	}
@@ -2830,6 +3137,11 @@ func (n *NATSProvider) setConfigs(configs *Configs) error {
 }
 
 func (n *NATSProvider) setFirstDownloadTimestamp(username string) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getUsersBucket(tx)
 		if err != nil {
@@ -2859,6 +3171,11 @@ func (n *NATSProvider) setFirstDownloadTimestamp(username string) error {
 }
 
 func (n *NATSProvider) setFirstUploadTimestamp(username string) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	return n.jsHandle.Update(func() error {
 		bucket, err := n.getUsersBucket(tx)
 		if err != nil {
@@ -2901,6 +3218,11 @@ func (n *NATSProvider) initializeDatabase() error {
 }
 
 func (n *NATSProvider) migrateDatabase() error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	dbVersion, err := getNATSDatabaseVersion(n.jsHandle)
 	if err != nil {
 		return err
@@ -2935,6 +3257,11 @@ func (n *NATSProvider) migrateDatabase() error {
 }
 
 func (n *NATSProvider) revertDatabase(targetVersion int) error { //nolint:gocyclo
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	dbVersion, err := getNATSDatabaseVersion(n.jsHandle)
 	if err != nil {
 		return err
@@ -2970,6 +3297,11 @@ func (n *NATSProvider) resetDatabase() error {
 }
 
 func (n *NATSProvider) joinRuleAndActions(r []byte, actionsBucket nats.KeyValueEntry) (EventRule, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var rule EventRule
 	err := json.Unmarshal(r, &rule)
 	if err != nil {
@@ -2996,6 +3328,11 @@ func (n *NATSProvider) joinRuleAndActions(r []byte, actionsBucket nats.KeyValueE
 }
 
 func (n *NATSProvider) joinGroupAndFolders(g []byte, foldersBucket nats.KeyValueEntry) (Group, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var group Group
 	err := json.Unmarshal(g, &group)
 	if err != nil {
@@ -3018,30 +3355,40 @@ func (n *NATSProvider) joinGroupAndFolders(g []byte, foldersBucket nats.KeyValue
 	return group, err
 }
 
-func (n *NATSProvider) joinUserAndFolders(u []byte, foldersBucket nats.KeyValueEntry) (User, error) {
-	var user User
-	err := json.Unmarshal(u, &user)
-	if err != nil {
-		return user, err
+func (n *NATSProvider) joinUserAndFolders(user *User, foldersRaw []byte) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
 	}
-	if len(user.VirtualFolders) > 0 {
-		var folders []vfs.VirtualFolder
-		for idx := range user.VirtualFolders {
-			folder := &user.VirtualFolders[idx]
-			baseFolder, err := n.folderExistsInternal(folder.Name, foldersBucket)
-			if err != nil {
-				continue
-			}
-			folder.BaseVirtualFolder = baseFolder
-			folders = append(folders, *folder)
+
+	if len(user.VirtualFolders) == 0 {
+		user.SetEmptySecretsIfNil()
+		return nil
+	}
+
+	var folders []vfs.VirtualFolder
+	for idx := range user.VirtualFolders {
+		folder := &user.VirtualFolders[idx]
+
+		baseFolder, err := n.folderExistsInternal(folder.Name, foldersRaw)
+		if err != nil {
+			continue // mantener mismo comportamiento de tolerancia
 		}
-		user.VirtualFolders = folders
+
+		folder.BaseVirtualFolder = baseFolder
+		folders = append(folders, *folder)
 	}
+	user.VirtualFolders = folders
 	user.SetEmptySecretsIfNil()
-	return user, err
+	return nil
 }
 
 func (n *NATSProvider) groupExistsInternal(name string, bucket nats.KeyValueEntry) (Group, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var group Group
 	g := bucket.Get([]byte(name))
 	if g == nil {
@@ -3053,6 +3400,11 @@ func (n *NATSProvider) groupExistsInternal(name string, bucket nats.KeyValueEntr
 }
 
 func (n *NATSProvider) folderExistsInternal(name string, bucket nats.KeyValueEntry) (vfs.BaseVirtualFolder, error) {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var folder vfs.BaseVirtualFolder
 	f := bucket.Get([]byte(name))
 	if f == nil {
@@ -3064,6 +3416,11 @@ func (n *NATSProvider) folderExistsInternal(name string, bucket nats.KeyValueEnt
 }
 
 func (n *NATSProvider) addFolderInternal(folder vfs.BaseVirtualFolder, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	id, err := bucket.NextSequence()
 	if err != nil {
 		return err
@@ -3077,6 +3434,11 @@ func (n *NATSProvider) addFolderInternal(folder vfs.BaseVirtualFolder, bucket na
 }
 
 func (n *NATSProvider) removeRoleFromUser(username, role string, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	u := bucket.Get([]byte(username))
 	if u == nil {
 		providerLog(logger.LevelWarn, "user %q does not exist, cannot remove role %q", username, role)
@@ -3100,6 +3462,11 @@ func (n *NATSProvider) removeRoleFromUser(username, role string, bucket nats.Key
 }
 
 func (n *NATSProvider) addAdminToRole(username, roleName string) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if roleName == "" {
 		return nil
 	}
@@ -3127,6 +3494,11 @@ func (n *NATSProvider) addAdminToRole(username, roleName string) error {
 }
 
 func (n *NATSProvider) removeAdminFromRole(username, roleName string, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if roleName == "" {
 		return nil
 	}
@@ -3158,6 +3530,11 @@ func (n *NATSProvider) removeAdminFromRole(username, roleName string, bucket nat
 }
 
 func (n *NATSProvider) addUserToRole(username, roleName string, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if roleName == "" {
 		return nil
 	}
@@ -3182,6 +3559,11 @@ func (n *NATSProvider) addUserToRole(username, roleName string, bucket nats.KeyV
 }
 
 func (n *NATSProvider) removeUserFromRole(username, roleName string, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	if roleName == "" {
 		return nil
 	}
@@ -3214,6 +3596,11 @@ func (n *NATSProvider) removeUserFromRole(username, roleName string, bucket nats
 }
 
 func (n *NATSProvider) addRuleToActionMapping(ruleName, actionName string, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	a := bucket.Get([]byte(actionName))
 	if a == nil {
 		return util.NewGenericError(fmt.Sprintf("action %q does not exist", actionName))
@@ -3235,6 +3622,11 @@ func (n *NATSProvider) addRuleToActionMapping(ruleName, actionName string, bucke
 }
 
 func (n *NATSProvider) removeRuleFromActionMapping(ruleName, actionName string, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	a := bucket.Get([]byte(actionName))
 	if a == nil {
 		providerLog(logger.LevelWarn, "action %q does not exist, cannot remove from mapping", actionName)
@@ -3263,6 +3655,11 @@ func (n *NATSProvider) removeRuleFromActionMapping(ruleName, actionName string, 
 }
 
 func (n *NATSProvider) addUserToGroupMapping(username, groupname string, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	g := bucket.Get([]byte(groupname))
 	if g == nil {
 		return util.NewGenericError(fmt.Sprintf("group %q does not exist", groupname))
@@ -3284,6 +3681,11 @@ func (n *NATSProvider) addUserToGroupMapping(username, groupname string, bucket 
 }
 
 func (n *NATSProvider) removeUserFromGroupMapping(username, groupname string, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	g := bucket.Get([]byte(groupname))
 	if g == nil {
 		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", groupname))
@@ -3308,6 +3710,11 @@ func (n *NATSProvider) removeUserFromGroupMapping(username, groupname string, bu
 }
 
 func (n *NATSProvider) addAdminToGroupMapping(username, groupname string) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	entry, err := n.buckets[NatsKvGroup].Get(groupname)
 	if entry.Value() == nil {
 		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", groupname))
@@ -3331,6 +3738,11 @@ func (n *NATSProvider) addAdminToGroupMapping(username, groupname string) error 
 }
 
 func (n *NATSProvider) removeAdminFromGroupMapping(username, groupname string, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	g := bucket.Get([]byte(groupname))
 	if g == nil {
 		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", groupname))
@@ -3355,6 +3767,11 @@ func (n *NATSProvider) removeAdminFromGroupMapping(username, groupname string, b
 }
 
 func (n *NATSProvider) removeGroupFromAdminMapping(groupName, adminName string, bucket nats.KeyValueEntry) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var a []byte
 	if a = bucket.Get([]byte(adminName)); a == nil {
 		// the admin does not exist so there is no associated group
@@ -3380,6 +3797,11 @@ func (n *NATSProvider) removeGroupFromAdminMapping(groupName, adminName string, 
 }
 
 func (n *NATSProvider) addRelationToFolderMapping(folderName string, user *User, group *Group) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	entry, err := n.buckets[].Get(folderName)
 	if f == nil {
 		return util.NewGenericError(fmt.Sprintf("folder %q does not exist", folderName))
@@ -3409,8 +3831,13 @@ func (n *NATSProvider) addRelationToFolderMapping(folderName string, user *User,
 }
 
 func (n *NATSProvider) removeRelationFromFolderMapping(folder vfs.VirtualFolder, username, groupname string) error {
+	kv, ok := bucketsKv[NatsKvAdmin]
+	if !ok {
+		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	}
+
 	var f []byte
-	entry, err := n.buckets[].Get([]byte(folder.Name))
+	entry, err := kv.Get(folder.Name)
 	f == nil{
 		// the folder does not exist so there is no associated user/group
 		return nil
