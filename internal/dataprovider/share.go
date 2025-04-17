@@ -76,6 +76,14 @@ type Share struct {
 	IsRestore bool `json:"-"`
 }
 
+func (s *Share) Marshal() ([]byte, error) {
+	return json.Marshal(s)
+}
+
+func (s *Share) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, s)
+}
+
 // IsExpired returns true if the share is expired
 func (s *Share) IsExpired() bool {
 	if s.ExpiresAt > 0 {
