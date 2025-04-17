@@ -14,9 +14,9 @@ import (
 	"github.com/drakkan/sftpgo/v2/internal/util"
 	"github.com/drakkan/sftpgo/v2/internal/version"
 	"github.com/drakkan/sftpgo/v2/internal/vfs"
+	"github.com/inovacc/utils/v2/reflection"
 	"github.com/nats-io/nats.go"
 	bolt "go.etcd.io/bbolt"
-	bolterrors "go.etcd.io/bbolt/errors"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -180,6 +180,27 @@ func (n *NATSProvider) getBucket(name string) (*bucket.KeyValueBucket, error) {
 	return kv, nil
 }
 
+func (n *NATSProvider) getBoltDatabaseVersion() (schemaVersion, error) {
+	kv, err := n.getDBVersionBucket()
+	if err != nil {
+		return schemaVersion{}, fmt.Errorf("unable to find database schema version bucket")
+	}
+
+	var dbVersion schemaVersion
+	entry, err := kv.Get(dbVersionKeyNATS)
+	if err != nil {
+		dbVersion = schemaVersion{
+			Version: 29,
+		}
+		return schemaVersion{}, nil
+	}
+
+	if err := dbVersion.Unmarshal(entry.Value()); err != nil {
+		return schemaVersion{}, err
+	}
+	return dbVersion, err
+}
+
 func (n *NATSProvider) getUsersBucket() (*bucket.KeyValueBucket, error) {
 	return n.getBucket(usersBucketNATS)
 }
@@ -247,17 +268,22 @@ func (n *NATSProvider) userExists(username, role string) (User, error) {
 		return User{}, fmt.Errorf("failed to decode user data: %w", err)
 	}
 
-	foldersKv, ok := natsBuckets[foldersBucketNATS]
-	if ok {
-		folderEntry, err := foldersKv.Get(username)
-		if err != nil && !errors.Is(err, nats.ErrKeyNotFound) {
-			return User{}, fmt.Errorf("failed to get folders from kv: %w", err)
-		}
-
-		if err := n.joinUserAndFolders(&user, folderEntry.Value()); err != nil {
-			return User{}, fmt.Errorf("failed to join user and folders: %w", err)
-		}
+	foldersKv, err := n.getFoldersBucket()
+	if err != nil {
+		return User{}, err
 	}
+
+	folderEntry, err := foldersKv.Get(username)
+	if err != nil && !errors.Is(err, nats.ErrKeyNotFound) {
+		return User{}, fmt.Errorf("failed to get folders from kv: %w", err)
+	}
+
+	user2, err := n.joinUserAndFolders(folderEntry.Value(), foldersKv)
+	if err != nil {
+		return User{}, fmt.Errorf("failed to join user and folders: %w", err)
+	}
+
+	reflection.MergeZeroFields(user2, user)
 
 	if !user.hasRole(role) {
 		return User{}, util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
@@ -625,131 +651,214 @@ func (n *NATSProvider) folderExistsInternal(name string, kv *bucket.KeyValueBuck
 	return folder, nil
 }
 
-//////////////////////////////////
-
 func (n *NATSProvider) updateAdminLastLogin(username string) error {
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getAdminsBucket(tx)
-		if err != nil {
-			return err
-		}
-		var a []byte
-		if a = bucket.Get([]byte(username)); a == nil {
-			return util.NewRecordNotFoundError(fmt.Sprintf("admin %q does not exist, unable to update last login", username))
-		}
-		var admin Admin
-		err = json.Unmarshal(a, &admin)
-		if err != nil {
-			return err
-		}
-		admin.LastLogin = util.GetTimeAsMsSinceEpoch(time.Now())
-		buf, err := json.Marshal(admin)
-		if err != nil {
-			return err
-		}
-		err = kv.Put([]byte(username), buf)
-		if err == nil {
-			providerLog(logger.LevelDebug, "last login updated for admin %q", username)
-			return err
-		}
-		providerLog(logger.LevelWarn, "error updating last login for admin %q: %v", username, err)
-		return err
-	})
-}
-
-func (n *NATSProvider) updateTransferQuota(username string, uploadSize, downloadSize int64, reset bool) error {
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
-		if err != nil {
-			return err
-		}
-		var u []byte
-		if u = bucket.Get([]byte(username)); u == nil {
-			return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update transfer quota",
-				username))
-		}
-		var user User
-		err = json.Unmarshal(u, &user)
-		if err != nil {
-			return err
-		}
-		if !reset {
-			user.UsedUploadDataTransfer += uploadSize
-			user.UsedDownloadDataTransfer += downloadSize
-		} else {
-			user.UsedUploadDataTransfer = uploadSize
-			user.UsedDownloadDataTransfer = downloadSize
-		}
-		user.LastQuotaUpdate = util.GetTimeAsMsSinceEpoch(time.Now())
-		buf, err := json.Marshal(user)
-		if err != nil {
-			return err
-		}
-		err = kv.Put([]byte(username), buf)
-		providerLog(logger.LevelDebug, "transfer quota updated for user %q, ul increment: %v dl increment: %v is reset? %v",
-			username, uploadSize, downloadSize, reset)
-		return err
-	})
-}
-
-func (n *NATSProvider) updateQuota(username string, filesAdd int, sizeAdd int64, reset bool) error {
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
-		if err != nil {
-			return err
-		}
-		var u []byte
-		if u = bucket.Get([]byte(username)); u == nil {
-			return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update quota", username))
-		}
-		var user User
-		err = json.Unmarshal(u, &user)
-		if err != nil {
-			return err
-		}
-		if reset {
-			user.UsedQuotaSize = sizeAdd
-			user.UsedQuotaFiles = filesAdd
-		} else {
-			user.UsedQuotaSize += sizeAdd
-			user.UsedQuotaFiles += filesAdd
-		}
-		user.LastQuotaUpdate = util.GetTimeAsMsSinceEpoch(time.Now())
-		buf, err := json.Marshal(user)
-		if err != nil {
-			return err
-		}
-		err = kv.Put([]byte(username), buf)
-		providerLog(logger.LevelDebug, "quota updated for user %q, files increment: %v size increment: %v is reset? %v",
-			username, filesAdd, sizeAdd, reset)
-		return err
-	})
-}
-
-func (n *NATSProvider) updateAdmin(admin *Admin) error {
-	err := admin.validate()
+	kv, err := n.getAdminsBucket()
 	if err != nil {
 		return err
 	}
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getAdminsBucket(tx)
+
+	entry, err := kv.Get(username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("admin %q does not exist, unable to update last login", username))
+	}
+
+	var admin Admin
+	if err = admin.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	admin.LastLogin = util.GetTimeAsMsSinceEpoch(time.Now())
+	buf, err := admin.Marshal()
+	if err != nil {
+		return err
+	}
+
+	if _, err = kv.Put(username, buf); err == nil {
+		providerLog(logger.LevelDebug, "last login updated for admin %q", username)
+		return err
+	}
+	providerLog(logger.LevelWarn, "error updating last login for admin %q: %v", username, err)
+	return err
+}
+
+func (n *NATSProvider) updateTransferQuota(username string, uploadSize, downloadSize int64, reset bool) error {
+	kv, err := n.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := kv.Get(username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update transfer quota", username))
+	}
+
+	var user User
+	if err = user.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	if !reset {
+		user.UsedUploadDataTransfer += uploadSize
+		user.UsedDownloadDataTransfer += downloadSize
+	} else {
+		user.UsedUploadDataTransfer = uploadSize
+		user.UsedDownloadDataTransfer = downloadSize
+	}
+
+	user.LastQuotaUpdate = util.GetTimeAsMsSinceEpoch(time.Now())
+	buf, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+
+	if _, err = kv.Put(username, buf); err != nil {
+		return err
+	}
+
+	providerLog(logger.LevelDebug, "transfer quota updated for user %q, ul increment: %v dl increment: %v is reset? %v", username, uploadSize, downloadSize, reset)
+	return nil
+}
+
+func (n *NATSProvider) updateQuota(username string, filesAdd int, sizeAdd int64, reset bool) error {
+	kv, err := n.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := kv.Get(username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update quota", username))
+	}
+
+	var user User
+	if err = user.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	if reset {
+		user.UsedQuotaSize = sizeAdd
+		user.UsedQuotaFiles = filesAdd
+	} else {
+		user.UsedQuotaSize += sizeAdd
+		user.UsedQuotaFiles += filesAdd
+	}
+
+	user.LastQuotaUpdate = util.GetTimeAsMsSinceEpoch(time.Now())
+	buf, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+
+	if _, err = kv.Put(username, buf); err != nil {
+		return err
+	}
+
+	providerLog(logger.LevelDebug, "quota updated for user %q, files increment: %v size increment: %v is reset? %v", username, filesAdd, sizeAdd, reset)
+	return nil
+}
+
+func (n *NATSProvider) updateAdmin(admin *Admin) error {
+	if err := admin.validate(); err != nil {
+		return err
+	}
+
+	kv, err := n.getAdminsBucket()
+	if err != nil {
+		return err
+	}
+
+	groupBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	rolesBucket, err := n.getRolesBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := kv.Get(admin.Username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("admin %v does not exist", admin.Username))
+	}
+
+	var oldAdmin Admin
+	if err = oldAdmin.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	if err = n.removeAdminFromRole(oldAdmin.Username, oldAdmin.Role, rolesBucket); err != nil {
+		return err
+	}
+
+	for idx := range oldAdmin.Groups {
+		if err = n.removeAdminFromGroupMapping(oldAdmin.Username, oldAdmin.Groups[idx].Name, groupBucket); err != nil {
+			return err
+		}
+	}
+
+	if err = n.addAdminToRole(admin.Username, admin.Role, rolesBucket); err != nil {
+		return err
+	}
+
+	sort.Slice(admin.Groups, func(i, j int) bool {
+		return admin.Groups[i].Name < admin.Groups[j].Name
+	})
+
+	for idx := range admin.Groups {
+		if err = n.addAdminToGroupMapping(admin.Username, admin.Groups[idx].Name, groupBucket); err != nil {
+			return err
+		}
+	}
+
+	admin.ID = oldAdmin.ID
+	admin.CreatedAt = oldAdmin.CreatedAt
+	admin.LastLogin = oldAdmin.LastLogin
+	admin.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	buf, err := json.Marshal(admin)
+	if err != nil {
+		return err
+	}
+
+	if _, err := kv.Put(admin.Username, buf); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (n *NATSProvider) deleteAdmin(admin Admin) error {
+	kv, err := n.getAdminsBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := kv.Get(admin.Username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("admin %v does not exist", admin.Username))
+	}
+
+	var oldAdmin Admin
+	if err = oldAdmin.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	if len(oldAdmin.Groups) > 0 {
+		groupBucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
-		groupBucket, err := n.getGroupsBucket(tx)
-		if err != nil {
-			return err
+
+		for idx := range oldAdmin.Groups {
+			err = n.removeAdminFromGroupMapping(oldAdmin.Username, oldAdmin.Groups[idx].Name, groupBucket)
+			if err != nil {
+				return err
+			}
 		}
-		rolesBucket, err := n.getRolesBucket(tx)
-		if err != nil {
-			return err
-		}
-		var a []byte
-		if a = bucket.Get([]byte(admin.Username)); a == nil {
-			return util.NewRecordNotFoundError(fmt.Sprintf("admin %v does not exist", admin.Username))
-		}
-		var oldAdmin Admin
-		err = json.Unmarshal(a, &oldAdmin)
+	}
+
+	if oldAdmin.Role != "" {
+		rolesBucket, err := n.getRolesBucket()
 		if err != nil {
 			return err
 		}
@@ -757,129 +866,61 @@ func (n *NATSProvider) updateAdmin(admin *Admin) error {
 		if err = n.removeAdminFromRole(oldAdmin.Username, oldAdmin.Role, rolesBucket); err != nil {
 			return err
 		}
-		for idx := range oldAdmin.Groups {
-			err = n.removeAdminFromGroupMapping(oldAdmin.Username, oldAdmin.Groups[idx].Name, groupBucket)
-			if err != nil {
-				return err
-			}
-		}
-		if err = n.addAdminToRole(admin.Username, admin.Role, rolesBucket); err != nil {
-			return err
-		}
-		sort.Slice(admin.Groups, func(i, j int) bool {
-			return admin.Groups[i].Name < admin.Groups[j].Name
-		})
-		for idx := range admin.Groups {
-			err = n.addAdminToGroupMapping(admin.Username, admin.Groups[idx].Name, groupBucket)
-			if err != nil {
-				return err
-			}
-		}
-		admin.ID = oldAdmin.ID
-		admin.CreatedAt = oldAdmin.CreatedAt
-		admin.LastLogin = oldAdmin.LastLogin
-		admin.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-		buf, err := json.Marshal(admin)
-		if err != nil {
-			return err
-		}
-		return kv.Put([]byte(admin.Username), buf)
-	})
+	}
+
+	if err := n.deleteRelatedAPIKey(admin.Username, APIKeyScopeAdmin); err != nil {
+		return err
+	}
+	return kv.Delete(admin.Username)
 }
 
-func (n *NATSProvider) deleteAdmin(admin Admin) error {
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getAdminsBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		var a []byte
-		if a = bucket.Get([]byte(admin.Username)); a == nil {
-			return util.NewRecordNotFoundError(fmt.Sprintf("admin %v does not exist", admin.Username))
-		}
-		var oldAdmin Admin
-		err = json.Unmarshal(a, &oldAdmin)
-		if err != nil {
-			return err
-		}
-		if len(oldAdmin.Groups) > 0 {
-			groupBucket, err := n.getGroupsBucket(tx)
-			if err != nil {
-				return err
-			}
-			for idx := range oldAdmin.Groups {
-				err = n.removeAdminFromGroupMapping(oldAdmin.Username, oldAdmin.Groups[idx].Name, groupBucket)
-				if err != nil {
-					return err
-				}
-			}
-		}
-		if oldAdmin.Role != "" {
-			rolesBucket, err := n.getRolesBucket(tx)
-			if err != nil {
-				return err
-			}
-			if err = n.removeAdminFromRole(oldAdmin.Username, oldAdmin.Role, rolesBucket); err != nil {
-				return err
-			}
-		}
-
-		if err := n.deleteRelatedAPIKey(tx, admin.Username, APIKeyScopeAdmin); err != nil {
-			return err
-		}
-
-		return bucket.Delete([]byte(admin.Username))
-	})
-}
+//////////////////////////////////
 
 func (n *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, error) {
 	admins := make([]Admin, 0, limit)
 
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getAdminsBucket(tx)
-		if err != nil {
-			return err
-		}
-		cursor := bucket.Cursor()
-		itNum := 0
-		if order == OrderASC {
-			for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-				itNum++
-				if itNum <= offset {
-					continue
-				}
-				var admin Admin
-				err = json.Unmarshal(v, &admin)
-				if err != nil {
-					return err
-				}
-				admin.HideConfidentialData()
-				admins = append(admins, admin)
-				if len(admins) >= limit {
-					break
-				}
-			}
-		} else {
-			for k, v := cursor.Last(); k != nil; k, v = cursor.Prev() {
-				itNum++
-				if itNum <= offset {
-					continue
-				}
-				var admin Admin
-				err = json.Unmarshal(v, &admin)
-				if err != nil {
-					return err
-				}
-				admin.HideConfidentialData()
-				admins = append(admins, admin)
-				if len(admins) >= limit {
-					break
-				}
-			}
-		}
+	bucket, err := n.getAdminsBucket()
+	if err != nil {
 		return err
-	})
+	}
+	cursor := bucket.Cursor()
+	itNum := 0
+	if order == OrderASC {
+		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
+			itNum++
+			if itNum <= offset {
+				continue
+			}
+			var admin Admin
+			err = json.Unmarshal(v, &admin)
+			if err != nil {
+				return err
+			}
+			admin.HideConfidentialData()
+			admins = append(admins, admin)
+			if len(admins) >= limit {
+				break
+			}
+		}
+	} else {
+		for k, v := cursor.Last(); k != nil; k, v = cursor.Prev() {
+			itNum++
+			if itNum <= offset {
+				continue
+			}
+			var admin Admin
+			err = json.Unmarshal(v, &admin)
+			if err != nil {
+				return err
+			}
+			admin.HideConfidentialData()
+			admins = append(admins, admin)
+			if len(admins) >= limit {
+				break
+			}
+		}
+	}
+	return err
 
 	return admins, err
 }
@@ -887,7 +928,7 @@ func (n *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, 
 func (n *NATSProvider) dumpAdmins() ([]Admin, error) {
 	admins := make([]Admin, 0, 30)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getAdminsBucket(tx)
+		bucket, err := n.getAdminsBucket()
 		if err != nil {
 			return err
 		}
@@ -913,19 +954,19 @@ func (n *NATSProvider) addUser(user *User) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
+		bucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
-		groupBucket, err := n.getGroupsBucket(tx)
+		groupBucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
-		rolesBucket, err := n.getRolesBucket(tx)
+		rolesBucket, err := n.getRolesBucket()
 		if err != nil {
 			return err
 		}
@@ -985,7 +1026,7 @@ func (n *NATSProvider) updateUser(user *User) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
+		bucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
@@ -1027,19 +1068,19 @@ func (n *NATSProvider) updateUser(user *User) error {
 
 func (n *NATSProvider) deleteUser(user User, _ bool) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
+		bucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
-		groupBucket, err := n.getGroupsBucket(tx)
+		groupBucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
-		rolesBucket, err := n.getRolesBucket(tx)
+		rolesBucket, err := n.getRolesBucket()
 		if err != nil {
 			return err
 		}
@@ -1079,7 +1120,7 @@ func (n *NATSProvider) deleteUser(user User, _ bool) error {
 
 func (n *NATSProvider) updateUserPassword(username, password string) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
+		bucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
@@ -1105,11 +1146,11 @@ func (n *NATSProvider) updateUserPassword(username, password string) error {
 func (n *NATSProvider) dumpUsers() ([]User, error) {
 	users := make([]User, 0, 100)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
+		bucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1132,15 +1173,15 @@ func (n *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
 	}
 	users := make([]User, 0, 10)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
+		bucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
-		groupsBucket, err := n.getGroupsBucket(tx)
+		groupsBucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
@@ -1190,15 +1231,15 @@ func (n *NATSProvider) getUsersForQuotaCheck(toFetch map[string]bool) ([]User, e
 	users := make([]User, 0, 10)
 
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
+		bucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
-		groupsBucket, err := n.getGroupsBucket(tx)
+		groupsBucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
@@ -1253,11 +1294,11 @@ func (n *NATSProvider) getUsers(limit int, offset int, order, role string) ([]Us
 		return users, err
 	}
 	err = n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
+		bucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1310,7 +1351,7 @@ func (n *NATSProvider) getUsers(limit int, offset int, order, role string) ([]Us
 func (n *NATSProvider) dumpFolders() ([]vfs.BaseVirtualFolder, error) {
 	folders := make([]vfs.BaseVirtualFolder, 0, 50)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket(tx)
+		bucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1335,7 +1376,7 @@ func (n *NATSProvider) getFolders(limit, offset int, order string, _ bool) ([]vf
 		return folders, err
 	}
 	err = n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket(tx)
+		bucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1384,7 +1425,7 @@ func (n *NATSProvider) getFolders(limit, offset int, order string, _ bool) ([]vf
 func (n *NATSProvider) getFolderByName(name string) (vfs.BaseVirtualFolder, error) {
 	var folder vfs.BaseVirtualFolder
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket(tx)
+		bucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1400,7 +1441,7 @@ func (n *NATSProvider) addFolder(folder *vfs.BaseVirtualFolder) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket(tx)
+		bucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1422,7 +1463,7 @@ func (n *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket(tx)
+		bucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1509,15 +1550,15 @@ func (n *NATSProvider) deleteFolderMappings(folder vfs.BaseVirtualFolder, usersB
 
 func (n *NATSProvider) deleteFolder(baseFolder vfs.BaseVirtualFolder) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket(tx)
+		bucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
-		usersBucket, err := n.getUsersBucket(tx)
+		usersBucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
-		groupsBucket, err := n.getGroupsBucket(tx)
+		groupsBucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
@@ -1541,7 +1582,7 @@ func (n *NATSProvider) deleteFolder(baseFolder vfs.BaseVirtualFolder) error {
 
 func (n *NATSProvider) updateFolderQuota(name string, filesAdd int, sizeAdd int64, reset bool) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket(tx)
+		bucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1577,11 +1618,11 @@ func (n *NATSProvider) getGroups(limit, offset int, order string, _ bool) ([]Gro
 		return groups, err
 	}
 	err = n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket(tx)
+		bucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1630,11 +1671,11 @@ func (n *NATSProvider) getGroups(limit, offset int, order string, _ bool) ([]Gro
 func (n *NATSProvider) getGroupsWithNames(names []string) ([]Group, error) {
 	var groups []Group
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket(tx)
+		bucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1657,7 +1698,7 @@ func (n *NATSProvider) getGroupsWithNames(names []string) ([]Group, error) {
 func (n *NATSProvider) getUsersInGroups(names []string) ([]string, error) {
 	var usernames []string
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket(tx)
+		bucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
@@ -1681,7 +1722,7 @@ func (n *NATSProvider) getUsersInGroups(names []string) ([]string, error) {
 func (n *NATSProvider) groupExists(name string) (Group, error) {
 	var group Group
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket(tx)
+		bucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
@@ -1689,7 +1730,7 @@ func (n *NATSProvider) groupExists(name string) (Group, error) {
 		if g == nil {
 			return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", name))
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1704,11 +1745,11 @@ func (n *NATSProvider) addGroup(group *Group) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket(tx)
+		bucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1749,11 +1790,11 @@ func (n *NATSProvider) updateGroup(group *Group) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket(tx)
+		bucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1796,7 +1837,7 @@ func (n *NATSProvider) updateGroup(group *Group) error {
 
 func (n *NATSProvider) deleteGroup(group Group) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket(tx)
+		bucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
@@ -1813,7 +1854,7 @@ func (n *NATSProvider) deleteGroup(group Group) error {
 			return util.NewValidationError(fmt.Sprintf("the group %q is referenced, it cannot be removed", oldGroup.Name))
 		}
 		if len(oldGroup.VirtualFolders) > 0 {
-			foldersBucket, err := n.getFoldersBucket(tx)
+			foldersBucket, err := n.getFoldersBucket()
 			if err != nil {
 				return err
 			}
@@ -1825,7 +1866,7 @@ func (n *NATSProvider) deleteGroup(group Group) error {
 			}
 		}
 		if len(oldGroup.Admins) > 0 {
-			adminsBucket, err := n.getAdminsBucket(tx)
+			adminsBucket, err := n.getAdminsBucket()
 			if err != nil {
 				return err
 			}
@@ -1844,11 +1885,11 @@ func (n *NATSProvider) deleteGroup(group Group) error {
 func (n *NATSProvider) dumpGroups() ([]Group, error) {
 	groups := make([]Group, 0, 50)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket(tx)
+		bucket, err := n.getGroupsBucket()
 		if err != nil {
 			return err
 		}
-		foldersBucket, err := n.getFoldersBucket(tx)
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
@@ -1868,7 +1909,7 @@ func (n *NATSProvider) dumpGroups() ([]Group, error) {
 func (n *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
 	var apiKey APIKey
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getAPIKeysBucket(tx)
+		bucket, err := n.getAPIKeysBucket()
 		if err != nil {
 			return err
 		}
@@ -1888,7 +1929,7 @@ func (n *NATSProvider) addAPIKey(apiKey *APIKey) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getAPIKeysBucket(tx)
+		bucket, err := n.getAPIKeysBucket()
 		if err != nil {
 			return err
 		}
@@ -1927,7 +1968,7 @@ func (n *NATSProvider) updateAPIKey(apiKey *APIKey) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getAPIKeysBucket(tx)
+		bucket, err := n.getAPIKeysBucket()
 		if err != nil {
 			return err
 		}
@@ -1968,7 +2009,7 @@ func (n *NATSProvider) updateAPIKey(apiKey *APIKey) error {
 
 func (n *NATSProvider) deleteAPIKey(apiKey APIKey) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getAPIKeysBucket(tx)
+		bucket, err := n.getAPIKeysBucket()
 		if err != nil {
 			return err
 		}
@@ -1985,7 +2026,7 @@ func (n *NATSProvider) getAPIKeys(limit int, offset int, order string) ([]APIKey
 	apiKeys := make([]APIKey, 0, limit)
 
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getAPIKeysBucket(tx)
+		bucket, err := n.getAPIKeysBucket()
 		if err != nil {
 			return err
 		}
@@ -2035,7 +2076,7 @@ func (n *NATSProvider) getAPIKeys(limit int, offset int, order string) ([]APIKey
 func (n *NATSProvider) dumpAPIKeys() ([]APIKey, error) {
 	apiKeys := make([]APIKey, 0, 30)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getAPIKeysBucket(tx)
+		bucket, err := n.getAPIKeysBucket()
 		if err != nil {
 			return err
 		}
@@ -2058,7 +2099,7 @@ func (n *NATSProvider) dumpAPIKeys() ([]APIKey, error) {
 func (n *NATSProvider) shareExists(shareID, username string) (Share, error) {
 	var share Share
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getSharesBucket(tx)
+		bucket, err := n.getSharesBucket()
 		if err != nil {
 			return err
 		}
@@ -2084,7 +2125,7 @@ func (n *NATSProvider) addShare(share *Share) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getSharesBucket(tx)
+		bucket, err := n.getSharesBucket()
 		if err != nil {
 			return err
 		}
@@ -2125,7 +2166,7 @@ func (n *NATSProvider) updateShare(share *Share) error {
 	}
 
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getSharesBucket(tx)
+		bucket, err := n.getSharesBucket()
 		if err != nil {
 			return err
 		}
@@ -2169,7 +2210,7 @@ func (n *NATSProvider) updateShare(share *Share) error {
 
 func (n *NATSProvider) deleteShare(share Share) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getSharesBucket(tx)
+		bucket, err := n.getSharesBucket()
 		if err != nil {
 			return err
 		}
@@ -2195,7 +2236,7 @@ func (n *NATSProvider) getShares(limit int, offset int, order, username string) 
 	shares := make([]Share, 0, limit)
 
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getSharesBucket(tx)
+		bucket, err := n.getSharesBucket()
 		if err != nil {
 			return err
 		}
@@ -2250,7 +2291,7 @@ func (n *NATSProvider) getShares(limit int, offset int, order, username string) 
 func (n *NATSProvider) dumpShares() ([]Share, error) {
 	shares := make([]Share, 0, 30)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getSharesBucket(tx)
+		bucket, err := n.getSharesBucket()
 		if err != nil {
 			return err
 		}
@@ -2272,7 +2313,7 @@ func (n *NATSProvider) dumpShares() ([]Share, error) {
 
 func (n *NATSProvider) updateShareLastUse(shareID string, numTokens int) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getSharesBucket(tx)
+		bucket, err := n.getSharesBucket()
 		if err != nil {
 			return err
 		}
@@ -2375,7 +2416,7 @@ func (n *NATSProvider) getEventActions(limit, offset int, order string, _ bool) 
 	}
 	actions := make([]BaseEventAction, 0, limit)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getActionsBucket(tx)
+		bucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2424,7 +2465,7 @@ func (n *NATSProvider) getEventActions(limit, offset int, order string, _ bool) 
 func (n *NATSProvider) dumpEventActions() ([]BaseEventAction, error) {
 	actions := make([]BaseEventAction, 0, 50)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getActionsBucket(tx)
+		bucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2445,7 +2486,7 @@ func (n *NATSProvider) dumpEventActions() ([]BaseEventAction, error) {
 func (n *NATSProvider) eventActionExists(name string) (BaseEventAction, error) {
 	var action BaseEventAction
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getActionsBucket(tx)
+		bucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2464,7 +2505,7 @@ func (n *NATSProvider) addEventAction(action *BaseEventAction) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getActionsBucket(tx)
+		bucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2494,7 +2535,7 @@ func (n *NATSProvider) updateEventAction(action *BaseEventAction) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getActionsBucket(tx)
+		bucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2512,7 +2553,7 @@ func (n *NATSProvider) updateEventAction(action *BaseEventAction) error {
 		action.Name = oldAction.Name
 		action.Rules = nil
 		if len(oldAction.Rules) > 0 {
-			rulesBucket, err := n.getRulesBucket(tx)
+			rulesBucket, err := n.getRulesBucket()
 			if err != nil {
 				return err
 			}
@@ -2549,7 +2590,7 @@ func (n *NATSProvider) updateEventAction(action *BaseEventAction) error {
 
 func (n *NATSProvider) deleteEventAction(action BaseEventAction) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getActionsBucket(tx)
+		bucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2576,11 +2617,11 @@ func (n *NATSProvider) getEventRules(limit, offset int, order string) ([]EventRu
 	}
 	rules := make([]EventRule, 0, limit)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getRulesBucket(tx)
+		bucket, err := n.getRulesBucket()
 		if err != nil {
 			return err
 		}
-		actionsBucket, err := n.getActionsBucket(tx)
+		actionsBucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2629,11 +2670,11 @@ func (n *NATSProvider) getEventRules(limit, offset int, order string) ([]EventRu
 func (n *NATSProvider) dumpEventRules() ([]EventRule, error) {
 	rules := make([]EventRule, 0, 50)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getRulesBucket(tx)
+		bucket, err := n.getRulesBucket()
 		if err != nil {
 			return err
 		}
-		actionsBucket, err := n.getActionsBucket(tx)
+		actionsBucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2656,11 +2697,11 @@ func (n *NATSProvider) getRecentlyUpdatedRules(after int64) ([]EventRule, error)
 	}
 	rules := make([]EventRule, 0, 10)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getRulesBucket(tx)
+		bucket, err := n.getRulesBucket()
 		if err != nil {
 			return err
 		}
-		actionsBucket, err := n.getActionsBucket(tx)
+		actionsBucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2701,7 +2742,7 @@ func (n *NATSProvider) getRecentlyUpdatedRules(after int64) ([]EventRule, error)
 func (n *NATSProvider) eventRuleExists(name string) (EventRule, error) {
 	var rule EventRule
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getRulesBucket(tx)
+		bucket, err := n.getRulesBucket()
 		if err != nil {
 			return err
 		}
@@ -2709,7 +2750,7 @@ func (n *NATSProvider) eventRuleExists(name string) (EventRule, error) {
 		if r == nil {
 			return util.NewRecordNotFoundError(fmt.Sprintf("event rule %q does not exist", name))
 		}
-		actionsBucket, err := n.getActionsBucket(tx)
+		actionsBucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2724,11 +2765,11 @@ func (n *NATSProvider) addEventRule(rule *EventRule) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getRulesBucket(tx)
+		bucket, err := n.getRulesBucket()
 		if err != nil {
 			return err
 		}
-		actionsBucket, err := n.getActionsBucket(tx)
+		actionsBucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2770,11 +2811,11 @@ func (n *NATSProvider) updateEventRule(rule *EventRule) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getRulesBucket(tx)
+		bucket, err := n.getRulesBucket()
 		if err != nil {
 			return err
 		}
-		actionsBucket, err := n.getActionsBucket(tx)
+		actionsBucket, err := n.getActionsBucket()
 		if err != nil {
 			return err
 		}
@@ -2816,7 +2857,7 @@ func (n *NATSProvider) updateEventRule(rule *EventRule) error {
 
 func (n *NATSProvider) deleteEventRule(rule EventRule, _ bool) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getRulesBucket(tx)
+		bucket, err := n.getRulesBucket()
 		if err != nil {
 			return err
 		}
@@ -2829,7 +2870,7 @@ func (n *NATSProvider) deleteEventRule(rule EventRule, _ bool) error {
 			return err
 		}
 		if len(oldRule.Actions) > 0 {
-			actionsBucket, err := n.getActionsBucket(tx)
+			actionsBucket, err := n.getActionsBucket()
 			if err != nil {
 				return err
 			}
@@ -2882,7 +2923,7 @@ func (*NATSProvider) cleanupNodes() error {
 func (n *NATSProvider) roleExists(name string) (Role, error) {
 	var role Role
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getRolesBucket(tx)
+		bucket, err := n.getRolesBucket()
 		if err != nil {
 			return err
 		}
@@ -2900,7 +2941,7 @@ func (n *NATSProvider) addRole(role *Role) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getRolesBucket(tx)
+		bucket, err := n.getRolesBucket()
 		if err != nil {
 			return err
 		}
@@ -2932,7 +2973,7 @@ func (n *NATSProvider) updateRole(role *Role) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getRolesBucket(tx)
+		bucket, err := n.getRolesBucket()
 		if err != nil {
 			return err
 		}
@@ -2960,7 +3001,7 @@ func (n *NATSProvider) updateRole(role *Role) error {
 
 func (n *NATSProvider) deleteRole(role Role) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getRolesBucket(tx)
+		bucket, err := n.getRolesBucket()
 		if err != nil {
 			return err
 		}
@@ -2977,7 +3018,7 @@ func (n *NATSProvider) deleteRole(role Role) error {
 			return util.NewValidationError(fmt.Sprintf("the role %q is referenced, it cannot be removed", oldRole.Name))
 		}
 		if len(oldRole.Users) > 0 {
-			bucket, err := n.getUsersBucket(tx)
+			bucket, err := n.getUsersBucket()
 			if err != nil {
 				return err
 			}
@@ -2998,7 +3039,7 @@ func (n *NATSProvider) getRoles(limit int, offset int, order string, _ bool) ([]
 		return roles, nil
 	}
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getRolesBucket(tx)
+		bucket, err := n.getRolesBucket()
 		if err != nil {
 			return err
 		}
@@ -3045,7 +3086,7 @@ func (n *NATSProvider) getRoles(limit int, offset int, order string, _ bool) ([]
 func (n *NATSProvider) dumpRoles() ([]Role, error) {
 	roles := make([]Role, 0, 10)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getRolesBucket(tx)
+		bucket, err := n.getRolesBucket()
 		if err != nil {
 			return err
 		}
@@ -3069,7 +3110,7 @@ func (n *NATSProvider) ipListEntryExists(ipOrNet string, listType IPListType) (I
 		Type:    listType,
 	}
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getIPListsBucket(tx)
+		bucket, err := n.getIPListsBucket()
 		if err != nil {
 			return err
 		}
@@ -3091,7 +3132,7 @@ func (n *NATSProvider) addIPListEntry(entry *IPListEntry) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getIPListsBucket(tx)
+		bucket, err := n.getIPListsBucket()
 		if err != nil {
 			return err
 		}
@@ -3116,7 +3157,7 @@ func (n *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
 		return err
 	}
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getIPListsBucket(tx)
+		bucket, err := n.getIPListsBucket()
 		if err != nil {
 			return err
 		}
@@ -3141,7 +3182,7 @@ func (n *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
 
 func (n *NATSProvider) deleteIPListEntry(entry IPListEntry, _ bool) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getIPListsBucket(tx)
+		bucket, err := n.getIPListsBucket()
 		if err != nil {
 			return err
 		}
@@ -3155,7 +3196,7 @@ func (n *NATSProvider) deleteIPListEntry(entry IPListEntry, _ bool) error {
 func (n *NATSProvider) getIPListEntries(listType IPListType, filter, from, order string, limit int) ([]IPListEntry, error) {
 	entries := make([]IPListEntry, 0, 15)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getIPListsBucket(tx)
+		bucket, err := n.getIPListsBucket()
 		if err != nil {
 			return err
 		}
@@ -3207,7 +3248,7 @@ func (n *NATSProvider) getRecentlyUpdatedIPListEntries(_ int64) ([]IPListEntry, 
 func (n *NATSProvider) dumpIPListEntries() ([]IPListEntry, error) {
 	entries := make([]IPListEntry, 0, 10)
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getIPListsBucket(tx)
+		bucket, err := n.getIPListsBucket()
 		if err != nil {
 			return err
 		}
@@ -3233,7 +3274,7 @@ func (n *NATSProvider) dumpIPListEntries() ([]IPListEntry, error) {
 func (n *NATSProvider) countIPListEntries(listType IPListType) (int64, error) {
 	var count int64
 	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getIPListsBucket(tx)
+		bucket, err := n.getIPListsBucket()
 		if err != nil {
 			return err
 		}
@@ -3269,7 +3310,7 @@ func (n *NATSProvider) getListEntriesForIP(ip string, listType IPListType) ([]IP
 		ipBytes = as16[:]
 	}
 	err = n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getIPListsBucket(tx)
+		bucket, err := n.getIPListsBucket()
 		if err != nil {
 			return err
 		}
@@ -3326,7 +3367,7 @@ func (n *NATSProvider) setConfigs(configs *Configs) error {
 
 func (n *NATSProvider) setFirstDownloadTimestamp(username string) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
+		bucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
@@ -3355,7 +3396,7 @@ func (n *NATSProvider) setFirstDownloadTimestamp(username string) error {
 
 func (n *NATSProvider) setFirstUploadTimestamp(username string) error {
 	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket(tx)
+		bucket, err := n.getUsersBucket()
 		if err != nil {
 			return err
 		}
@@ -3428,7 +3469,7 @@ func (n *NATSProvider) migrateDatabase() error {
 }
 
 func (n *NATSProvider) revertDatabase(targetVersion int) error { //nolint:gocyclo
-	dbVersion, err := getBoltDatabaseVersion(n.dbHandle)
+	dbVersion, err := n.getBoltDatabaseVersion()
 	if err != nil {
 		return err
 	}
@@ -3521,7 +3562,7 @@ func (n *NATSProvider) joinGroupAndFolders(g []byte, foldersBucket *bucket.KeyVa
 	return group, nil
 }
 
-func (n *NATSProvider) joinUserAndFolders(u []byte, foldersBucket *bucket.KeyValueBucket) (User, error) {
+func (n *NATSProvider) joinUserAndFolders(u []byte, kv *bucket.KeyValueBucket) (User, error) {
 	var user User
 	if err := user.Unmarshal(u); err != nil {
 		return User{}, err
@@ -3531,7 +3572,7 @@ func (n *NATSProvider) joinUserAndFolders(u []byte, foldersBucket *bucket.KeyVal
 		var folders []vfs.VirtualFolder
 		for idx := range user.VirtualFolders {
 			folder := &user.VirtualFolders[idx]
-			baseFolder, err := n.folderExistsInternal(folder.Name, foldersBucket)
+			baseFolder, err := n.folderExistsInternal(folder.Name, kv)
 			if err != nil {
 				continue
 			}
