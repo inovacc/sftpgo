@@ -1203,6 +1203,14 @@ type BaseEventAction struct {
 	Rules []string `json:"rules,omitempty"`
 }
 
+func (a *BaseEventAction) Marshal() ([]byte, error) {
+	return json.Marshal(a)
+}
+
+func (a *BaseEventAction) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, a)
+}
+
 func (a *BaseEventAction) getACopy() BaseEventAction {
 	rules := make([]string, len(a.Rules))
 	copy(rules, a.Rules)
@@ -1623,6 +1631,14 @@ type EventRule struct {
 	Actions []EventAction `json:"actions"`
 	// in multi node setups we mark the rule as deleted to be able to update the cache
 	DeletedAt int64 `json:"-"`
+}
+
+func (r *EventRule) Marshal() ([]byte, error) {
+	return json.Marshal(r)
+}
+
+func (r *EventRule) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, r)
 }
 
 func (r *EventRule) getACopy() EventRule {

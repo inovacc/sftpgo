@@ -46,12 +46,7 @@ type Group struct {
 }
 
 func (g *Group) Marshal() ([]byte, error) {
-	admin, err := provider.adminExists(g.use)
-	if err != nil {
-		providerLog(logger.LevelError, "unable to marshal admin role data as json: %v", err)
-		return nil, err
-	}
-	return json.Marshal(admin)
+	return json.Marshal(g)
 }
 
 func (g *Group) Unmarshal(data []byte) error {

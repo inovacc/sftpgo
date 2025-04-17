@@ -44,6 +44,12 @@ const (
 
 var natsBuckets = make(map[string]*bucket.KeyValueBucket)
 
+var storageNames = []string{
+	usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS,
+	actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS, configsBucketNATS, dbVersionBucketNATS,
+	dbVersionKeyNATS,
+}
+
 func init() {
 	version.AddFeature("+nats")
 }
@@ -75,12 +81,6 @@ func initializeNATSProvider() error {
 	if err != nil {
 		providerLog(logger.LevelError, "error creating nats database handler, connection string: %q, error: %v", url, err)
 		return err
-	}
-
-	storageNames := []string{
-		usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS,
-		actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS, configsBucketNATS, dbVersionBucketNATS,
-		dbVersionKeyNATS,
 	}
 
 	for _, name := range storageNames {
@@ -647,7 +647,7 @@ func (n *NATSProvider) updateAdminLastLogin(username string) error {
 		if err != nil {
 			return err
 		}
-		err = bucket.Put([]byte(username), buf)
+		err = kv.Put([]byte(username), buf)
 		if err == nil {
 			providerLog(logger.LevelDebug, "last login updated for admin %q", username)
 			return err
@@ -685,7 +685,7 @@ func (n *NATSProvider) updateTransferQuota(username string, uploadSize, download
 		if err != nil {
 			return err
 		}
-		err = bucket.Put([]byte(username), buf)
+		err = kv.Put([]byte(username), buf)
 		providerLog(logger.LevelDebug, "transfer quota updated for user %q, ul increment: %v dl increment: %v is reset? %v",
 			username, uploadSize, downloadSize, reset)
 		return err
@@ -719,7 +719,7 @@ func (n *NATSProvider) updateQuota(username string, filesAdd int, sizeAdd int64,
 		if err != nil {
 			return err
 		}
-		err = bucket.Put([]byte(username), buf)
+		err = kv.Put([]byte(username), buf)
 		providerLog(logger.LevelDebug, "quota updated for user %q, files increment: %v size increment: %v is reset? %v",
 			username, filesAdd, sizeAdd, reset)
 		return err
@@ -783,7 +783,7 @@ func (n *NATSProvider) updateAdmin(admin *Admin) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(admin.Username), buf)
+		return kv.Put([]byte(admin.Username), buf)
 	})
 }
 
@@ -975,7 +975,7 @@ func (n *NATSProvider) addUser(user *User) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(user.Username), buf)
+		return kv.Put([]byte(user.Username), buf)
 	})
 }
 
@@ -1017,7 +1017,7 @@ func (n *NATSProvider) updateUser(user *User) error {
 			return err
 		}
 
-		err = bucket.Put([]byte(user.Username), buf)
+		err = kv.Put([]byte(user.Username), buf)
 		if err == nil {
 			setLastUserUpdate()
 		}
@@ -1098,7 +1098,7 @@ func (n *NATSProvider) updateUserPassword(username, password string) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(username), buf)
+		return kv.Put([]byte(username), buf)
 	})
 }
 
@@ -1447,7 +1447,7 @@ func (n *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(folder.Name), buf)
+		return kv.Put([]byte(folder.Name), buf)
 	})
 }
 
@@ -1566,7 +1566,7 @@ func (n *NATSProvider) updateFolderQuota(name string, filesAdd int, sizeAdd int6
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(folder.Name), buf)
+		return kv.Put([]byte(folder.Name), buf)
 	})
 }
 
@@ -1740,7 +1740,7 @@ func (n *NATSProvider) addGroup(group *Group) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(group.Name), buf)
+		return kv.Put([]byte(group.Name), buf)
 	})
 }
 
@@ -1790,7 +1790,7 @@ func (n *NATSProvider) updateGroup(group *Group) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(group.Name), buf)
+		return kv.Put([]byte(group.Name), buf)
 	})
 }
 
@@ -1917,7 +1917,7 @@ func (n *NATSProvider) addAPIKey(apiKey *APIKey) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(apiKey.KeyID), buf)
+		return kv.Put([]byte(apiKey.KeyID), buf)
 	})
 }
 
@@ -1962,7 +1962,7 @@ func (n *NATSProvider) updateAPIKey(apiKey *APIKey) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(apiKey.KeyID), buf)
+		return kv.Put([]byte(apiKey.KeyID), buf)
 	})
 }
 
@@ -2115,7 +2115,7 @@ func (n *NATSProvider) addShare(share *Share) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(share.ShareID), buf)
+		return kv.Put([]byte(share.ShareID), buf)
 	})
 }
 
@@ -2163,7 +2163,7 @@ func (n *NATSProvider) updateShare(share *Share) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(share.ShareID), buf)
+		return kv.Put([]byte(share.ShareID), buf)
 	})
 }
 
@@ -2291,7 +2291,7 @@ func (n *NATSProvider) updateShareLastUse(shareID string, numTokens int) error {
 		if err != nil {
 			return err
 		}
-		err = bucket.Put([]byte(shareID), buf)
+		err = kv.Put([]byte(shareID), buf)
 		if err != nil {
 			providerLog(logger.LevelWarn, "error updating last use for share %q: %v", shareID, err)
 			return err
@@ -2484,7 +2484,7 @@ func (n *NATSProvider) addEventAction(action *BaseEventAction) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(action.Name), buf)
+		return kv.Put([]byte(action.Name), buf)
 	})
 }
 
@@ -2543,7 +2543,7 @@ func (n *NATSProvider) updateEventAction(action *BaseEventAction) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(action.Name), buf)
+		return kv.Put([]byte(action.Name), buf)
 	})
 }
 
@@ -2757,7 +2757,7 @@ func (n *NATSProvider) addEventRule(rule *EventRule) error {
 		if err != nil {
 			return err
 		}
-		err = bucket.Put([]byte(rule.Name), buf)
+		err = kv.Put([]byte(rule.Name), buf)
 		if err == nil {
 			setLastRuleUpdate()
 		}
@@ -2806,7 +2806,7 @@ func (n *NATSProvider) updateEventRule(rule *EventRule) error {
 		sort.Slice(rule.Actions, func(i, j int) bool {
 			return rule.Actions[i].Order < rule.Actions[j].Order
 		})
-		err = bucket.Put([]byte(rule.Name), buf)
+		err = kv.Put([]byte(rule.Name), buf)
 		if err == nil {
 			setLastRuleUpdate()
 		}
@@ -2923,7 +2923,7 @@ func (n *NATSProvider) addRole(role *Role) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(role.Name), buf)
+		return kv.Put([]byte(role.Name), buf)
 	})
 }
 
@@ -2954,7 +2954,7 @@ func (n *NATSProvider) updateRole(role *Role) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(role.Name), buf)
+		return kv.Put([]byte(role.Name), buf)
 	})
 }
 
@@ -3107,7 +3107,7 @@ func (n *NATSProvider) addIPListEntry(entry *IPListEntry) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(entry.getKey()), buf)
+		return kv.Put([]byte(entry.getKey()), buf)
 	})
 }
 
@@ -3135,7 +3135,7 @@ func (n *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(entry.getKey()), buf)
+		return kv.Put([]byte(entry.getKey()), buf)
 	})
 }
 
@@ -3320,7 +3320,7 @@ func (n *NATSProvider) setConfigs(configs *Configs) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put(configsKey, buf)
+		return kv.Put(configsKey, buf)
 	})
 }
 
@@ -3349,7 +3349,7 @@ func (n *NATSProvider) setFirstDownloadTimestamp(username string) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(username), buf)
+		return kv.Put([]byte(username), buf)
 	})
 }
 
@@ -3377,7 +3377,7 @@ func (n *NATSProvider) setFirstUploadTimestamp(username string) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(username), buf)
+		return kv.Put([]byte(username), buf)
 	})
 }
 
@@ -3451,35 +3451,45 @@ func (n *NATSProvider) revertDatabase(targetVersion int) error { //nolint:gocycl
 }
 
 func (n *NATSProvider) resetDatabase() error {
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		for _, bucketName := range boltBuckets {
-			err := tx.DeleteBucket(bucketName)
-			if err != nil && !errors.Is(err, bolterrors.ErrBucketNotFound) {
-				return fmt.Errorf("unable to remove bucket %v: %w", bucketName, err)
+	for name, kvBucket := range natsBuckets {
+		if err := kvBucket.Delete(name); err != nil {
+			if !errors.Is(err, nats.ErrStreamNotFound) {
+				return fmt.Errorf("unable to delete bucket %q: %w", name, err)
 			}
 		}
-		return nil
-	})
+	}
+
+	for _, name := range storageNames {
+		userStore, err := bucket.CreateKeyValueBucket(n.jsHandle, name)
+		if err != nil {
+			return fmt.Errorf("unable to recreate bucket %q: %w", name, err)
+		}
+		natsBuckets[name] = userStore
+	}
+
+	return nil
+
 }
 
-func (n *NATSProvider) joinRuleAndActions(r []byte, actionsBucket *bucket.KeyValueBucket) (EventRule, error) {
+func (n *NATSProvider) joinRuleAndActions(r []byte, kv *bucket.KeyValueBucket) (EventRule, error) {
 	var rule EventRule
-	err := json.Unmarshal(r, &rule)
-	if err != nil {
-		return rule, err
+	if err := rule.Unmarshal(r); err != nil {
+		return EventRule{}, err
 	}
+
 	var actions []EventAction
 	for idx := range rule.Actions {
 		action := &rule.Actions[idx]
 		var baseAction BaseEventAction
-		k := actionsBucket.Get([]byte(action.Name))
-		if k == nil {
-			continue
-		}
-		err = json.Unmarshal(k, &baseAction)
+		entry, err := kv.Get(action.Name)
 		if err != nil {
 			continue
 		}
+
+		if err = baseAction.Unmarshal(entry.Value()); err != nil {
+			continue
+		}
+
 		baseAction.Options.SetEmptySecretsIfNil()
 		action.BaseEventAction = baseAction
 		actions = append(actions, *action)
@@ -3490,10 +3500,10 @@ func (n *NATSProvider) joinRuleAndActions(r []byte, actionsBucket *bucket.KeyVal
 
 func (n *NATSProvider) joinGroupAndFolders(g []byte, foldersBucket *bucket.KeyValueBucket) (Group, error) {
 	var group Group
-	err := json.Unmarshal(g, &group)
-	if err != nil {
-		return group, err
+	if err := group.Unmarshal(g); err != nil {
+		return Group{}, err
 	}
+
 	if len(group.VirtualFolders) > 0 {
 		var folders []vfs.VirtualFolder
 		for idx := range group.VirtualFolders {
@@ -3508,15 +3518,15 @@ func (n *NATSProvider) joinGroupAndFolders(g []byte, foldersBucket *bucket.KeyVa
 		group.VirtualFolders = folders
 	}
 	group.SetEmptySecretsIfNil()
-	return group, err
+	return group, nil
 }
 
 func (n *NATSProvider) joinUserAndFolders(u []byte, foldersBucket *bucket.KeyValueBucket) (User, error) {
 	var user User
-	err := json.Unmarshal(u, &user)
-	if err != nil {
-		return user, err
+	if err := user.Unmarshal(u); err != nil {
+		return User{}, err
 	}
+
 	if len(user.VirtualFolders) > 0 {
 		var folders []vfs.VirtualFolder
 		for idx := range user.VirtualFolders {
@@ -3531,70 +3541,80 @@ func (n *NATSProvider) joinUserAndFolders(u []byte, foldersBucket *bucket.KeyVal
 		user.VirtualFolders = folders
 	}
 	user.SetEmptySecretsIfNil()
-	return user, err
+	return user, nil
 }
 
-func (n *NATSProvider) groupExistsInternal(name string, bucket *bucket.KeyValueBucket) (Group, error) {
-	var group Group
-	g := bucket.Get([]byte(name))
-	if g == nil {
+func (n *NATSProvider) groupExistsInternal(name string, kv *bucket.KeyValueBucket) (Group, error) {
+	entry, err := kv.Get(name)
+	if err != nil {
 		err := util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", name))
-		return group, err
+		return Group{}, err
 	}
-	err := json.Unmarshal(g, &group)
+
+	var group Group
+	if err := group.Unmarshal(entry.Value()); err != nil {
+		return Group{}, err
+	}
 	return group, err
 }
 
-func (n *NATSProvider) addFolderInternal(folder vfs.BaseVirtualFolder, bucket *bucket.KeyValueBucket) error {
-	id, err := bucket.NextSequence()
+func (n *NATSProvider) addFolderInternal(folder vfs.BaseVirtualFolder, kv *bucket.KeyValueBucket) error {
+	folder.ID = time.Now().UnixNano()
+
+	buf, err := folder.Marshal()
 	if err != nil {
 		return err
 	}
-	folder.ID = int64(id)
-	buf, err := json.Marshal(folder)
-	if err != nil {
+
+	if _, err := kv.Put(folder.Name, buf); err != nil {
 		return err
 	}
-	return bucket.Put([]byte(folder.Name), buf)
+	return nil
 }
 
-func (n *NATSProvider) removeRoleFromUser(username, role string, bucket *bucket.KeyValueBucket) error {
-	u := bucket.Get([]byte(username))
-	if u == nil {
+func (n *NATSProvider) removeRoleFromUser(username, role string, kv *bucket.KeyValueBucket) error {
+	entry, err := kv.Get(username)
+	if err != nil {
 		providerLog(logger.LevelWarn, "user %q does not exist, cannot remove role %q", username, role)
 		return nil
 	}
+
 	var user User
-	err := json.Unmarshal(u, &user)
-	if err != nil {
+	if err := user.Unmarshal(entry.Value()); err != nil {
 		return err
 	}
+
 	if user.Role == role {
 		user.Role = ""
-		buf, err := json.Marshal(user)
+		buf, err := user.Marshal()
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(user.Username), buf)
+
+		if _, err := kv.Put(user.Username, buf); err != nil {
+			return err
+		}
 	}
 	providerLog(logger.LevelError, "user %q does not have the expected role %q, actual %q", username, role, user.Role)
 	return nil
 }
 
-func (n *NATSProvider) removeAdminFromRole(username, roleName string, bucket *bucket.KeyValueBucket) error {
+func (n *NATSProvider) removeAdminFromRole(username, roleName string, kv *bucket.KeyValueBucket) error {
 	if roleName == "" {
 		return nil
 	}
-	r := bucket.Get([]byte(roleName))
-	if r == nil {
+
+	entry, err := kv.Get(roleName)
+	if err != nil {
 		providerLog(logger.LevelWarn, "role %q does not exist, cannot remove admin %q", roleName, username)
 		return nil
 	}
+
 	var role Role
-	err := json.Unmarshal(r, &role)
-	if err != nil {
+	if err := role.Unmarshal(entry.Value()); err != nil {
 		return err
 	}
+
 	if slices.Contains(role.Admins, username) {
 		var admins []string
 		for _, admin := range role.Admins {
@@ -3602,54 +3622,65 @@ func (n *NATSProvider) removeAdminFromRole(username, roleName string, bucket *bu
 				admins = append(admins, admin)
 			}
 		}
+
 		role.Admins = util.RemoveDuplicates(admins, false)
-		buf, err := json.Marshal(role)
+		buf, err := role.Marshal()
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(role.Name), buf)
+
+		if _, err := kv.Put(role.Name, buf); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (n *NATSProvider) addUserToRole(username, roleName string, bucket *bucket.KeyValueBucket) error {
+func (n *NATSProvider) addUserToRole(username, roleName string, kv *bucket.KeyValueBucket) error {
 	if roleName == "" {
 		return nil
 	}
-	r := bucket.Get([]byte(roleName))
-	if r == nil {
+
+	entry, err := kv.Get(roleName)
+	if err != nil {
 		return fmt.Errorf("%w: role %q does not exist", ErrForeignKeyViolated, roleName)
 	}
+
 	var role Role
-	err := json.Unmarshal(r, &role)
-	if err != nil {
+	if err := role.Unmarshal(entry.Value()); err != nil {
 		return err
 	}
+
 	if !slices.Contains(role.Users, username) {
 		role.Users = append(role.Users, username)
-		buf, err := json.Marshal(role)
+		buf, err := role.Marshal()
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(role.Name), buf)
+
+		if _, err := kv.Put(role.Name, buf); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (n *NATSProvider) removeUserFromRole(username, roleName string, bucket *bucket.KeyValueBucket) error {
+func (n *NATSProvider) removeUserFromRole(username, roleName string, kv *bucket.KeyValueBucket) error {
 	if roleName == "" {
 		return nil
 	}
-	r := bucket.Get([]byte(roleName))
-	if r == nil {
+
+	entry, err := kv.Get(roleName)
+	if err != nil {
 		providerLog(logger.LevelWarn, "role %q does not exist, cannot remove admin %q", roleName, username)
 		return nil
 	}
+
 	var role Role
-	err := json.Unmarshal(r, &role)
-	if err != nil {
+	if err := role.Unmarshal(entry.Value()); err != nil {
 		return err
 	}
+
 	if slices.Contains(role.Users, username) {
 		var users []string
 		for _, user := range role.Users {
@@ -3657,49 +3688,58 @@ func (n *NATSProvider) removeUserFromRole(username, roleName string, bucket *buc
 				users = append(users, user)
 			}
 		}
+
 		users = util.RemoveDuplicates(users, false)
 		role.Users = users
-		buf, err := json.Marshal(role)
+		buf, err := role.Marshal()
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(role.Name), buf)
+
+		if _, err := kv.Put(role.Name, buf); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (n *NATSProvider) addRuleToActionMapping(ruleName, actionName string, bucket *bucket.KeyValueBucket) error {
-	a := bucket.Get([]byte(actionName))
-	if a == nil {
+func (n *NATSProvider) addRuleToActionMapping(ruleName, actionName string, kv *bucket.KeyValueBucket) error {
+	entry, err := kv.Get(actionName)
+	if err != nil {
 		return util.NewGenericError(fmt.Sprintf("action %q does not exist", actionName))
 	}
+
 	var action BaseEventAction
-	err := json.Unmarshal(a, &action)
-	if err != nil {
+	if err := action.Unmarshal(entry.Value()); err != nil {
 		return err
 	}
+
 	if !slices.Contains(action.Rules, ruleName) {
 		action.Rules = append(action.Rules, ruleName)
 		buf, err := json.Marshal(action)
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(action.Name), buf)
+
+		if _, err := kv.Put(action.Name, buf); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (n *NATSProvider) removeRuleFromActionMapping(ruleName, actionName string, bucket *bucket.KeyValueBucket) error {
-	a := bucket.Get([]byte(actionName))
-	if a == nil {
+func (n *NATSProvider) removeRuleFromActionMapping(ruleName, actionName string, kv *bucket.KeyValueBucket) error {
+	entry, err := kv.Get(actionName)
+	if err != nil {
 		providerLog(logger.LevelWarn, "action %q does not exist, cannot remove from mapping", actionName)
 		return nil
 	}
+
 	var action BaseEventAction
-	err := json.Unmarshal(a, &action)
-	if err != nil {
+	if err := action.Unmarshal(entry.Value()); err != nil {
 		return err
 	}
+
 	if slices.Contains(action.Rules, ruleName) {
 		var rules []string
 		for _, r := range action.Rules {
@@ -3707,33 +3747,42 @@ func (n *NATSProvider) removeRuleFromActionMapping(ruleName, actionName string, 
 				rules = append(rules, r)
 			}
 		}
+
 		action.Rules = util.RemoveDuplicates(rules, false)
+
 		buf, err := json.Marshal(action)
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(action.Name), buf)
+
+		if _, err := kv.Put(action.Name, buf); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (n *NATSProvider) addUserToGroupMapping(username, groupname string, bucket *bucket.KeyValueBucket) error {
-	g := bucket.Get([]byte(groupname))
-	if g == nil {
+func (n *NATSProvider) addUserToGroupMapping(username, groupname string, kv *bucket.KeyValueBucket) error {
+	entry, err := kv.Get(groupname)
+	if err != nil {
 		return util.NewGenericError(fmt.Sprintf("group %q does not exist", groupname))
 	}
+
 	var group Group
-	err := json.Unmarshal(g, &group)
-	if err != nil {
+	if err := group.Unmarshal(entry.Value()); err != nil {
 		return err
 	}
+
 	if !slices.Contains(group.Users, username) {
 		group.Users = append(group.Users, username)
 		buf, err := json.Marshal(group)
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(group.Name), buf)
+
+		if _, err := kv.Put(group.Name, buf); err != nil {
+			return err
+		}
 	}
 	return nil
 }
