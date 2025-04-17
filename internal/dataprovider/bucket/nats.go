@@ -1,4 +1,4 @@
-package nats
+package bucket
 
 import (
 	"context"
@@ -197,5 +197,5 @@ func (b *BulkInit) formatDescription(bucket string) string {
 	for i, part := range parts {
 		parts[i] = strings.Title(strings.ToLower(part))
 	}
-	return fmt.Sprintf("Key Value Store for %s", strings.Join(parts, " "))
+	return fmt.Sprintf("Key Value KeyValueBucket for %s", strings.Join(parts, " "))
 }

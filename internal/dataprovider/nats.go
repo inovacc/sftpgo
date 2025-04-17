@@ -7,90 +7,45 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/drakkan/sftpgo/v2/internal/dataprovider/bucket"
 	"github.com/drakkan/sftpgo/v2/internal/logger"
-	nats2 "github.com/drakkan/sftpgo/v2/internal/nats"
 	"github.com/drakkan/sftpgo/v2/internal/util"
 	"github.com/drakkan/sftpgo/v2/internal/version"
+	"github.com/drakkan/sftpgo/v2/internal/vfs"
 	"github.com/nats-io/nats.go"
-	bolt "go.etcd.io/bbolt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
 )
 
 const (
-	NatsDatabaseVersion = 32
-	NatsKvAdmin         = "SFTP_KV_ADMIN"
-	NatsKvGroup         = "SFTP_KV_GROUP"
-	NatsKvRole          = "SFTP_KV_ROLE"
-	NatsKvRule          = "SFTP_KV_RULE"
-	NatsKvUser          = "SFTP_KV_USER"
-	NatsKvFolder        = "SFTP_KV_FOLDER"
-	NatsKvShare         = "SFTP_KV_SHARE"
-	NatsKvApiKey        = "SFTP_KV_API_KEY"
-	NatsKvEventAction   = "SFTP_KV_EVENT_ACTION"
-	NatsKvEventRule     = "SFTP_KV_EVENT_RULE"
-	NatsKvNode          = "SFTP_KV_NODE"
-	NatsKvTask          = "SFTP_KV_TASK"
-	NatsKvTransfer      = "SFTP_KV_TRANSFER"
-	NatsKvDefender      = "SFTP_KV_DEFENDER"
-	NatsKvIplist        = "SFTP_KV_IPLIST"
-	NatsKvSession       = "SFTP_KV_SESSION"
-	NatsKvConfig        = "SFTP_KV_CONFIG"
-	NatsKvActions       = "SFTP_KV_ACTIONS"
-	NatsKvSchemaVersion = "SFTP_KV_SCHEMA_VERSION"
-	NatsKvBucketVersion = "SFTP_KV_BUCKET_VERSION"
-	NatsKvDbVersion     = "SFTP_KV_DB_VERSION"
-
-	//usersBucketNATS     = "users"
-	//groupsBucketNATS    = "groups"
-	//foldersBucketNATS   = "folders"
-	//adminsBucketNATS    = "admins"
-	//apiKeysBucketNATS   = "api_keys"
-	//sharesBucketNATS    = "shares"
-	//actionsBucketNATS   = "events_actions"
-	//rulesBucketNATS     = "events_rules"
-	//rolesBucketNATS     = "roles"
-	//ipListsBucketNATS   = "ip_lists"
-	//configsBucketNATS   = "configs"
-	//dbVersionBucketNATS = "db_version"
-	dbVersionKeyNATS = "version"
-	//configsKeyNATS      = "configs"
+	usersBucketNATS     = "users"
+	groupsBucketNATS    = "groups"
+	foldersBucketNATS   = "folders"
+	adminsBucketNATS    = "admins"
+	apiKeysBucketNATS   = "api_keys"
+	sharesBucketNATS    = "shares"
+	actionsBucketNATS   = "events_actions"
+	rulesBucketNATS     = "events_rules"
+	rolesBucketNATS     = "roles"
+	ipListsBucketNATS   = "ip_lists"
+	configsBucketNATS   = "configs"
+	dbVersionBucketNATS = "db_version"
+	dbVersionKeyNATS    = "version"
 )
 
-var (
-	bucketsKv = make(map[string]nats.KeyValue)
-	buckets   = make(map[string]*nats.KeyValueConfig)
-)
+var natsBuckets = make(map[string]*bucket.KeyValueBucket)
 
 func init() {
 	version.AddFeature("+nats")
-
-	bucketNames := []string{
-		NatsKvAdmin, NatsKvGroup, NatsKvRole, NatsKvRule, NatsKvUser, NatsKvFolder, NatsKvShare, NatsKvApiKey,
-		NatsKvEventAction, NatsKvEventRule, NatsKvNode, NatsKvTask, NatsKvTransfer, NatsKvDefender, NatsKvIplist,
-		NatsKvSession, NatsKvConfig, NatsKvActions, NatsKvSchemaVersion, NatsKvBucketVersion, NatsKvDbVersion,
-	}
-
-	for _, name := range bucketNames {
-		buckets[name] = &nats.KeyValueConfig{
-			Bucket:      name,
-			Storage:     nats.FileStorage,
-			Compression: true,
-		}
-	}
 }
 
 type NATSProvider struct {
-	jsHandle nats.JetStreamContext
 	conn     *nats.Conn
-}
-
-type Bucket struct {
-	Name        string
-	Description string
+	jsHandle nats.JetStreamContext
 }
 
 func initializeNATSProvider() error {
@@ -117,36 +72,24 @@ func initializeNATSProvider() error {
 		return err
 	}
 
-	include := &nats.KeyValueConfig{
-		Compression: true,
-		Storage:     nats.FileStorage,
-		TTL:         time.Hour * 24,
+	storageNames := []string{
+		usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS,
+		actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS, configsBucketNATS, dbVersionBucketNATS,
+		dbVersionKeyNATS,
 	}
 
-	newBulkInit := nats2.NewBulkInit(js)
-	if err := newBulkInit.Init(buckets, include, bucketsKv); err != nil {
+	for _, name := range storageNames {
+		userStore, err := bucket.CreateKeyValueBucket(js, name)
+		if err != nil {
+			continue
+		}
+		natsBuckets[name] = userStore
+	}
+
+	if len(natsBuckets) != len(storageNames) {
+		providerLog(logger.LevelError, "error creating nats database handler, connection string: %q, error: %v", url, err)
 		return err
 	}
-
-	//value := make(map[string]nats.KeyValue)
-	//
-	//bucket := Bucket{
-	//	Name:        NatsKvAdmin,
-	//	Description: "key store for Admin data",
-	//}
-	//
-	//if err := initBucket(js, bucket, value); err != nil {
-	//	return fmt.Errorf("failed to create KV bucket: %w", err)
-	//}
-	//
-	//bucket = Bucket{
-	//	Name:        NatsKvRole,
-	//	Description: "key store for Admin role data",
-	//}
-	//
-	//if err := initBucket(js, bucket, value); err != nil {
-	//	return fmt.Errorf("failed to create KV bucket: %w", err)
-	//}
 
 	providerLog(logger.LevelDebug, "nats key store handle created")
 
@@ -224,13 +167,106 @@ func getNATSConnectionString(redactedPwd bool) (string, error) {
 	return fmt.Sprintf("nats://%s%s:%d", userInfo, host, port), nil
 }
 
-func (n *NATSProvider) checkAvailability() error {
-	kv, ok := bucketsKv[NatsKvDbVersion]
+func (n *NATSProvider) getBucket(name string) (*bucket.KeyValueBucket, error) {
+	kv, ok := natsBuckets[name]
 	if !ok {
-		return fmt.Errorf("kv bucket %q not initialized", NatsKvDbVersion)
+		return nil, fmt.Errorf("kv bucket %q not initialized", name)
+	}
+	return kv, nil
+}
+
+func (n *NATSProvider) getUsersBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(usersBucketNATS)
+}
+
+func (n *NATSProvider) getAdminsBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(adminsBucketNATS)
+}
+
+func (n *NATSProvider) getGroupsBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(groupsBucketNATS)
+}
+
+func (n *NATSProvider) getFoldersBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(foldersBucketNATS)
+}
+
+func (n *NATSProvider) getAPIKeysBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(apiKeysBucketNATS)
+}
+
+func (n *NATSProvider) getSharesBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(sharesBucketNATS)
+}
+
+func (n *NATSProvider) getActionsBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(actionsBucketNATS)
+}
+
+func (n *NATSProvider) getRulesBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(rulesBucketNATS)
+}
+
+func (n *NATSProvider) getRolesBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(rolesBucketNATS)
+}
+
+func (n *NATSProvider) getIPListsBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(ipListsBucketNATS)
+}
+
+func (n *NATSProvider) getConfigsBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(configsBucketNATS)
+}
+
+func (n *NATSProvider) getDBVersionBucket() (*bucket.KeyValueBucket, error) {
+	return n.getBucket(dbVersionBucketNATS)
+}
+
+func (n *NATSProvider) userExists(username, role string) (User, error) {
+	kv, err := n.getUsersBucket()
+	if err != nil {
+		return User{}, err
 	}
 
-	entry, err := kv.Get(dbVersionKeyNATS)
+	entry, err := kv.Get(username)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
+			return User{}, util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
+		}
+		return User{}, fmt.Errorf("kv get failed for username %q: %w", username, err)
+	}
+
+	var user User
+	if err := user.Unmarshal(entry.Value()); err != nil {
+		return User{}, fmt.Errorf("failed to decode user data: %w", err)
+	}
+
+	foldersKv, ok := natsBuckets[foldersBucketNATS]
+	if ok {
+		folderEntry, err := foldersKv.Get(username)
+		if err != nil && !errors.Is(err, nats.ErrKeyNotFound) {
+			return User{}, fmt.Errorf("failed to get folders from kv: %w", err)
+		}
+
+		if err := n.joinUserAndFolders(&user, folderEntry.Value()); err != nil {
+			return User{}, fmt.Errorf("failed to join user and folders: %w", err)
+		}
+	}
+
+	if !user.hasRole(role) {
+		return User{}, util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
+	}
+	return user, nil
+}
+
+func (n *NATSProvider) checkAvailability() error {
+	kv, err := n.getConfigsBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := kv.Get(dbVersionBucketNATS)
 	if err != nil {
 		return err
 	}
@@ -256,39 +292,34 @@ func (n *NATSProvider) validateUserAndTLSCert(username, protocol string, tlsCert
 }
 
 func (n *NATSProvider) updateLastLogin(username string) error {
-	kv, ok := bucketsKv[NatsKvAdmin]
-	if !ok {
-		return  fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	kv, err := n.getUsersBucket()
+	if err != nil {
+		return err
 	}
 
-	return n.jsHandle.Update(func() error {
-		bucket, err := n.getUsersBucket(tx)
-		if err != nil {
-			return err
-		}
-		var u []byte
-		entry, err := n.buckets[].Get(username)
-		u == nil{
-			return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update last login", username))
-		}
-		var user User
-		err = json.Unmarshal(u, &user)
-		if err != nil {
-			return err
-		}
-		user.LastLogin = util.GetTimeAsMsSinceEpoch(time.Now())
-		buf, err := json.Marshal(user)
-		if err != nil {
-			return err
-		}
-		_, err = n.buckets[].Put(username, buf)
-		if err != nil {
-			providerLog(logger.LevelWarn, "error updating last login for user %q: %v", username, err)
-		} else {
-			providerLog(logger.LevelDebug, "last login updated for user %q", username)
-		}
+	entry, err := kv.Get(username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update last login", username))
+	}
+
+	var user User
+	if err := user.Unmarshal(entry.Value()); err != nil {
 		return err
-	})
+	}
+
+	user.LastLogin = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	buf, err := user.Marshal()
+	if err != nil {
+		return err
+	}
+
+	if _, err = kv.Put(username, buf); err != nil {
+		providerLog(logger.LevelWarn, "error updating last login for user %q: %v", username, err)
+		return err
+	}
+	providerLog(logger.LevelDebug, "last login updated for user %q", username)
+	return nil
 }
 
 func (n *NATSProvider) validateUserAndPass(username, password, ip, protocol string) (User, error) {
@@ -311,17 +342,17 @@ func (n *NATSProvider) validateAdminAndPass(username, password, ip string) (Admi
 }
 
 func (n *NATSProvider) getAdminSignature(username string) (string, error) {
-	kv, ok := bucketsKv[NatsKvAdmin]
-	if !ok {
-		return "", fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	kv, err := n.getAdminsBucket()
+	if err != nil {
+		return "", err
 	}
 
-	var admin Admin
 	entry, err := kv.Get(username)
 	if err != nil {
 		return "", err
 	}
 
+	var admin Admin
 	if err := admin.Unmarshal(entry.Value()); err != nil {
 		return "", err
 	}
@@ -329,9 +360,9 @@ func (n *NATSProvider) getAdminSignature(username string) (string, error) {
 }
 
 func (n *NATSProvider) getUserSignature(username string) (string, error) {
-	kv, ok := bucketsKv[NatsKvUser]
-	if !ok {
-		return "", fmt.Errorf("kv bucket %q not initialized", NatsKvUser)
+	kv, err := n.getUsersBucket()
+	if err != nil {
+		return "", err
 	}
 
 	var user User
@@ -369,10 +400,64 @@ func (n *NATSProvider) getUsedQuota(username string) (int, int64, int64, int64, 
 	return user.UsedQuotaFiles, user.UsedQuotaSize, user.UsedUploadDataTransfer, user.UsedDownloadDataTransfer, err
 }
 
+func (n *NATSProvider) addAdminToGroupMapping(username, groupName string, kv *bucket.KeyValueBucket) error {
+	entry, err := kv.Get(groupName)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", groupName))
+	}
+
+	var group Group
+	if err := group.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	if !slices.Contains(group.Admins, username) {
+		group.Admins = append(group.Admins, username)
+		buf, err := group.Marshal()
+		if err != nil {
+			return err
+		}
+
+		if _, err := kv.Put(group.Name, buf); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (n *NATSProvider) addAdminToRole(username, roleName string, kv *bucket.KeyValueBucket) error {
+	if roleName == "" {
+		return nil
+	}
+
+	entry, err := kv.Get(roleName)
+	if err != nil {
+		return fmt.Errorf("%w: role %q does not exist", ErrForeignKeyViolated, roleName)
+	}
+
+	var role Role
+	if err := role.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	if !slices.Contains(role.Admins, username) {
+		role.Admins = append(role.Admins, username)
+		buf, err := role.Marshal()
+		if err != nil {
+			return err
+		}
+
+		if _, err := kv.Put(role.Name, buf); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (n *NATSProvider) adminExists(username string) (Admin, error) {
-	kv, ok := bucketsKv[NatsKvAdmin]
-	if !ok {
-		return Admin{}, fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
+	kv, err := n.getAdminsBucket()
+	if err != nil {
+		return Admin{}, err
 	}
 
 	entry, err := kv.Get(username)
@@ -391,49 +476,53 @@ func (n *NATSProvider) adminExists(username string) (Admin, error) {
 }
 
 func (n *NATSProvider) addAdmin(admin *Admin) error {
-	kv, ok := bucketsKv[NatsKvAdmin]
-	if !ok {
-		return fmt.Errorf("kv bucket %q not initialized", NatsKvAdmin)
-	}
-
 	if err := admin.validate(); err != nil {
 		return err
 	}
 
-	data, err := admin.Marshal()
+	kv, err := n.getAdminsBucket()
 	if err != nil {
 		return err
 	}
 
-	if _, err := kv.Put(admin.Username, data); err != nil {
+	groupBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	rolesBucket, err := n.getRolesBucket()
+	if err != nil {
+		return err
+	}
+
+	if _, err = kv.Get(admin.Username); err != nil {
 		return util.NewI18nError(
 			fmt.Errorf("%w: admin %q already exists", ErrDuplicatedKey, admin.Username),
 			util.I18nErrorDuplicatedUsername,
 		)
 	}
 
+	admin.ID = time.Now().UnixNano()
+	admin.LastLogin = 0
+	admin.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	admin.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
 	sort.Slice(admin.Groups, func(i, j int) bool {
 		return admin.Groups[i].Name < admin.Groups[j].Name
 	})
 
-	for _, g := range admin.Groups {
-		if err := n.addAdminToGroupMapping(admin.Username, g.Name); err != nil {
+	for idx := range admin.Groups {
+		err = n.addAdminToGroupMapping(admin.Username, admin.Groups[idx].Name, groupBucket)
+		if err != nil {
 			return err
 		}
 	}
 
-	if err := n.addAdminToRole(admin.Username, admin.Role); err != nil {
+	if err = n.addAdminToRole(admin.Username, admin.Role, rolesBucket); err != nil {
 		return err
 	}
 
-	// Assign ID and metadata
-	admin.ID = time.Now().UnixNano() // You may want a better unique ID strategy
-	admin.LastLogin = 0
-	now := util.GetTimeAsMsSinceEpoch(time.Now())
-	admin.CreatedAt = now
-	admin.UpdatedAt = now
-
-	data, err = admin.Marshal()
+	data, err := admin.Marshal()
 	if err != nil {
 		return err
 	}
@@ -454,9 +543,9 @@ func (n *NATSProvider) getUsedFolderQuota(name string) (int, int64, error) {
 }
 
 func (n *NATSProvider) updateAPIKeyLastUse(keyID string) error {
-	kv, ok := bucketsKv[NatsKvApiKey]
-	if !ok {
-		return fmt.Errorf("kv bucket %q not initialized", NatsKvApiKey)
+	kv, err := n.getAPIKeysBucket()
+	if err != nil {
+		return err
 	}
 
 	entry, err := kv.Get(keyID)
@@ -470,6 +559,7 @@ func (n *NATSProvider) updateAPIKeyLastUse(keyID string) error {
 	}
 
 	apiKey.LastUseAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
 	buf, err := apiKey.Marshal()
 	if err != nil {
 		return err
@@ -479,39 +569,36 @@ func (n *NATSProvider) updateAPIKeyLastUse(keyID string) error {
 		providerLog(logger.LevelWarn, "error updating last use for key %q: %v", keyID, err)
 		return err
 	}
-
 	providerLog(logger.LevelDebug, "last use updated for key %q", keyID)
 	return nil
 }
 
 func (n *NATSProvider) setUpdatedAt(username string) error {
-	kv, ok := bucketsKv[NatsKvUser]
-	if !ok {
-		return fmt.Errorf("kv bucket %q not initialized", NatsKvUser)
+	kv, err := n.getUsersBucket()
+	if err != nil {
+		return err
 	}
 
 	entry, err := kv.Get(username)
 	if err != nil {
-		if errors.Is(err, nats.ErrKeyNotFound) {
-			return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update updated at", username))
-		}
-		return fmt.Errorf("failed to fetch user %q: %w", username, err)
+		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update updated at", username))
 	}
 
 	var user User
-	if err := user.Unmarshal(entry.Value()); err != nil {
-		return fmt.Errorf("failed to unmarshal user %q: %w", username, err)
+	if err = user.Unmarshal(entry.Value()); err != nil {
+		return err
 	}
 
 	user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-	data, err := user.Marshal()
+
+	buf, err := user.Marshal()
 	if err != nil {
-		return fmt.Errorf("failed to marshal updated user %q: %w", username, err)
+		return err
 	}
 
-	if _, err := kv.Put(username, data); err != nil {
+	if _, err = kv.Put(username, buf); err != nil {
 		providerLog(logger.LevelWarn, "error setting updated_at for user %q: %v", username, err)
-		return fmt.Errorf("failed to update user %q: %w", username, err)
+		return err
 	}
 
 	providerLog(logger.LevelDebug, "updated at set for user %q", username)
@@ -519,54 +606,16 @@ func (n *NATSProvider) setUpdatedAt(username string) error {
 	return nil
 }
 
-func (n *NATSProvider) userExists(username, role string) (User, error) {
-	kv, ok := bucketsKv[NatsKvUser]
-	if !ok {
-		return User{}, fmt.Errorf("kv bucket %q not initialized", NatsKvUser)
-	}
+func (n *NATSProvider) folderExistsInternal(name string, kv *bucket.KeyValueBucket) (vfs.BaseVirtualFolder, error) {
+	var folder vfs.BaseVirtualFolder
 
-	entry, err := kv.Get(username)
+	entry, err := kv.Get(name)
 	if err != nil {
-		if errors.Is(err, nats.ErrKeyNotFound) {
-			return User{}, util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
-		}
-		return User{}, fmt.Errorf("kv get failed for username %q: %w", username, err)
+		return folder, util.NewRecordNotFoundError(fmt.Sprintf("folder %q does not exist", name))
 	}
 
-	var user User
-	if err := user.Unmarshal(entry.Value()); err != nil {
-		return User{}, fmt.Errorf("failed to decode user data: %w", err)
+	if err := folder.Unmarshal(entry.Value()); err != nil {
+		return folder, fmt.Errorf("failed to decode folder data: %w", err)
 	}
-
-	foldersKv, ok := bucketsKv[NatsKvFolder]
-	if ok {
-		folderEntry, err := foldersKv.Get(username)
-		if err != nil && !errors.Is(err, nats.ErrKeyNotFound) {
-			return User{}, fmt.Errorf("failed to get folders from kv: %w", err)
-		}
-
-		if folderEntry != nil {
-			if err := n.joinUserAndFolders(&user, folderEntry.Value()); err != nil {
-				return User{}, fmt.Errorf("failed to join user and folders: %w", err)
-			}
-		}
-	}
-
-	if !user.hasRole(role) {
-		return User{}, util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
-	}
-	return user, nil
-}
-
-func (n *NATSProvider) getUsersBucket() (nats.KeyValue, error) {
-	kv, ok := bucketsKv[NatsKvUser]
-	if !ok {
-		return nil,fmt.Errorf("kv bucket %q not initialized", NatsKvUser)
-	}
-
-	entry, err := kv.Get(NatsKvUser)
-	if err != nil {
-		err = errors.New("unable to find users bucket, bolt database structure not correcly defined")
-	}
-	return entry, err
+	return folder, nil
 }

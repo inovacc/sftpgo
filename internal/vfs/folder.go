@@ -15,6 +15,7 @@
 package vfs
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -42,6 +43,14 @@ type BaseVirtualFolder struct {
 	Groups []string `json:"groups,omitempty"`
 	// Filesystem configuration details
 	FsConfig Filesystem `json:"filesystem"`
+}
+
+func (v *BaseVirtualFolder) Marshal() ([]byte, error) {
+	return json.Marshal(v)
+}
+
+func (v *BaseVirtualFolder) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, v)
 }
 
 // GetEncryptionAdditionalData returns the additional data to use for AEAD

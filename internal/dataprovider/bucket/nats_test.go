@@ -1,4 +1,4 @@
-package nats
+package bucket
 
 import (
 	"context"
@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"github.com/inovacc/utils/v2/uid"
 	"github.com/nats-io/nats.go"
-	"log"
-	"os"
 	"sync"
 	"testing"
 	"time"
@@ -95,36 +93,36 @@ type testStruct struct {
 	ctx context.Context
 }
 
-func TestMain(m *testing.M) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	nc, err := nats.Connect(nats.DefaultURL)
-	if err != nil {
-		log.Fatalf("Error connecting to nats server: %v", err)
-	}
-
-	js, err := nc.JetStream()
-	if err != nil {
-		log.Fatalf("Error getting JetStream context: %v", err)
-	}
-
-	testObj.ctx = ctx
-	testObj.js = js
-
-	include := &nats.KeyValueConfig{
-		Compression: true,
-		Storage:     nats.FileStorage,
-		TTL:         time.Hour * 24,
-	}
-
-	newBulkInit := NewBulkInit(testObj.js)
-	if err := newBulkInit.Init(buckets, include, bucketsKv); err != nil {
-		log.Fatalf("Error inserting bucket metadata")
-	}
-
-	os.Exit(m.Run())
-}
+//func TestMain(m *testing.M) {
+//	ctx, cancel := context.WithCancel(context.Background())
+//	defer cancel()
+//
+//	nc, err := nats.Connect(nats.DefaultURL)
+//	if err != nil {
+//		log.Fatalf("Error connecting to nats server: %v", err)
+//	}
+//
+//	js, err := nc.JetStream()
+//	if err != nil {
+//		log.Fatalf("Error getting JetStream context: %v", err)
+//	}
+//
+//	testObj.ctx = ctx
+//	testObj.js = js
+//
+//	include := &nats.KeyValueConfig{
+//		Compression: true,
+//		Storage:     nats.FileStorage,
+//		TTL:         time.Hour * 24,
+//	}
+//
+//	newBulkInit := NewBulkInit(testObj.js)
+//	if err := newBulkInit.Init(buckets, include, bucketsKv); err != nil {
+//		log.Fatalf("Error inserting bucket metadata")
+//	}
+//
+//	os.Exit(m.Run())
+//}
 
 func TestWatchAndSyncTyped(t *testing.T) {
 	userFactory := func() *user {
