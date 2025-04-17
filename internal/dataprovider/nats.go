@@ -1660,674 +1660,780 @@ func (n *NATSProvider) initializeDatabase() error {
 	return ErrNoInitRequired
 }
 
-//////////////////////////////////
+func (n *NATSProvider) getAdmins(limit, offset int, order string) ([]Admin, error) {
+	if limit <= 0 {
+		return nil, fmt.Errorf("limit must be positive, got %d", limit)
+	}
 
-func (n *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, error) {
-	admins := make([]Admin, 0, limit)
+	if offset < 0 {
+		return nil, fmt.Errorf("offset must be non-negative, got %d", offset)
+	}
 
-	bucket, err := n.getAdminsBucket()
+	capacity := min(limit, 10)
+	admins := make([]Admin, 0, capacity)
+
+	kv, err := n.getAdminsBucket()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get admins bucket: %w", err)
 	}
-	cursor := bucket.Cursor()
-	itNum := 0
-	if order == OrderASC {
-		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-			itNum++
-			if itNum <= offset {
-				continue
-			}
-			var admin Admin
-			err = json.Unmarshal(v, &admin)
-			if err != nil {
-				return err
-			}
-			admin.HideConfidentialData()
-			admins = append(admins, admin)
-			if len(admins) >= limit {
-				break
-			}
-		}
-	} else {
-		for k, v := cursor.Last(); k != nil; k, v = cursor.Prev() {
-			itNum++
-			if itNum <= offset {
-				continue
-			}
-			var admin Admin
-			err = json.Unmarshal(v, &admin)
-			if err != nil {
-				return err
-			}
-			admin.HideConfidentialData()
-			admins = append(admins, admin)
-			if len(admins) >= limit {
-				break
-			}
-		}
-	}
-	return err
 
-	return admins, err
+	opts := []nats.WatchOpt{nats.UpdatesOnly(), nats.MetaOnly()}
+	keys, err := kv.Keys(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get admin keys: %w", err)
+	}
+
+	// Apply ordering
+	if order == "desc" {
+		for i, j := 0, len(keys)-1; i < j; i, j = i+1, j-1 {
+			keys[i], keys[j] = keys[j], keys[i]
+		}
+	}
+
+	// Apply pagination
+	start := offset
+	end := min(start+limit, len(keys))
+	if start >= len(keys) {
+		return admins, nil
+	}
+
+	for _, key := range keys[start:end] {
+		entry, err := kv.Get(key)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get admin data for key %s: %w", key, err)
+		}
+
+		var admin Admin
+		if err = admin.Unmarshal(entry.Value()); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal admin data for key %s: %w", key, err)
+		}
+
+		admin.HideConfidentialData()
+		admins = append(admins, admin)
+	}
+	return admins, nil
 }
 
 func (n *NATSProvider) dumpAdmins() ([]Admin, error) {
 	admins := make([]Admin, 0, 30)
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getAdminsBucket()
+
+	kv, err := n.getAdminsBucket()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get admins bucket: %w", err)
+	}
+
+	keys, err := kv.Keys()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list admin keys: %w", err)
+	}
+
+	for _, key := range keys {
+		entry, err := kv.Get(key)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("failed to get admin data for key %s: %w", key, err)
 		}
 
-		cursor := bucket.Cursor()
-		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-			var admin Admin
-			err = json.Unmarshal(v, &admin)
-			if err != nil {
-				return err
-			}
-			admins = append(admins, admin)
+		var admin Admin
+		if err := admin.Unmarshal(entry.Value()); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal admin data for key %s: %w", key, err)
 		}
-		return err
-	})
 
-	return admins, err
+		admins = append(admins, admin)
+	}
+	return admins, nil
 }
 
 func (n *NATSProvider) addUser(user *User) error {
-	err := ValidateUser(user)
-	if err != nil {
+	if err := ValidateUser(user); err != nil {
 		return err
 	}
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket()
-		if err != nil {
-			return err
-		}
-		foldersBucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		groupBucket, err := n.getGroupsBucket()
-		if err != nil {
-			return err
-		}
-		rolesBucket, err := n.getRolesBucket()
-		if err != nil {
-			return err
-		}
-		if u := bucket.Get([]byte(user.Username)); u != nil {
-			return util.NewI18nError(
-				fmt.Errorf("%w: username %v already exists", ErrDuplicatedKey, user.Username),
-				util.I18nErrorDuplicatedUsername,
-			)
-		}
-		id, err := bucket.NextSequence()
-		if err != nil {
-			return err
-		}
-		user.ID = int64(id)
-		user.LastQuotaUpdate = 0
-		user.UsedQuotaSize = 0
-		user.UsedQuotaFiles = 0
-		user.UsedUploadDataTransfer = 0
-		user.UsedDownloadDataTransfer = 0
-		user.LastLogin = 0
-		user.FirstDownload = 0
-		user.FirstUpload = 0
-		user.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-		user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-		if err := n.addUserToRole(user.Username, user.Role, rolesBucket); err != nil {
-			return err
-		}
-		sort.Slice(user.VirtualFolders, func(i, j int) bool {
-			return user.VirtualFolders[i].Name < user.VirtualFolders[j].Name
-		})
-		for idx := range user.VirtualFolders {
-			err = n.addRelationToFolderMapping(user.VirtualFolders[idx].Name, user, nil, foldersBucket)
-			if err != nil {
-				return err
-			}
-		}
-		sort.Slice(user.Groups, func(i, j int) bool {
-			return user.Groups[i].Name < user.Groups[j].Name
-		})
-		for idx := range user.Groups {
-			err = n.addUserToGroupMapping(user.Username, user.Groups[idx].Name, groupBucket)
-			if err != nil {
-				return err
-			}
-		}
-		buf, err := json.Marshal(user)
-		if err != nil {
-			return err
-		}
-		return kv.Put([]byte(user.Username), buf)
+
+	// Get all required buckets
+	usersBucket, err := n.getUsersBucket()
+	if err != nil {
+		return fmt.Errorf("failed to get users bucket: %w", err)
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return fmt.Errorf("failed to get folders bucket: %w", err)
+	}
+
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return fmt.Errorf("failed to get groups bucket: %w", err)
+	}
+
+	rolesBucket, err := n.getRolesBucket()
+	if err != nil {
+		return fmt.Errorf("failed to get roles bucket: %w", err)
+	}
+
+	// Check if a user already exists
+	entry, err := usersBucket.Get(user.Username)
+	if err == nil && entry != nil {
+		return util.NewI18nError(
+			fmt.Errorf("%w: username %v already exists", ErrDuplicatedKey, user.Username),
+			util.I18nErrorDuplicatedUsername,
+		)
+	}
+
+	if err != nil && !errors.Is(err, nats.ErrKeyNotFound) {
+		return fmt.Errorf("failed to check existing user: %w", err)
+	}
+
+	// Initialize user fields
+	now := util.GetTimeAsMsSinceEpoch(time.Now())
+	user.LastQuotaUpdate = 0
+	user.UsedQuotaSize = 0
+	user.UsedQuotaFiles = 0
+	user.UsedUploadDataTransfer = 0
+	user.UsedDownloadDataTransfer = 0
+	user.LastLogin = 0
+	user.FirstDownload = 0
+	user.FirstUpload = 0
+	user.CreatedAt = now
+	user.UpdatedAt = now
+
+	// Add a user to a role
+	if err := n.addUserToRole(user.Username, user.Role, rolesBucket); err != nil {
+		return fmt.Errorf("failed to add user to role: %w", err)
+	}
+
+	// Process virtual folders
+	sort.Slice(user.VirtualFolders, func(i, j int) bool {
+		return user.VirtualFolders[i].Name < user.VirtualFolders[j].Name
 	})
+
+	for idx := range user.VirtualFolders {
+		if err := n.addRelationToFolderMapping(user.VirtualFolders[idx].Name, user, nil, foldersBucket); err != nil {
+			return fmt.Errorf("failed to add folder mapping: %w", err)
+		}
+	}
+
+	// Process groups
+	sort.Slice(user.Groups, func(i, j int) bool {
+		return user.Groups[i].Name < user.Groups[j].Name
+	})
+
+	for idx := range user.Groups {
+		if err := n.addUserToGroupMapping(user.Username, user.Groups[idx].Name, groupsBucket); err != nil {
+			return fmt.Errorf("failed to add group mapping: %w", err)
+		}
+	}
+
+	// Marshal and store user data
+	buf, err := json.Marshal(user)
+	if err != nil {
+		return fmt.Errorf("failed to marshal user data: %w", err)
+	}
+
+	// Create the user entry in the NATS KV store
+	if _, err = usersBucket.Create(user.Username, buf); err != nil {
+		return fmt.Errorf("failed to create user entry: %w", err)
+	}
+	return nil
 }
 
 func (n *NATSProvider) updateUser(user *User) error {
-	err := ValidateUser(user)
+	if err := ValidateUser(user); err != nil {
+		return err
+	}
+
+	valueBucket, err := n.getUsersBucket()
 	if err != nil {
 		return err
 	}
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket()
-		if err != nil {
-			return err
-		}
-		var u []byte
-		if u = bucket.Get([]byte(user.Username)); u == nil {
+
+	// Get existing user
+	entry, err := valueBucket.Get(user.Username)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
 			return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", user.Username))
 		}
-		var oldUser User
-		err = json.Unmarshal(u, &oldUser)
-		if err != nil {
-			return err
-		}
-		if err = n.updateUserRelations(tx, user, oldUser); err != nil {
-			return err
-		}
-		user.ID = oldUser.ID
-		user.LastQuotaUpdate = oldUser.LastQuotaUpdate
-		user.UsedQuotaSize = oldUser.UsedQuotaSize
-		user.UsedQuotaFiles = oldUser.UsedQuotaFiles
-		user.UsedUploadDataTransfer = oldUser.UsedUploadDataTransfer
-		user.UsedDownloadDataTransfer = oldUser.UsedDownloadDataTransfer
-		user.LastLogin = oldUser.LastLogin
-		user.FirstDownload = oldUser.FirstDownload
-		user.FirstUpload = oldUser.FirstUpload
-		user.CreatedAt = oldUser.CreatedAt
-		user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-		buf, err := json.Marshal(user)
-		if err != nil {
-			return err
-		}
-
-		err = kv.Put([]byte(user.Username), buf)
-		if err == nil {
-			setLastUserUpdate()
-		}
 		return err
-	})
+	}
+
+	var oldUser User
+	if err := oldUser.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	if err := n.updateUserRelations(user, oldUser); err != nil {
+		return err
+	}
+
+	reflection.MergeZeroFields(user, oldUser)
+	user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	buf, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+
+	// Use Update with revision for atomic operation
+	if _, err = valueBucket.Update(user.Username, buf, entry.Revision()); err == nil {
+		setLastUserUpdate()
+	}
+	return err
 }
 
 func (n *NATSProvider) deleteUser(user User, _ bool) error {
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket()
-		if err != nil {
-			return err
-		}
-		foldersBucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		groupBucket, err := n.getGroupsBucket()
-		if err != nil {
-			return err
-		}
-		rolesBucket, err := n.getRolesBucket()
-		if err != nil {
-			return err
-		}
-		var u []byte
-		if u = bucket.Get([]byte(user.Username)); u == nil {
+	usersBucket, err := n.getUsersBucket()
+	if err != nil {
+		return fmt.Errorf("failed to get users bucket: %w", err)
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return fmt.Errorf("failed to get folders bucket: %w", err)
+	}
+
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return fmt.Errorf("failed to get groups bucket: %w", err)
+	}
+
+	rolesBucket, err := n.getRolesBucket()
+	if err != nil {
+		return fmt.Errorf("failed to get roles bucket: %w", err)
+	}
+
+	entry, err := usersBucket.Get(user.Username)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
 			return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", user.Username))
 		}
-		var oldUser User
-		err = json.Unmarshal(u, &oldUser)
-		if err != nil {
-			return err
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	var oldUser User
+	if err := oldUser.Unmarshal(entry.Value()); err != nil {
+		return fmt.Errorf("failed to unmarshal user data: %w", err)
+	}
+
+	if err := n.removeUserFromRole(oldUser.Username, oldUser.Role, rolesBucket); err != nil {
+		return fmt.Errorf("failed to remove user from role: %w", err)
+	}
+
+	for idx := range oldUser.VirtualFolders {
+		if err := n.removeRelationFromFolderMapping(oldUser.VirtualFolders[idx], oldUser.Username, "", foldersBucket); err != nil {
+			return fmt.Errorf("failed to remove folder mapping: %w", err)
 		}
-		if err := n.removeUserFromRole(oldUser.Username, oldUser.Role, rolesBucket); err != nil {
-			return err
+	}
+
+	for idx := range oldUser.Groups {
+		if err := n.removeUserFromGroupMapping(oldUser.Username, oldUser.Groups[idx].Name, groupsBucket); err != nil {
+			return fmt.Errorf("failed to remove group mapping: %w", err)
 		}
-		for idx := range oldUser.VirtualFolders {
-			err = n.removeRelationFromFolderMapping(oldUser.VirtualFolders[idx], oldUser.Username, "", foldersBucket)
-			if err != nil {
-				return err
-			}
-		}
-		for idx := range oldUser.Groups {
-			err = n.removeUserFromGroupMapping(oldUser.Username, oldUser.Groups[idx].Name, groupBucket)
-			if err != nil {
-				return err
-			}
-		}
-		if err := n.deleteRelatedAPIKey(tx, user.Username, APIKeyScopeUser); err != nil {
-			return err
-		}
-		if err := n.deleteRelatedShares(tx, user.Username); err != nil {
-			return err
-		}
-		return bucket.Delete([]byte(user.Username))
-	})
+	}
+
+	if err := n.deleteRelatedAPIKey(user.Username, APIKeyScopeUser); err != nil {
+		return fmt.Errorf("failed to delete related API keys: %w", err)
+	}
+
+	if err := n.deleteRelatedShares(user.Username); err != nil {
+		return fmt.Errorf("failed to delete related shares: %w", err)
+	}
+
+	if err := usersBucket.Delete(user.Username); err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+	return nil
 }
 
 func (n *NATSProvider) updateUserPassword(username, password string) error {
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket()
-		if err != nil {
-			return err
-		}
-		var u []byte
-		if u = bucket.Get([]byte(username)); u == nil {
+	usersBucket, err := n.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := usersBucket.Get(username)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
 			return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
 		}
-		var user User
-		err = json.Unmarshal(u, &user)
-		if err != nil {
-			return err
-		}
-		user.Password = password
-		user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-		buf, err := json.Marshal(user)
-		if err != nil {
-			return err
-		}
-		return kv.Put([]byte(username), buf)
-	})
+		return err
+	}
+
+	var user User
+	if err := user.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	user.Password = password
+	user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	buf, err := user.Marshal()
+	if err != nil {
+		return err
+	}
+
+	if _, err := usersBucket.Update(username, buf, entry.Revision()); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (n *NATSProvider) dumpUsers() ([]User, error) {
 	users := make([]User, 0, 100)
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket()
+
+	usersBucket, err := n.getUsersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := usersBucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := usersBucket.Get(key)
 		if err != nil {
-			return err
+			continue
 		}
-		foldersBucket, err := n.getFoldersBucket()
+		user, err := n.joinUserAndFolders(entry.Value(), foldersBucket)
 		if err != nil {
-			return err
+			continue
 		}
-		cursor := bucket.Cursor()
-		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-			user, err := n.joinUserAndFolders(v, foldersBucket)
-			if err != nil {
-				return err
-			}
-			users = append(users, user)
-		}
-		return err
-	})
-	return users, err
+		users = append(users, user)
+	}
+	return users, nil
 }
 
 func (n *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
 	if getLastUserUpdate() < after {
 		return nil, nil
 	}
+
 	users := make([]User, 0, 10)
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket()
+
+	usersBucket, err := n.getUsersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := usersBucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := usersBucket.Get(key)
 		if err != nil {
-			return err
+			continue
 		}
-		foldersBucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
+
+		var user User
+		if err := user.Unmarshal(entry.Value()); err != nil {
+			continue
 		}
-		groupsBucket, err := n.getGroupsBucket()
-		if err != nil {
-			return err
+
+		if user.UpdatedAt < after {
+			continue
 		}
-		cursor := bucket.Cursor()
-		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-			var user User
-			err := json.Unmarshal(v, &user)
-			if err != nil {
-				return err
-			}
-			if user.UpdatedAt < after {
-				continue
-			}
-			if len(user.VirtualFolders) > 0 {
-				var folders []vfs.VirtualFolder
-				for idx := range user.VirtualFolders {
-					folder := &user.VirtualFolders[idx]
-					baseFolder, err := n.folderExistsInternal(folder.Name, foldersBucket)
-					if err != nil {
-						continue
-					}
-					folder.BaseVirtualFolder = baseFolder
-					folders = append(folders, *folder)
+
+		if len(user.VirtualFolders) > 0 {
+			var folders []vfs.VirtualFolder
+			for idx := range user.VirtualFolders {
+				folder := &user.VirtualFolders[idx]
+				baseFolder, err := n.folderExistsInternal(folder.Name, foldersBucket)
+				if err != nil {
+					continue
 				}
-				user.VirtualFolders = folders
+				folder.BaseVirtualFolder = baseFolder
+				folders = append(folders, *folder)
 			}
-			if len(user.Groups) > 0 {
-				groupMapping := make(map[string]Group)
-				for idx := range user.Groups {
-					group, err := n.groupExistsInternal(user.Groups[idx].Name, groupsBucket)
-					if err != nil {
-						continue
-					}
-					groupMapping[group.Name] = group
-				}
-				user.applyGroupSettings(groupMapping)
-			}
-			user.SetEmptySecretsIfNil()
-			users = append(users, user)
+			user.VirtualFolders = folders
 		}
-		return err
-	})
-	return users, err
+
+		if len(user.Groups) > 0 {
+			groupMapping := make(map[string]Group)
+			for idx := range user.Groups {
+				group, err := n.groupExistsInternal(user.Groups[idx].Name, groupsBucket)
+				if err != nil {
+					continue
+				}
+				groupMapping[group.Name] = group
+			}
+			user.applyGroupSettings(groupMapping)
+		}
+
+		user.SetEmptySecretsIfNil()
+		users = append(users, user)
+	}
+	return users, nil
 }
 
 func (n *NATSProvider) getUsersForQuotaCheck(toFetch map[string]bool) ([]User, error) {
 	users := make([]User, 0, 10)
 
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket()
-		if err != nil {
-			return err
-		}
-		foldersBucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		groupsBucket, err := n.getGroupsBucket()
-		if err != nil {
-			return err
-		}
-		cursor := bucket.Cursor()
-		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-			var user User
-			err := json.Unmarshal(v, &user)
-			if err != nil {
-				return err
-			}
-			if needFolders, ok := toFetch[user.Username]; ok {
-				if needFolders && len(user.VirtualFolders) > 0 {
-					var folders []vfs.VirtualFolder
-					for idx := range user.VirtualFolders {
-						folder := &user.VirtualFolders[idx]
-						baseFolder, err := n.folderExistsInternal(folder.Name, foldersBucket)
-						if err != nil {
-							continue
-						}
-						folder.BaseVirtualFolder = baseFolder
-						folders = append(folders, *folder)
-					}
-					user.VirtualFolders = folders
-				}
-				if len(user.Groups) > 0 {
-					groupMapping := make(map[string]Group)
-					for idx := range user.Groups {
-						group, err := n.groupExistsInternal(user.Groups[idx].Name, groupsBucket)
-						if err != nil {
-							continue
-						}
-						groupMapping[group.Name] = group
-					}
-					user.applyGroupSettings(groupMapping)
-				}
+	usersBucket, err := n.getUsersBucket()
+	if err != nil {
+		return nil, err
+	}
 
-				user.SetEmptySecretsIfNil()
-				user.PrepareForRendering()
-				users = append(users, user)
-			}
-		}
-		return nil
-	})
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
 
-	return users, err
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	for username := range toFetch {
+		entry, err := usersBucket.Get(username)
+		if err != nil {
+			continue
+		}
+
+		var user User
+		if err := user.Unmarshal(entry.Value()); err != nil {
+			continue
+		}
+
+		needFolders := toFetch[user.Username]
+		if needFolders && len(user.VirtualFolders) > 0 {
+			var folders []vfs.VirtualFolder
+			for idx := range user.VirtualFolders {
+				folder := &user.VirtualFolders[idx]
+				baseFolder, err := n.folderExistsInternal(folder.Name, foldersBucket)
+				if err != nil {
+					continue
+				}
+				folder.BaseVirtualFolder = baseFolder
+				folders = append(folders, *folder)
+			}
+			user.VirtualFolders = folders
+		}
+
+		if len(user.Groups) > 0 {
+			groupMapping := make(map[string]Group)
+			for idx := range user.Groups {
+				group, err := n.groupExistsInternal(user.Groups[idx].Name, groupsBucket)
+				if err != nil {
+					continue
+				}
+				groupMapping[group.Name] = group
+			}
+			user.applyGroupSettings(groupMapping)
+		}
+
+		user.SetEmptySecretsIfNil()
+		user.PrepareForRendering()
+		users = append(users, user)
+	}
+	return users, nil
 }
 
 func (n *NATSProvider) getUsers(limit int, offset int, order, role string) ([]User, error) {
-	users := make([]User, 0, limit)
-	var err error
 	if limit <= 0 {
-		return users, err
+		return []User{}, nil
 	}
-	err = n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getUsersBucket()
+
+	usersBucket, err := n.getUsersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := usersBucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort keys based on order
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	users := make([]User, 0, limit)
+	itNum := 0
+
+	for _, key := range keys {
+		itNum++
+		if itNum <= offset {
+			continue
+		}
+
+		entry, err := usersBucket.Get(key)
 		if err != nil {
-			return err
+			continue
 		}
-		foldersBucket, err := n.getFoldersBucket()
+
+		user, err := n.joinUserAndFolders(entry.Value(), foldersBucket)
 		if err != nil {
-			return err
+			continue
 		}
-		cursor := bucket.Cursor()
-		itNum := 0
-		if order == OrderASC {
-			for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-				itNum++
-				if itNum <= offset {
-					continue
-				}
-				user, err := n.joinUserAndFolders(v, foldersBucket)
-				if err != nil {
-					return err
-				}
-				if !user.hasRole(role) {
-					continue
-				}
-				user.PrepareForRendering()
-				users = append(users, user)
-				if len(users) >= limit {
-					break
-				}
-			}
-		} else {
-			for k, v := cursor.Last(); k != nil; k, v = cursor.Prev() {
-				itNum++
-				if itNum <= offset {
-					continue
-				}
-				user, err := n.joinUserAndFolders(v, foldersBucket)
-				if err != nil {
-					return err
-				}
-				if !user.hasRole(role) {
-					continue
-				}
-				user.PrepareForRendering()
-				users = append(users, user)
-				if len(users) >= limit {
-					break
-				}
-			}
+
+		if !user.hasRole(role) {
+			continue
 		}
-		return err
-	})
-	return users, err
+
+		user.PrepareForRendering()
+		users = append(users, user)
+
+		if len(users) >= limit {
+			break
+		}
+	}
+	return users, nil
 }
 
 func (n *NATSProvider) dumpFolders() ([]vfs.BaseVirtualFolder, error) {
 	folders := make([]vfs.BaseVirtualFolder, 0, 50)
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket()
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := foldersBucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := foldersBucket.Get(key)
 		if err != nil {
-			return err
+			continue
 		}
-		cursor := bucket.Cursor()
-		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-			var folder vfs.BaseVirtualFolder
-			err = json.Unmarshal(v, &folder)
-			if err != nil {
-				return err
-			}
-			folders = append(folders, folder)
+
+		var folder vfs.BaseVirtualFolder
+		if err := folder.Unmarshal(entry.Value()); err != nil {
+			continue
 		}
-		return err
-	})
-	return folders, err
+
+		folders = append(folders, folder)
+	}
+	return folders, nil
 }
 
 func (n *NATSProvider) getFolders(limit, offset int, order string, _ bool) ([]vfs.BaseVirtualFolder, error) {
-	folders := make([]vfs.BaseVirtualFolder, 0, limit)
-	var err error
 	if limit <= 0 {
-		return folders, err
+		return []vfs.BaseVirtualFolder{}, nil
 	}
-	err = n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket()
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := foldersBucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort keys based on order
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	folders := make([]vfs.BaseVirtualFolder, 0, limit)
+	itNum := 0
+
+	for _, key := range keys {
+		itNum++
+		if itNum <= offset {
+			continue
+		}
+
+		entry, err := foldersBucket.Get(key)
 		if err != nil {
-			return err
+			continue
 		}
-		cursor := bucket.Cursor()
-		itNum := 0
-		if order == OrderASC {
-			for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-				itNum++
-				if itNum <= offset {
-					continue
-				}
-				var folder vfs.BaseVirtualFolder
-				err = json.Unmarshal(v, &folder)
-				if err != nil {
-					return err
-				}
-				folder.PrepareForRendering()
-				folders = append(folders, folder)
-				if len(folders) >= limit {
-					break
-				}
-			}
-		} else {
-			for k, v := cursor.Last(); k != nil; k, v = cursor.Prev() {
-				itNum++
-				if itNum <= offset {
-					continue
-				}
-				var folder vfs.BaseVirtualFolder
-				err = json.Unmarshal(v, &folder)
-				if err != nil {
-					return err
-				}
-				folder.PrepareForRendering()
-				folders = append(folders, folder)
-				if len(folders) >= limit {
-					break
-				}
-			}
+
+		var folder vfs.BaseVirtualFolder
+		if err := folder.Unmarshal(entry.Value()); err != nil {
+			continue
 		}
-		return err
-	})
-	return folders, err
+
+		folder.PrepareForRendering()
+		folders = append(folders, folder)
+
+		if len(folders) >= limit {
+			break
+		}
+	}
+	return folders, nil
 }
 
 func (n *NATSProvider) getFolderByName(name string) (vfs.BaseVirtualFolder, error) {
 	var folder vfs.BaseVirtualFolder
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return folder, err
+	}
+
+	entry, err := foldersBucket.Get(name)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
+			return folder, util.NewRecordNotFoundError(fmt.Sprintf("folder %v does not exist", name))
 		}
-		folder, err = n.folderExistsInternal(name, bucket)
-		return err
-	})
+		return folder, err
+	}
+
+	err = folder.Unmarshal(entry.Value())
 	return folder, err
 }
 
 func (n *NATSProvider) addFolder(folder *vfs.BaseVirtualFolder) error {
-	err := ValidateFolder(folder)
+	if err := ValidateFolder(folder); err != nil {
+		return err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
 	if err != nil {
 		return err
 	}
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		if f := bucket.Get([]byte(folder.Name)); f != nil {
-			return util.NewI18nError(
-				fmt.Errorf("%w: folder %q already exists", ErrDuplicatedKey, folder.Name),
-				util.I18nErrorDuplicatedUsername,
-			)
-		}
-		folder.Users = nil
-		folder.Groups = nil
-		return n.addFolderInternal(*folder, bucket)
-	})
+
+	if _, err = foldersBucket.Get(folder.Name); err == nil {
+		return util.NewI18nError(
+			fmt.Errorf("%w: folder %q already exists", ErrDuplicatedKey, folder.Name),
+			util.I18nErrorDuplicatedUsername,
+		)
+	}
+
+	if !errors.Is(err, nats.ErrKeyNotFound) {
+		return err
+	}
+
+	folder.Users = nil
+	folder.Groups = nil
+
+	buf, err := folder.Marshal()
+	if err != nil {
+		return err
+	}
+
+	_, err = foldersBucket.Create(folder.Name, buf)
+	return err
 }
 
 func (n *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
-	err := ValidateFolder(folder)
+	if err := ValidateFolder(folder); err != nil {
+		return err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
 	if err != nil {
 		return err
 	}
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		var f []byte
 
-		if f = bucket.Get([]byte(folder.Name)); f == nil {
+	entry, err := foldersBucket.Get(folder.Name)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
 			return util.NewRecordNotFoundError(fmt.Sprintf("folder %v does not exist", folder.Name))
 		}
-		var oldFolder vfs.BaseVirtualFolder
-		err = json.Unmarshal(f, &oldFolder)
-		if err != nil {
-			return err
-		}
+		return err
+	}
 
-		folder.ID = oldFolder.ID
-		folder.LastQuotaUpdate = oldFolder.LastQuotaUpdate
-		folder.UsedQuotaFiles = oldFolder.UsedQuotaFiles
-		folder.UsedQuotaSize = oldFolder.UsedQuotaSize
-		folder.Users = oldFolder.Users
-		folder.Groups = oldFolder.Groups
-		buf, err := json.Marshal(folder)
-		if err != nil {
-			return err
-		}
-		return kv.Put([]byte(folder.Name), buf)
-	})
+	var oldFolder vfs.BaseVirtualFolder
+	if err := oldFolder.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	reflection.MergeZeroFields(folder, oldFolder)
+
+	buf, err := folder.Marshal()
+	if err != nil {
+		return err
+	}
+
+	_, err = foldersBucket.Update(folder.Name, buf, entry.Revision())
+	return err
 }
 
 func (n *NATSProvider) deleteFolderMappings(folder vfs.BaseVirtualFolder, usersBucket, groupsBucket *bucket.KeyValueBucket) error {
 	for _, username := range folder.Users {
-		var u []byte
-		if u = usersBucket.Get([]byte(username)); u == nil {
-			continue
-		}
-		var user User
-		err := json.Unmarshal(u, &user)
+		entry, err := usersBucket.Get(username)
 		if err != nil {
+			if errors.Is(err, nats.ErrKeyNotFound) {
+				continue
+			}
 			return err
 		}
+
+		var user User
+		if err := user.Unmarshal(entry.Value()); err != nil {
+			return err
+		}
+
 		var folders []vfs.VirtualFolder
 		for _, userFolder := range user.VirtualFolders {
 			if folder.Name != userFolder.Name {
 				folders = append(folders, userFolder)
 			}
 		}
+
 		user.VirtualFolders = folders
-		buf, err := json.Marshal(user)
+
+		buf, err := user.Marshal()
 		if err != nil {
 			return err
 		}
-		err = usersBucket.Put([]byte(user.Username), buf)
-		if err != nil {
+
+		if _, err = usersBucket.Update(user.Username, buf, entry.Revision()); err != nil {
 			return err
 		}
 	}
+
 	for _, groupname := range folder.Groups {
-		var u []byte
-		if u = groupsBucket.Get([]byte(groupname)); u == nil {
-			continue
-		}
-		var group Group
-		err := json.Unmarshal(u, &group)
+		entry, err := groupsBucket.Get(groupname)
 		if err != nil {
+			if errors.Is(err, nats.ErrKeyNotFound) {
+				continue
+			}
 			return err
 		}
+
+		var group Group
+		if err := group.Unmarshal(entry.Value()); err != nil {
+			return err
+		}
+
 		var folders []vfs.VirtualFolder
 		for _, groupFolder := range group.VirtualFolders {
 			if folder.Name != groupFolder.Name {
 				folders = append(folders, groupFolder)
 			}
 		}
+
 		group.VirtualFolders = folders
-		buf, err := json.Marshal(group)
+
+		buf, err := group.Marshal()
 		if err != nil {
 			return err
 		}
-		err = groupsBucket.Put([]byte(group.Name), buf)
-		if err != nil {
+
+		if _, err = groupsBucket.Update(group.Name, buf, entry.Revision()); err != nil {
 			return err
 		}
 	}
@@ -2335,418 +2441,478 @@ func (n *NATSProvider) deleteFolderMappings(folder vfs.BaseVirtualFolder, usersB
 }
 
 func (n *NATSProvider) deleteFolder(baseFolder vfs.BaseVirtualFolder) error {
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		usersBucket, err := n.getUsersBucket()
-		if err != nil {
-			return err
-		}
-		groupsBucket, err := n.getGroupsBucket()
-		if err != nil {
-			return err
-		}
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return err
+	}
 
-		var f []byte
-		if f = bucket.Get([]byte(baseFolder.Name)); f == nil {
+	usersBucket, err := n.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := foldersBucket.Get(baseFolder.Name)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
 			return util.NewRecordNotFoundError(fmt.Sprintf("folder %v does not exist", baseFolder.Name))
 		}
-		var folder vfs.BaseVirtualFolder
-		err = json.Unmarshal(f, &folder)
-		if err != nil {
-			return err
-		}
-		if err = n.deleteFolderMappings(folder, usersBucket, groupsBucket); err != nil {
-			return err
-		}
+		return err
+	}
 
-		return bucket.Delete([]byte(folder.Name))
-	})
+	var folder vfs.BaseVirtualFolder
+	if err := folder.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	if err := n.deleteFolderMappings(folder, usersBucket, groupsBucket); err != nil {
+		return err
+	}
+
+	return foldersBucket.Delete(folder.Name)
 }
 
 func (n *NATSProvider) updateFolderQuota(name string, filesAdd int, sizeAdd int64, reset bool) error {
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		var f []byte
-		if f = bucket.Get([]byte(name)); f == nil {
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := foldersBucket.Get(name)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
 			return util.NewRecordNotFoundError(fmt.Sprintf("folder %q does not exist, unable to update quota", name))
 		}
-		var folder vfs.BaseVirtualFolder
-		err = json.Unmarshal(f, &folder)
-		if err != nil {
-			return err
-		}
-		if reset {
-			folder.UsedQuotaSize = sizeAdd
-			folder.UsedQuotaFiles = filesAdd
-		} else {
-			folder.UsedQuotaSize += sizeAdd
-			folder.UsedQuotaFiles += filesAdd
-		}
-		folder.LastQuotaUpdate = util.GetTimeAsMsSinceEpoch(time.Now())
-		buf, err := json.Marshal(folder)
-		if err != nil {
-			return err
-		}
-		return kv.Put([]byte(folder.Name), buf)
-	})
+		return err
+	}
+
+	var folder vfs.BaseVirtualFolder
+	if err := folder.Unmarshal(entry.Value()); err != nil {
+		return err
+	}
+
+	if reset {
+		folder.UsedQuotaSize = sizeAdd
+		folder.UsedQuotaFiles = filesAdd
+	} else {
+		folder.UsedQuotaSize += sizeAdd
+		folder.UsedQuotaFiles += filesAdd
+	}
+
+	folder.LastQuotaUpdate = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	buf, err := json.Marshal(folder)
+	if err != nil {
+		return err
+	}
+
+	_, err = foldersBucket.Update(folder.Name, buf, entry.Revision())
+	return err
 }
 
-func (n *NATSProvider) getGroups(limit, offset int, order string, _ bool) ([]Group, error) {
-	groups := make([]Group, 0, limit)
-	var err error
+func (n *NATSProvider) getGroups(limit int, offset int, order string, _ bool) ([]Group, error) {
 	if limit <= 0 {
-		return groups, err
+		return []Group{}, nil
 	}
-	err = n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket()
+
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := groupsBucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort keys based on order
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	groups := make([]Group, 0, limit)
+	itNum := 0
+
+	for _, key := range keys {
+		itNum++
+		if itNum <= offset {
+			continue
+		}
+
+		entry, err := groupsBucket.Get(key)
 		if err != nil {
-			return err
+			continue
 		}
-		foldersBucket, err := n.getFoldersBucket()
+
+		group, err := n.joinGroupAndFolders(entry.Value(), foldersBucket)
 		if err != nil {
-			return err
+			continue
 		}
-		cursor := bucket.Cursor()
-		itNum := 0
-		if order == OrderASC {
-			for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-				itNum++
-				if itNum <= offset {
-					continue
-				}
-				var group Group
-				group, err = n.joinGroupAndFolders(v, foldersBucket)
-				if err != nil {
-					return err
-				}
-				group.PrepareForRendering()
-				groups = append(groups, group)
-				if len(groups) >= limit {
-					break
-				}
-			}
-		} else {
-			for k, v := cursor.Last(); k != nil; k, v = cursor.Prev() {
-				itNum++
-				if itNum <= offset {
-					continue
-				}
-				var group Group
-				group, err = n.joinGroupAndFolders(v, foldersBucket)
-				if err != nil {
-					return err
-				}
-				group.PrepareForRendering()
-				groups = append(groups, group)
-				if len(groups) >= limit {
-					break
-				}
-			}
+
+		group.PrepareForRendering()
+		groups = append(groups, group)
+
+		if len(groups) >= limit {
+			break
 		}
-		return err
-	})
-	return groups, err
+	}
+	return groups, nil
 }
 
 func (n *NATSProvider) getGroupsWithNames(names []string) ([]Group, error) {
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
 	var groups []Group
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket()
+	for _, name := range names {
+		entry, err := groupsBucket.Get(name)
 		if err != nil {
-			return err
-		}
-		foldersBucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		for _, name := range names {
-			g := bucket.Get([]byte(name))
-			if g == nil {
+			if errors.Is(err, nats.ErrKeyNotFound) {
 				continue
 			}
-			group, err := n.joinGroupAndFolders(g, foldersBucket)
-			if err != nil {
-				return err
-			}
-			groups = append(groups, group)
+			return nil, err
 		}
-		return nil
-	})
-	return groups, err
+
+		group, err := n.joinGroupAndFolders(entry.Value(), foldersBucket)
+		if err != nil {
+			return nil, err
+		}
+		groups = append(groups, group)
+	}
+	return groups, nil
 }
 
 func (n *NATSProvider) getUsersInGroups(names []string) ([]string, error) {
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
 	var usernames []string
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket()
+	for _, name := range names {
+		entry, err := groupsBucket.Get(name)
 		if err != nil {
-			return err
-		}
-		for _, name := range names {
-			g := bucket.Get([]byte(name))
-			if g == nil {
+			if errors.Is(err, nats.ErrKeyNotFound) {
 				continue
 			}
-			var group Group
-			err := json.Unmarshal(g, &group)
-			if err != nil {
-				return err
-			}
-			usernames = append(usernames, group.Users...)
+			return nil, err
 		}
-		return nil
-	})
-	return usernames, err
+
+		var group Group
+		if err := group.Unmarshal(entry.Value()); err != nil {
+			return nil, err
+		}
+		usernames = append(usernames, group.Users...)
+	}
+	return usernames, nil
 }
 
 func (n *NATSProvider) groupExists(name string) (Group, error) {
 	var group Group
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket()
-		if err != nil {
-			return err
+
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return group, err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return group, err
+	}
+
+	entry, err := groupsBucket.Get(name)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
+			return group, util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", name))
 		}
-		g := bucket.Get([]byte(name))
-		if g == nil {
-			return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", name))
-		}
-		foldersBucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		group, err = n.joinGroupAndFolders(g, foldersBucket)
-		return err
-	})
-	return group, err
+		return group, err
+	}
+
+	return n.joinGroupAndFolders(entry.Value(), foldersBucket)
 }
 
 func (n *NATSProvider) addGroup(group *Group) error {
 	if err := group.validate(); err != nil {
 		return err
 	}
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket()
-		if err != nil {
-			return err
-		}
-		foldersBucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		if u := bucket.Get([]byte(group.Name)); u != nil {
-			return util.NewI18nError(
-				fmt.Errorf("%w: group %q already exists", ErrDuplicatedKey, group.Name),
-				util.I18nErrorDuplicatedUsername,
-			)
-		}
-		id, err := bucket.NextSequence()
-		if err != nil {
-			return err
-		}
-		group.ID = int64(id)
-		group.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-		group.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-		group.Users = nil
-		group.Admins = nil
-		sort.Slice(group.VirtualFolders, func(i, j int) bool {
-			return group.VirtualFolders[i].Name < group.VirtualFolders[j].Name
-		})
-		for idx := range group.VirtualFolders {
-			err = n.addRelationToFolderMapping(group.VirtualFolders[idx].Name, nil, group, foldersBucket)
-			if err != nil {
-				return err
-			}
-		}
-		buf, err := json.Marshal(group)
-		if err != nil {
-			return err
-		}
-		return kv.Put([]byte(group.Name), buf)
+
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	// Check if group already exists
+	_, err = groupsBucket.Get(group.Name)
+	if err == nil {
+		return util.NewI18nError(
+			fmt.Errorf("%w: group %q already exists", ErrDuplicatedKey, group.Name),
+			util.I18nErrorDuplicatedUsername,
+		)
+	}
+	if !errors.Is(err, nats.ErrKeyNotFound) {
+		return err
+	}
+
+	now := util.GetTimeAsMsSinceEpoch(time.Now())
+	group.CreatedAt = now
+	group.UpdatedAt = now
+	group.Users = nil
+	group.Admins = nil
+
+	// Sort virtual folders
+	sort.Slice(group.VirtualFolders, func(i, j int) bool {
+		return group.VirtualFolders[i].Name < group.VirtualFolders[j].Name
 	})
+
+	// Add folder mappings
+	for idx := range group.VirtualFolders {
+		if err := n.addRelationToFolderMapping(group.VirtualFolders[idx].Name, nil, group, foldersBucket); err != nil {
+			return err
+		}
+	}
+
+	buf, err := json.Marshal(group)
+	if err != nil {
+		return err
+	}
+
+	_, err = groupsBucket.Create(group.Name, buf)
+	return err
 }
 
 func (n *NATSProvider) updateGroup(group *Group) error {
 	if err := group.validate(); err != nil {
 		return err
 	}
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket()
-		if err != nil {
-			return err
-		}
-		foldersBucket, err := n.getFoldersBucket()
-		if err != nil {
-			return err
-		}
-		var g []byte
-		if g = bucket.Get([]byte(group.Name)); g == nil {
+
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := groupsBucket.Get(group.Name)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
 			return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", group.Name))
 		}
-		var oldGroup Group
-		err = json.Unmarshal(g, &oldGroup)
+		return err
+	}
+
+	var oldGroup Group
+	if err := json.Unmarshal(entry.Value(), &oldGroup); err != nil {
+		return err
+	}
+
+	// Remove old folder mappings
+	for idx := range oldGroup.VirtualFolders {
+		if err := n.removeRelationFromFolderMapping(oldGroup.VirtualFolders[idx], "", oldGroup.Name, foldersBucket); err != nil {
+			return err
+		}
+	}
+
+	// Sort and add new folder mappings
+	sort.Slice(group.VirtualFolders, func(i, j int) bool {
+		return group.VirtualFolders[i].Name < group.VirtualFolders[j].Name
+	})
+	for idx := range group.VirtualFolders {
+		if err := n.addRelationToFolderMapping(group.VirtualFolders[idx].Name, nil, group, foldersBucket); err != nil {
+			return err
+		}
+	}
+
+	group.ID = oldGroup.ID
+	group.CreatedAt = oldGroup.CreatedAt
+	group.Users = oldGroup.Users
+	group.Admins = oldGroup.Admins
+	group.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	buf, err := json.Marshal(group)
+	if err != nil {
+		return err
+	}
+
+	_, err = groupsBucket.Update(group.Name, buf, entry.Revision())
+	return err
+}
+
+func (n *NATSProvider) deleteGroup(group Group) error {
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := groupsBucket.Get(group.Name)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
+			return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", group.Name))
+		}
+		return err
+	}
+
+	var oldGroup Group
+	if err := json.Unmarshal(entry.Value(), &oldGroup); err != nil {
+		return err
+	}
+
+	if len(oldGroup.Users) > 0 {
+		return util.NewValidationError(fmt.Sprintf("the group %q is referenced, it cannot be removed", oldGroup.Name))
+	}
+
+	if len(oldGroup.VirtualFolders) > 0 {
+		foldersBucket, err := n.getFoldersBucket()
 		if err != nil {
 			return err
 		}
 		for idx := range oldGroup.VirtualFolders {
-			err = n.removeRelationFromFolderMapping(oldGroup.VirtualFolders[idx], "", oldGroup.Name, foldersBucket)
-			if err != nil {
+			if err := n.removeRelationFromFolderMapping(oldGroup.VirtualFolders[idx], "", oldGroup.Name, foldersBucket); err != nil {
 				return err
 			}
 		}
-		sort.Slice(group.VirtualFolders, func(i, j int) bool {
-			return group.VirtualFolders[i].Name < group.VirtualFolders[j].Name
-		})
-		for idx := range group.VirtualFolders {
-			err = n.addRelationToFolderMapping(group.VirtualFolders[idx].Name, nil, group, foldersBucket)
-			if err != nil {
-				return err
-			}
-		}
-		group.ID = oldGroup.ID
-		group.CreatedAt = oldGroup.CreatedAt
-		group.Users = oldGroup.Users
-		group.Admins = oldGroup.Admins
-		group.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-		buf, err := json.Marshal(group)
-		if err != nil {
-			return err
-		}
-		return kv.Put([]byte(group.Name), buf)
-	})
-}
+	}
 
-func (n *NATSProvider) deleteGroup(group Group) error {
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket()
+	if len(oldGroup.Admins) > 0 {
+		adminsBucket, err := n.getAdminsBucket()
 		if err != nil {
 			return err
 		}
-		var g []byte
-		if g = bucket.Get([]byte(group.Name)); g == nil {
-			return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", group.Name))
-		}
-		var oldGroup Group
-		err = json.Unmarshal(g, &oldGroup)
-		if err != nil {
-			return err
-		}
-		if len(oldGroup.Users) > 0 {
-			return util.NewValidationError(fmt.Sprintf("the group %q is referenced, it cannot be removed", oldGroup.Name))
-		}
-		if len(oldGroup.VirtualFolders) > 0 {
-			foldersBucket, err := n.getFoldersBucket()
-			if err != nil {
+		for idx := range oldGroup.Admins {
+			if err := n.removeGroupFromAdminMapping(oldGroup.Name, oldGroup.Admins[idx], adminsBucket); err != nil {
 				return err
 			}
-			for idx := range oldGroup.VirtualFolders {
-				err = n.removeRelationFromFolderMapping(oldGroup.VirtualFolders[idx], "", oldGroup.Name, foldersBucket)
-				if err != nil {
-					return err
-				}
-			}
 		}
-		if len(oldGroup.Admins) > 0 {
-			adminsBucket, err := n.getAdminsBucket()
-			if err != nil {
-				return err
-			}
-			for idx := range oldGroup.Admins {
-				err = n.removeGroupFromAdminMapping(oldGroup.Name, oldGroup.Admins[idx], adminsBucket)
-				if err != nil {
-					return err
-				}
-			}
-		}
+	}
 
-		return bucket.Delete([]byte(group.Name))
-	})
+	return groupsBucket.Delete(group.Name)
 }
 
 func (n *NATSProvider) dumpGroups() ([]Group, error) {
 	groups := make([]Group, 0, 50)
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getGroupsBucket()
+
+	groupsBucket, err := n.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := n.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := groupsBucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := groupsBucket.Get(key)
 		if err != nil {
-			return err
+			continue
 		}
-		foldersBucket, err := n.getFoldersBucket()
+
+		group, err := n.joinGroupAndFolders(entry.Value(), foldersBucket)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		cursor := bucket.Cursor()
-		for k, v := cursor.First(); k != nil; k, v = cursor.Next() {
-			group, err := n.joinGroupAndFolders(v, foldersBucket)
-			if err != nil {
-				return err
-			}
-			groups = append(groups, group)
-		}
-		return err
-	})
-	return groups, err
+		groups = append(groups, group)
+	}
+
+	return groups, nil
 }
 
 func (n *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
 	var apiKey APIKey
-	err := n.dbHandle.View(func(tx *bolt.Tx) error {
-		bucket, err := n.getAPIKeysBucket()
-		if err != nil {
-			return err
-		}
 
-		k := bucket.Get([]byte(keyID))
-		if k == nil {
-			return util.NewRecordNotFoundError(fmt.Sprintf("API key %v does not exist", keyID))
+	apiKeysBucket, err := n.getAPIKeysBucket()
+	if err != nil {
+		return apiKey, err
+	}
+
+	entry, err := apiKeysBucket.Get(keyID)
+	if err != nil {
+		if errors.Is(err, nats.ErrKeyNotFound) {
+			return apiKey, util.NewRecordNotFoundError(fmt.Sprintf("API key %v does not exist", keyID))
 		}
-		return json.Unmarshal(k, &apiKey)
-	})
+		return apiKey, err
+	}
+
+	err = json.Unmarshal(entry.Value(), &apiKey)
 	return apiKey, err
 }
 
 func (n *NATSProvider) addAPIKey(apiKey *APIKey) error {
-	err := apiKey.validate()
+	if err := apiKey.validate(); err != nil {
+		return err
+	}
+
+	apiKeysBucket, err := n.getAPIKeysBucket()
 	if err != nil {
 		return err
 	}
-	return n.dbHandle.Update(func(tx *bolt.Tx) error {
-		bucket, err := n.getAPIKeysBucket()
-		if err != nil {
-			return err
+
+	// Check if key already exists
+	_, err = apiKeysBucket.Get(apiKey.KeyID)
+	if err == nil {
+		return fmt.Errorf("API key %v already exists", apiKey.KeyID)
+	}
+	if !errors.Is(err, nats.ErrKeyNotFound) {
+		return err
+	}
+
+	now := util.GetTimeAsMsSinceEpoch(time.Now())
+	apiKey.CreatedAt = now
+	apiKey.UpdatedAt = now
+	apiKey.LastUseAt = 0
+
+	if apiKey.User != "" {
+		if err := n.userExists(apiKey.User); err != nil {
+			return fmt.Errorf("%w: related user %q does not exists", ErrForeignKeyViolated, apiKey.User)
 		}
-		if a := bucket.Get([]byte(apiKey.KeyID)); a != nil {
-			return fmt.Errorf("API key %v already exists", apiKey.KeyID)
+	}
+
+	if apiKey.Admin != "" {
+		if err := n.adminExists(apiKey.Admin); err != nil {
+			return fmt.Errorf("%w: related admin %q does not exists", ErrForeignKeyViolated, apiKey.Admin)
 		}
-		id, err := bucket.NextSequence()
-		if err != nil {
-			return err
-		}
-		apiKey.ID = int64(id)
-		apiKey.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-		apiKey.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-		apiKey.LastUseAt = 0
-		if apiKey.User != "" {
-			if err := n.userExistsInternal(tx, apiKey.User); err != nil {
-				return fmt.Errorf("%w: related user %q does not exists", ErrForeignKeyViolated, apiKey.User)
-			}
-		}
-		if apiKey.Admin != "" {
-			if err := n.adminExistsInternal(tx, apiKey.Admin); err != nil {
-				return fmt.Errorf("%w: related admin %q does not exists", ErrForeignKeyViolated, apiKey.Admin)
-			}
-		}
-		buf, err := json.Marshal(apiKey)
-		if err != nil {
-			return err
-		}
-		return kv.Put([]byte(apiKey.KeyID), buf)
-	})
+	}
+
+	buf, err := json.Marshal(apiKey)
+	if err != nil {
+		return err
+	}
+
+	_, err = apiKeysBucket.Create(apiKey.KeyID, buf)
+	return err
 }
+
+//////////////////////////////////
 
 func (n *NATSProvider) updateAPIKey(apiKey *APIKey) error {
 	err := apiKey.validate()

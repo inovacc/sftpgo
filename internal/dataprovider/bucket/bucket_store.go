@@ -57,6 +57,34 @@ func (b *KeyValueBucket) Delete(key string, opts ...nats.DeleteOpt) error {
 	return b.kv.Delete(b.composeKey(key), opts...)
 }
 
+func (b *KeyValueBucket) Purge(key string, opts ...nats.DeleteOpt) error {
+	return b.kv.Purge(key, opts...)
+}
+
+func (b *KeyValueBucket) Watch(keys string, opts ...nats.WatchOpt) (nats.KeyWatcher, error) {
+	return b.kv.Watch(keys, opts...)
+}
+func (
+	b *KeyValueBucket) WatchAll(opts ...nats.WatchOpt) (nats.KeyWatcher, error) {
+	return b.kv.WatchAll(opts...)
+}
+
+func (b *KeyValueBucket) WatchFiltered(keys []string, opts ...nats.WatchOpt) (nats.KeyWatcher, error) {
+	return b.kv.WatchFiltered(keys, opts...)
+}
+
+func (b *KeyValueBucket) Keys(opts ...nats.WatchOpt) ([]string, error) {
+	return b.kv.Keys(opts...)
+}
+
+func (b *KeyValueBucket) ListKeys(opts ...nats.WatchOpt) (nats.KeyLister, error) {
+	return b.kv.ListKeys(opts...)
+}
+
+func (b *KeyValueBucket) History(key string, opts ...nats.WatchOpt) ([]nats.KeyValueEntry, error) {
+	return b.kv.History(key, opts...)
+}
+
 func (b *KeyValueBucket) composeKey(key string) string {
 	sb := strings.Builder{}
 
