@@ -1667,7 +1667,7 @@ func (n *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, 
 
 	bucket, err := n.getAdminsBucket()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cursor := bucket.Cursor()
 	itNum := 0
