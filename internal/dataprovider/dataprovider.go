@@ -85,7 +85,7 @@ const (
 	MySQLDataProviderName = "mysql"
 	// BoltDataProviderName defines the name for bbolt key/value store provider
 	BoltDataProviderName = "bolt"
-	// NatsDataProviderNamedefines the name for NATS store provider
+	// NatsDataProviderName defines the name for NATS store provider
 	NatsDataProviderName = "nats"
 	// MemoryDataProviderName defines the name for memory provider
 	MemoryDataProviderName = "memory"
@@ -162,7 +162,7 @@ const (
 var (
 	// SupportedProviders defines the supported data providers
 	SupportedProviders = []string{SQLiteDataProviderName, PGSQLDataProviderName, MySQLDataProviderName,
-		BoltDataProviderName, MemoryDataProviderName, CockroachDataProviderName}
+		BoltDataProviderName, MemoryDataProviderName, CockroachDataProviderName, NatsDataProviderName}
 	// ValidPerms defines all the valid permissions for a user
 	ValidPerms = []string{PermAny, PermListItems, PermDownload, PermUpload, PermOverwrite, PermCreateDirs, PermRename,
 		PermRenameFiles, PermRenameDirs, PermDelete, PermDeleteFiles, PermDeleteDirs, PermCopy, PermCreateSymlinks,
@@ -910,7 +910,7 @@ func Initialize(cnf Config, basePath string, checkAdmins bool) error {
 	}
 	absoluteBackupPath, err := util.GetAbsolutePath(cnf.BackupsPath)
 	if err != nil {
-		return fmt.Errorf("unable to get absolute backup path: %w", err)
+		return fmt.Errorf("unable to getItem absolute backup path: %w", err)
 	}
 	config.BackupsPath = absoluteBackupPath
 
@@ -945,7 +945,7 @@ func Initialize(cnf Config, basePath string, checkAdmins bool) error {
 func checkDatabase(checkAdmins bool) error {
 	if config.UpdateMode == 0 {
 		err := provider.initializeDatabase()
-		if err != nil && err != ErrNoInitRequired {
+		if err != nil && !errors.Is(err, ErrNoInitRequired) {
 			logger.WarnToConsole("unable to initialize data provider: %v", err)
 			providerLog(logger.LevelError, "unable to initialize data provider: %v", err)
 			return err
@@ -955,7 +955,7 @@ func checkDatabase(checkAdmins bool) error {
 			providerLog(logger.LevelInfo, "data provider successfully initialized")
 		}
 		err = provider.migrateDatabase()
-		if err != nil && err != ErrNoInitRequired {
+		if err != nil && !errors.Is(err, ErrNoInitRequired) {
 			providerLog(logger.LevelError, "database migration error: %v", err)
 			return err
 		}
@@ -1119,7 +1119,7 @@ func InitializeDatabase(cnf Config, basePath string) error {
 		return err
 	}
 	err = provider.initializeDatabase()
-	if err != nil && err != ErrNoInitRequired {
+	if err != nil && !errors.Is(err, ErrNoInitRequired) {
 		return err
 	}
 	return provider.migrateDatabase()
@@ -1134,7 +1134,7 @@ func RevertDatabase(cnf Config, basePath string, targetVersion int) error {
 		return err
 	}
 	err = provider.initializeDatabase()
-	if err != nil && err != ErrNoInitRequired {
+	if err != nil && !errors.Is(err, ErrNoInitRequired) {
 		return err
 	}
 	return provider.revertDatabase(targetVersion)
@@ -2018,7 +2018,7 @@ func GetNodes() ([]Node, error) {
 	}
 	nodes, err := provider.getNodes()
 	if err != nil {
-		providerLog(logger.LevelError, "unable to get other cluster nodes %v", err)
+		providerLog(logger.LevelError, "unable to getItem other cluster nodes %v", err)
 	}
 	return nodes, err
 }
@@ -2334,7 +2334,7 @@ func UpdateFolder(folder *vfs.BaseVirtualFolder, users []string, groups []string
 			users = append(users, usersInGroups...)
 			users = util.RemoveDuplicates(users, false)
 		} else {
-			providerLog(logger.LevelWarn, "unable to get users in groups %+v: %v", groups, errGrp)
+			providerLog(logger.LevelWarn, "unable to getItem users in groups %+v: %v", groups, errGrp)
 		}
 		for _, user := range users {
 			provider.setUpdatedAt(user)
@@ -2366,7 +2366,7 @@ func DeleteFolder(folderName, executor, ipAddress, role string) error {
 			users = append(users, usersInGroups...)
 			users = util.RemoveDuplicates(users, false)
 		} else {
-			providerLog(logger.LevelWarn, "unable to get users in groups %+v: %v", folder.Groups, errGrp)
+			providerLog(logger.LevelWarn, "unable to getItem users in groups %+v: %v", folder.Groups, errGrp)
 		}
 		for _, user := range users {
 			provider.setUpdatedAt(user)
@@ -2617,7 +2617,7 @@ func createProvider(basePath string) error {
 	case MySQLDataProviderName:
 		return initializeMySQLProvider()
 	case NatsDataProviderName:
-		return initializeNatsProvider()
+		return initializeNATSProvider()
 	case BoltDataProviderName:
 		return initializeBoltProvider(basePath)
 	case MemoryDataProviderName:
@@ -4152,6 +4152,7 @@ func executeCheckPasswordHook(username, password, ip, protocol string) (checkPas
 	if err != nil {
 		return response, err
 	}
+
 	err = json.Unmarshal(out, &response)
 	return response, err
 }
@@ -4453,9 +4454,7 @@ func checkPasswordAfterEmptyExtAuthResponse(user *User, plainPwd, protocol strin
 	return nil
 }
 
-func doExternalAuth(username, password string, pubKey []byte, keyboardInteractive, ip, protocol string,
-	tlsCert *x509.Certificate,
-) (User, error) {
+func doExternalAuth(username, password string, pubKey []byte, keyboardInteractive, ip, protocol string, tlsCert *x509.Certificate) (User, error) {
 	var user User
 
 	u, mergedUser, err := getUserForHook(username, nil)
