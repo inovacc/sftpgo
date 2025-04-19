@@ -36,6 +36,7 @@ import (
 	"github.com/inovacc/wrapper"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
@@ -2228,48 +2229,6 @@ func (p *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
 	return wAPIKey.Get(), nil
 }
 
-func (p *NATSProvider) addAPIKey(apiKey *APIKey) error {
-	if err := apiKey.validate(); err != nil {
-		return err
-	}
-
-	bucket, err := p.getAPIKeysBucket()
-	if err != nil {
-		return err
-	}
-
-	entry, err := bucket.Get(apiKey.KeyID)
-	if err != nil {
-		return fmt.Errorf("API key %v already exists", apiKey.KeyID)
-	}
-
-	apiKey.ID = p.getNextAPIKeyID()
-	apiKey.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-	apiKey.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-	apiKey.LastUseAt = 0
-
-	if apiKey.User != "" {
-		if err := p.userExists(apiKey.User); err != nil {
-			return fmt.Errorf("%w: related user %q does not exists", ErrForeignKeyViolated, apiKey.User)
-		}
-	}
-
-	if apiKey.Admin != "" {
-		if err := p.adminExists(apiKey.Admin); err != nil {
-			return fmt.Errorf("%w: related admin %q does not exists", ErrForeignKeyViolated, apiKey.Admin)
-		}
-	}
-
-	wAPIKey := wrapper.NewWrapper(*apiKey)
-	data, err := wAPIKey.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	_, err = bucket.Update(apiKey.KeyID, data, entry.Revision())
-	return err
-}
-
 func (p *NATSProvider) updateAPIKey(apiKey *APIKey) error {
 	if err := apiKey.validate(); err != nil {
 		return err
@@ -2447,6 +2406,7 @@ func (p *NATSProvider) addShare(share *Share) error {
 	}
 
 	share.ID = time.Now().UnixNano()
+
 	if !share.IsRestore {
 		share.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
 		share.UpdatedAt = share.CreatedAt
@@ -2466,6 +2426,216 @@ func (p *NATSProvider) addShare(share *Share) error {
 		return util.NewValidationError(fmt.Sprintf("related user %q does not exists", share.Username))
 	}
 
+	wShare := wrapper.NewWrapper(Share{})
+	data, err := wShare.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(share.ShareID, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) addAPIKey(apiKey *APIKey) error {
+	if err := apiKey.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getAPIKeysBucket()
+	if err != nil {
+		return err
+	}
+
+	apiKey.ID = time.Now().UnixNano()
+	apiKey.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	apiKey.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	apiKey.LastUseAt = 0
+
+	if apiKey.User != "" {
+		if _, err := p.userExists(apiKey.User, ""); err != nil {
+			return fmt.Errorf("%w: related user %q does not exists", ErrForeignKeyViolated, apiKey.User)
+		}
+	}
+
+	if apiKey.Admin != "" {
+		if _, err := p.adminExists(apiKey.Admin); err != nil {
+			return fmt.Errorf("%w: related admin %q does not exists", ErrForeignKeyViolated, apiKey.Admin)
+		}
+	}
+
+	wAPIKey := wrapper.NewWrapper(*apiKey)
+	data, err := wAPIKey.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(apiKey.KeyID)
+	if err == nil {
+		_, err = bucket.Update(apiKey.KeyID, data, entry.Revision())
+	} else {
+		_, err = bucket.Create(apiKey.KeyID, data)
+	}
+	return err
+}
+
+func (p *NATSProvider) getShares(limit int, offset int, order, username string) ([]Share, error) {
+	shares := make([]Share, 0, limit)
+	bucket, err := p.getSharesBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	itNum := 0
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wShare := wrapper.NewWrapper(Share{})
+		if err = wShare.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		share := wShare.Get()
+
+		if share.Username != username {
+			continue
+		}
+
+		itNum++
+		if itNum <= offset {
+			continue
+		}
+
+		share.HideConfidentialData()
+		shares = append(shares, share)
+		if len(shares) >= limit {
+			break
+		}
+	}
+	return shares, nil
+}
+
+func (p *NATSProvider) dumpShares() ([]Share, error) {
+	shares := make([]Share, 0, 30)
+	bucket, err := p.getSharesBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wShare := wrapper.NewWrapper(Share{})
+		if err = wShare.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+		shares = append(shares, wShare.Get())
+	}
+	return shares, nil
+}
+
+func (p *NATSProvider) updateShareLastUse(shareID string, numTokens int) error {
+	bucket, err := p.getSharesBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(shareID)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("share %q does not exist, unable to update last use", shareID))
+	}
+
+	wShare := wrapper.NewWrapper(Share{})
+	if err = wShare.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	share := wShare.Get()
+
+	share.LastUseAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	share.UsedTokens += numTokens
+
+	data, err := wShare.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(shareID, data, entry.Revision())
+	if err != nil {
+		providerLog(logger.LevelWarn, "error updating last use for share %q: %v", shareID, err)
+		return err
+	}
+
+	providerLog(logger.LevelDebug, "last use updated for share %q", shareID)
+	return nil
+}
+
+func (p *NATSProvider) updateShare(share *Share) error {
+	if err := share.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getSharesBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(share.ShareID)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("Share %v does not exist", share.ShareID))
+	}
+
+	wOldShare := wrapper.NewWrapper(Share{})
+	if err = wOldShare.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldShare := wOldShare.Get()
+
+	if oldShare.Username != share.Username {
+		return util.NewRecordNotFoundError(fmt.Sprintf("Share %v does not exist", share.ShareID))
+	}
+
+	share.ID = oldShare.ID
+	share.ShareID = oldShare.ShareID
+	if !share.IsRestore {
+		share.UsedTokens = oldShare.UsedTokens
+		share.CreatedAt = oldShare.CreatedAt
+		share.LastUseAt = oldShare.LastUseAt
+		share.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	}
+	if share.CreatedAt == 0 {
+		share.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	}
+	if share.UpdatedAt == 0 {
+		share.UpdatedAt = share.CreatedAt
+	}
+
+	if _, err := p.userExists(share.Username, ""); err != nil {
+		return util.NewValidationError(fmt.Sprintf("related user %q does not exists", share.Username))
+	}
+
 	wShare := wrapper.NewWrapper(*share)
 	data, err := wShare.MarshalJSON()
 	if err != nil {
@@ -2473,5 +2643,31 @@ func (p *NATSProvider) addShare(share *Share) error {
 	}
 
 	_, err = bucket.Update(share.ShareID, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) deleteShare(share Share) error {
+	bucket, err := p.getSharesBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(share.ShareID)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("Share %v does not exist", share.ShareID))
+	}
+
+	wOldShare := wrapper.NewWrapper(Share{})
+	if err = wOldShare.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldShare := wOldShare.Get()
+
+	if oldShare.Username != share.Username {
+		return util.NewRecordNotFoundError(fmt.Sprintf("Share %v does not exist", share.ShareID))
+	}
+
+	_, err = bucket.Update(share.ShareID, nil, entry.Revision())
 	return err
 }
