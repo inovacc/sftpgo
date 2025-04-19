@@ -1748,3 +1748,206 @@ func (p *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
 	_, err = bucket.Update(folder.Name, data, entry.Revision())
 	return err
 }
+
+func (p *NATSProvider) deleteFolderMappings(folder vfs.BaseVirtualFolder) error {
+	usersBucket, err := p.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	groupsBucket, err := p.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	for _, username := range folder.Users {
+		entry, err := usersBucket.Get(username)
+		if err != nil {
+			continue
+		}
+
+		wUser := wrapper.NewWrapper(User{})
+		if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
+			return err
+		}
+
+		user := wUser.Get()
+
+		var folders []vfs.VirtualFolder
+		for _, userFolder := range user.VirtualFolders {
+			if folder.Name != userFolder.Name {
+				folders = append(folders, userFolder)
+			}
+		}
+
+		user.VirtualFolders = folders
+
+		data, err := wUser.MarshalJSON()
+		if err != nil {
+			return err
+		}
+
+		_, err = usersBucket.Update(user.Username, data, entry.Revision())
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, groupname := range folder.Groups {
+		entry, err := groupsBucket.Get(groupname)
+		if err != nil {
+			continue
+		}
+
+		wGroup := wrapper.NewWrapper(Group{})
+		if err = wGroup.UnmarshalJSON(entry.Value()); err != nil {
+			return err
+		}
+
+		group := wGroup.Get()
+
+		var folders []vfs.VirtualFolder
+		for _, groupFolder := range group.VirtualFolders {
+			if folder.Name != groupFolder.Name {
+				folders = append(folders, groupFolder)
+			}
+		}
+
+		group.VirtualFolders = folders
+
+		data, err := wGroup.MarshalJSON()
+		if err != nil {
+			return err
+		}
+
+		_, err = groupsBucket.Update(group.Name, data, entry.Revision())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *NATSProvider) deleteFolder(baseFolder vfs.BaseVirtualFolder) error {
+	bucket, err := p.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(baseFolder.Name)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("folder %v does not exist", baseFolder.Name))
+	}
+
+	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+	if err = wFolder.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	folder := wFolder.Get()
+
+	if err = p.deleteFolderMappings(folder); err != nil {
+		return err
+	}
+	return bucket.Delete(folder.Name)
+}
+
+func (p *NATSProvider) updateFolderQuota(name string, filesAdd int, sizeAdd int64, reset bool) error {
+	bucket, err := p.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(name)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("folder %q does not exist, unable to update quota", name))
+	}
+
+	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+	if err = wFolder.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	folder := wFolder.Get()
+
+	if reset {
+		folder.UsedQuotaSize = sizeAdd
+		folder.UsedQuotaFiles = filesAdd
+	} else {
+		folder.UsedQuotaSize += sizeAdd
+		folder.UsedQuotaFiles += filesAdd
+	}
+	folder.LastQuotaUpdate = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	data, err := wFolder.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(folder.Name, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) getUsedFolderQuota(name string) (int, int64, error) {
+	folder, err := p.getFolderByName(name)
+	if err != nil {
+		providerLog(logger.LevelError, "unable to get quota for folder %q error: %v", name, err)
+		return 0, 0, err
+	}
+
+	return folder.UsedQuotaFiles, folder.UsedQuotaSize, err
+}
+
+func (p *NATSProvider) getGroups(limit, offset int, order string, _ bool) ([]Group, error) {
+	groups := make([]Group, 0, limit)
+	if limit <= 0 {
+		return groups, nil
+	}
+
+	bucket, err := p.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	start := offset
+	end := offset + limit
+	if start >= len(keys) {
+		return groups, nil
+	}
+
+	if end > len(keys) {
+		end = len(keys)
+	}
+
+	for _, key := range keys[start:end] {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		group, err := p.joinGroupAndFolders(entry.Value(), foldersBucket)
+		if err != nil {
+			return nil, err
+		}
+
+		group.PrepareForRendering()
+		groups = append(groups, group)
+	}
+	return groups, nil
+}
