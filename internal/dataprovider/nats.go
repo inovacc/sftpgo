@@ -17,11 +17,13 @@
 package dataprovider
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"sort"
@@ -37,7 +39,6 @@ import (
 	"github.com/inovacc/wrapper"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
-	bolt "go.etcd.io/bbolt"
 )
 
 const (
@@ -3501,4 +3502,364 @@ func (p *NATSProvider) getIPListEntries(listType IPListType, filter, from, order
 		}
 	}
 	return entries, nil
+}
+
+func (p *NATSProvider) getRecentlyUpdatedIPListEntries(_ int64) ([]IPListEntry, error) {
+	return nil, ErrNotImplemented
+}
+
+func (p *NATSProvider) dumpIPListEntries() ([]IPListEntry, error) {
+	entries := make([]IPListEntry, 0, 10)
+	bucket, err := p.getIPListsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(keys) > ipListMemoryLimit {
+		providerLog(logger.LevelInfo, "IP lists excluded from dump, too many entries: %d", len(keys))
+		return entries, nil
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wEntry := wrapper.NewWrapper(IPListEntry{})
+		if err = wEntry.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		ipEntry := wEntry.Get()
+		ipEntry.PrepareForRendering()
+		entries = append(entries, ipEntry)
+	}
+	return entries, nil
+}
+
+func (p *NATSProvider) countIPListEntries(listType IPListType) (int64, error) {
+	bucket, err := p.getIPListsBucket()
+	if err != nil {
+		return 0, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return 0, err
+	}
+
+	if listType == 0 {
+		return int64(len(keys)), nil
+	}
+
+	prefix := fmt.Sprintf("%d_", listType)
+	var count int64
+	for _, key := range keys {
+		if strings.HasPrefix(key, prefix) {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (p *NATSProvider) getListEntriesForIP(ip string, listType IPListType) ([]IPListEntry, error) {
+	entries := make([]IPListEntry, 0, 3)
+	ipAddr, err := netip.ParseAddr(ip)
+	if err != nil {
+		return entries, fmt.Errorf("invalid ip address %s", ip)
+	}
+
+	var netType int
+	var ipBytes []byte
+	if ipAddr.Is4() || ipAddr.Is4In6() {
+		netType = ipTypeV4
+		as4 := ipAddr.As4()
+		ipBytes = as4[:]
+	} else {
+		netType = ipTypeV6
+		as16 := ipAddr.As16()
+		ipBytes = as16[:]
+	}
+
+	bucket, err := p.getIPListsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	prefix := fmt.Sprintf("%d_", listType)
+	for _, key := range keys {
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wEntry := wrapper.NewWrapper(IPListEntry{})
+		if err = wEntry.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		ipEntry := wEntry.Get()
+
+		if ipEntry.IPType == netType && bytes.Compare(ipBytes, ipEntry.First) >= 0 && bytes.Compare(ipBytes, ipEntry.Last) <= 0 {
+			ipEntry.PrepareForRendering()
+			entries = append(entries, ipEntry)
+		}
+	}
+	return entries, nil
+}
+
+func (p *NATSProvider) getConfigs() (Configs, error) {
+	bucket, err := p.getConfigsBucket()
+	if err != nil {
+		return Configs{}, err
+	}
+
+	entry, err := bucket.Get(string(configsKey))
+	if err != nil {
+		return Configs{}, nil
+	}
+
+	var configs Configs
+	wConfigs := wrapper.NewWrapper(Configs{})
+	if err = wConfigs.UnmarshalJSON(entry.Value()); err != nil {
+		return Configs{}, err
+	}
+	return wConfigs.Get(), nil
+}
+
+func (p *NATSProvider) setConfigs(configs *Configs) error {
+	if err := configs.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getConfigsBucket()
+	if err != nil {
+		return err
+	}
+
+	wConfigs := wrapper.NewWrapper(*configs)
+	data, err := wConfigs.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Put(string(configsKey), data)
+	return err
+}
+
+func (p *NATSProvider) setFirstDownloadTimestamp(username string) error {
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to set download timestamp", username))
+	}
+
+	wUser := wrapper.NewWrapper(User{})
+	if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	user := wUser.Get()
+
+	if user.FirstDownload > 0 {
+		return util.NewGenericError(fmt.Sprintf("first download already set to %v", util.GetTimeFromMsecSinceEpoch(user.FirstDownload)))
+	}
+
+	user.FirstDownload = util.GetTimeAsMsSinceEpoch(time.Now())
+	wUser = wrapper.NewWrapper(user)
+	data, err := wUser.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(username, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) setFirstUploadTimestamp(username string) error {
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to set upload timestamp", username))
+	}
+
+	wUser := wrapper.NewWrapper(User{})
+	if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	user := wUser.Get()
+
+	if user.FirstUpload > 0 {
+		return util.NewGenericError(fmt.Sprintf("first upload already set to %v", util.GetTimeFromMsecSinceEpoch(user.FirstUpload)))
+	}
+
+	user.FirstUpload = util.GetTimeAsMsSinceEpoch(time.Now())
+	wUser = wrapper.NewWrapper(user)
+	data, err := wUser.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(username, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) close() error {
+	if p.js != nil {
+		return p.js.Close()
+	}
+	return nil
+}
+
+func (p *NATSProvider) reloadConfig() error {
+	return nil
+}
+
+// initializeDatabase creates required KV stores if they don't exist
+func (p *NATSProvider) initializeDatabase() error {
+	for _, bucket := range []string{
+		"users", "folders", "admins", "roles", "groups",
+		"actions", "rules", "configs", "iplists", "shares",
+	} {
+		_, err := p.js.CreateKeyValue(&nats.KeyValueConfig{
+			Bucket: bucket,
+		})
+		if err != nil && !errors.Is(err, nats.ErrBucketExists) {
+			return fmt.Errorf("unable to create bucket %v: %w", bucket, err)
+		}
+	}
+	return nil
+}
+
+func (p *NATSProvider) migrateDatabase() error {
+	dbVersion, err := p.getDatabaseVersion()
+	if err != nil {
+		return err
+	}
+
+	switch version := dbVersion.Version; {
+	case version == currentDatabaseVersion:
+		providerLog(logger.LevelDebug, "database is up to date, current version: %d", version)
+		return ErrNoInitRequired
+	case version < 29:
+		err = errSchemaVersionTooOld(version)
+		providerLog(logger.LevelError, "%v", err)
+		logger.ErrorToConsole("%v", err)
+		return err
+	case version == 29, version == 30, version == 31:
+		logger.InfoToConsole("updating database schema version: %d -> 32", version)
+		providerLog(logger.LevelInfo, "updating database schema version: %d -> 32", version)
+		if err := updateEventActions(); err != nil {
+			return err
+		}
+		return p.updateDatabaseVersion(32)
+	default:
+		if version > currentDatabaseVersion {
+			providerLog(logger.LevelError, "database schema version %d is newer than the supported one: %d", version,
+				currentDatabaseVersion)
+			logger.WarnToConsole("database schema version %d is newer than the supported one: %d", version,
+				currentDatabaseVersion)
+			return nil
+		}
+		return fmt.Errorf("database schema version not handled: %d", version)
+	}
+}
+
+func (p *NATSProvider) revertDatabase(targetVersion int) error {
+	dbVersion, err := p.getDatabaseVersion()
+	if err != nil {
+		return err
+	}
+
+	if dbVersion.Version == targetVersion {
+		return errors.New("current version match target version, nothing to do")
+	}
+
+	switch dbVersion.Version {
+	case 30, 31, 32:
+		logger.InfoToConsole("downgrading database schema version: %d -> 29", dbVersion.Version)
+		providerLog(logger.LevelInfo, "downgrading database schema version: %d -> 29", dbVersion.Version)
+		if dbVersion.Version == 32 {
+			if err := restoreEventActions(); err != nil {
+				return err
+			}
+		}
+		return p.updateDatabaseVersion(29)
+	default:
+		return fmt.Errorf("database schema version not handled: %v", dbVersion.Version)
+	}
+}
+
+func (p *NATSProvider) resetDatabase() error {
+	for _, bucket := range []string{
+		"users", "folders", "admins", "roles", "groups",
+		"actions", "rules", "configs", "iplists", "shares",
+	} {
+		kv, err := p.js.KeyValue(bucket)
+		if err != nil {
+			if errors.Is(err, nats.ErrBucketNotFound) {
+				continue
+			}
+			return fmt.Errorf("unable to get bucket %v: %w", bucket, err)
+		}
+		if err := kv.Purge(); err != nil {
+			return fmt.Errorf("unable to purge bucket %v: %w", bucket, err)
+		}
+	}
+	return nil
+}
+
+func (p *NATSProvider) joinRuleAndActions(r []byte, actionsBucket nats.KeyValue) (EventRule, error) {
+	var rule EventRule
+	wRule := wrapper.NewWrapper(EventRule{})
+	if err := wRule.UnmarshalJSON(r); err != nil {
+		return rule, err
+	}
+
+	rule = wRule.Get()
+
+	var actions []EventAction
+	for idx := range rule.Actions {
+		action := &rule.Actions[idx]
+		entry, err := actionsBucket.Get(action.Name)
+		if err != nil {
+			continue
+		}
+
+		wBaseAction := wrapper.NewWrapper(BaseEventAction{})
+		if err = wBaseAction.UnmarshalJSON(entry.Value()); err != nil {
+			continue
+		}
+
+		baseAction := wBaseAction.Get()
+		baseAction.Options.SetEmptySecretsIfNil()
+		action.BaseEventAction = baseAction
+		actions = append(actions, *action)
+	}
+	rule.Actions = actions
+	return rule, nil
 }
