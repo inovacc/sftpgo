@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -3112,4 +3113,392 @@ func (p *NATSProvider) updateEventRule(rule *EventRule) error {
 		setLastRuleUpdate()
 	}
 	return err
+}
+
+func (p *NATSProvider) deleteEventRule(rule EventRule, _ bool) error {
+	rulesBucket, err := p.getRulesBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := rulesBucket.Get(rule.Name)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("event rule %q does not exist", rule.Name))
+	}
+
+	wOldRule := wrapper.NewWrapper(EventRule{})
+	if err = wOldRule.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldRule := wOldRule.Get()
+
+	if len(oldRule.Actions) > 0 {
+		actionsBucket, err := p.getActionsBucket()
+		if err != nil {
+			return err
+		}
+
+		for idx := range oldRule.Actions {
+			if err = p.removeRuleFromActionMapping(rule.Name, oldRule.Actions[idx].Name, actionsBucket); err != nil {
+				return err
+			}
+		}
+	}
+
+	_, err = rulesBucket.Update(rule.Name, nil, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) roleExists(name string) (Role, error) {
+	bucket, err := p.getRolesBucket()
+	if err != nil {
+		return Role{}, err
+	}
+
+	entry, err := bucket.Get(name)
+	if err != nil {
+		return Role{}, util.NewRecordNotFoundError(fmt.Sprintf("role %q does not exist", name))
+	}
+
+	wRole := wrapper.NewWrapper(Role{})
+	if err = wRole.UnmarshalJSON(entry.Value()); err != nil {
+		return Role{}, err
+	}
+	return wRole.Get(), nil
+}
+
+func (p *NATSProvider) addRole(role *Role) error {
+	if err := role.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getRolesBucket()
+	if err != nil {
+		return err
+	}
+
+	if _, err = bucket.Get(role.Name); err == nil {
+		return util.NewI18nError(fmt.Errorf("%w: role %q already exists", ErrDuplicatedKey, role.Name), util.I18nErrorDuplicatedName)
+	}
+
+	role.ID = time.Now().UnixNano()
+	role.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	role.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	role.Users = nil
+	role.Admins = nil
+
+	wRole := wrapper.NewWrapper(*role)
+	data, err := wRole.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Create(role.Name, data)
+	return err
+}
+
+func (p *NATSProvider) updateRole(role *Role) error {
+	if err := role.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getRolesBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(role.Name)
+	if err != nil {
+		return fmt.Errorf("role %q does not exist", role.Name)
+	}
+
+	wOldRole := wrapper.NewWrapper(Role{})
+	if err = wOldRole.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldRole := wOldRole.Get()
+
+	role.ID = oldRole.ID
+	role.CreatedAt = oldRole.CreatedAt
+	role.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	role.Users = oldRole.Users
+	role.Admins = oldRole.Admins
+
+	wRole := wrapper.NewWrapper(*role)
+	data, err := wRole.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(role.Name, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) deleteRole(role Role) error {
+	bucket, err := p.getRolesBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(role.Name)
+	if err != nil {
+		return fmt.Errorf("role %q does not exist", role.Name)
+	}
+
+	wOldRole := wrapper.NewWrapper(Role{})
+	if err = wOldRole.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldRole := wOldRole.Get()
+
+	if len(oldRole.Admins) > 0 {
+		return util.NewValidationError(fmt.Sprintf("the role %q is referenced, it cannot be removed", oldRole.Name))
+	}
+
+	if len(oldRole.Users) > 0 {
+		usersBucket, err := p.getUsersBucket()
+		if err != nil {
+			return err
+		}
+
+		for _, username := range oldRole.Users {
+			if err := p.removeRoleFromUser(username, oldRole.Name, usersBucket); err != nil {
+				return err
+			}
+		}
+	}
+
+	_, err = bucket.Update(role.Name, nil, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) getRoles(limit int, offset int, order string, _ bool) ([]Role, error) {
+	roles := make([]Role, 0, limit)
+	if limit <= 0 {
+		return roles, nil
+	}
+
+	bucket, err := p.getRolesBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	start := offset
+	end := offset + limit
+	if start >= len(keys) {
+		return roles, nil
+	}
+
+	if end > len(keys) {
+		end = len(keys)
+	}
+
+	for _, key := range keys[start:end] {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wRole := wrapper.NewWrapper(Role{})
+		if err = wRole.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+		roles = append(roles, wRole.Get())
+	}
+	return roles, nil
+}
+
+func (p *NATSProvider) dumpRoles() ([]Role, error) {
+	roles := make([]Role, 0, 10)
+	bucket, err := p.getRolesBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wRole := wrapper.NewWrapper(Role{})
+		if err = wRole.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+		roles = append(roles, wRole.Get())
+	}
+	return roles, nil
+}
+
+func (p *NATSProvider) ipListEntryExists(ipOrNet string, listType IPListType) (IPListEntry, error) {
+	entry := IPListEntry{
+		IPOrNet: ipOrNet,
+		Type:    listType,
+	}
+
+	bucket, err := p.getIPListsBucket()
+	if err != nil {
+		return entry, err
+	}
+
+	kv, err := bucket.Get(entry.getKey())
+	if err != nil {
+		return entry, util.NewRecordNotFoundError(fmt.Sprintf("entry %q does not exist", entry.IPOrNet))
+	}
+
+	wEntry := wrapper.NewWrapper(IPListEntry{})
+	if err = wEntry.UnmarshalJSON(kv.Value()); err != nil {
+		return entry, err
+	}
+
+	entry = wEntry.Get()
+	entry.PrepareForRendering()
+	return entry, nil
+}
+
+func (p *NATSProvider) addIPListEntry(entry *IPListEntry) error {
+	if err := entry.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getIPListsBucket()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Get(entry.getKey())
+	if err == nil {
+		return util.NewI18nError(fmt.Errorf("%w: entry %q already exists", ErrDuplicatedKey, entry.IPOrNet), util.I18nErrorDuplicatedIPNet)
+	}
+
+	entry.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	entry.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	wEntry := wrapper.NewWrapper(*entry)
+	data, err := wEntry.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Create(entry.getKey(), data)
+	return err
+}
+
+func (p *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
+	if err := entry.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getIPListsBucket()
+	if err != nil {
+		return err
+	}
+
+	kv, err := bucket.Get(entry.getKey())
+	if err != nil {
+		return fmt.Errorf("entry %q does not exist", entry.IPOrNet)
+	}
+
+	wOldEntry := wrapper.NewWrapper(IPListEntry{})
+	if err = wOldEntry.UnmarshalJSON(kv.Value()); err != nil {
+		return err
+	}
+
+	oldEntry := wOldEntry.Get()
+
+	entry.CreatedAt = oldEntry.CreatedAt
+	entry.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	wEntry := wrapper.NewWrapper(*entry)
+	data, err := wEntry.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(entry.getKey(), data, kv.Revision())
+	return err
+}
+
+func (p *NATSProvider) deleteIPListEntry(entry IPListEntry, _ bool) error {
+	bucket, err := p.getIPListsBucket()
+	if err != nil {
+		return err
+	}
+
+	kv, err := bucket.Get(entry.getKey())
+	if err != nil {
+		return fmt.Errorf("entry %q does not exist", entry.IPOrNet)
+	}
+
+	_, err = bucket.Update(entry.getKey(), nil, kv.Revision())
+	return err
+}
+
+func (p *NATSProvider) getIPListEntries(listType IPListType, filter, from, order string, limit int) ([]IPListEntry, error) {
+	entries := make([]IPListEntry, 0, 15)
+	bucket, err := p.getIPListsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	prefix := fmt.Sprintf("%d_", listType)
+	var filteredKeys []string
+	for _, key := range keys {
+		if strings.HasPrefix(key, prefix) {
+			filteredKeys = append(filteredKeys, key)
+		}
+	}
+
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(filteredKeys)))
+	} else {
+		sort.Strings(filteredKeys)
+	}
+
+	for _, key := range filteredKeys {
+		kv, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wEntry := wrapper.NewWrapper(IPListEntry{})
+		if err = wEntry.UnmarshalJSON(kv.Value()); err != nil {
+			return nil, err
+		}
+
+		entry := wEntry.Get()
+
+		if entry.satisfySearchConstraints(filter, from, order) {
+			entry.PrepareForRendering()
+			entries = append(entries, entry)
+			if limit > 0 && len(entries) >= limit {
+				break
+			}
+		}
+	}
+	return entries, nil
 }
