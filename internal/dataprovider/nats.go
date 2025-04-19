@@ -907,70 +907,93 @@ func (p *NATSProvider) deleteAdmin(admin Admin) error {
 	return bucket.Delete(admin.Username)
 }
 
-// func (p *NATSProvider) natsGetUserByUsernameQuery(role string) string {
-//
-// 	if role == "" {
-// 		return fmt.Sprintf(`SELECT %s FROM %s u LEFT JOIN %s r on r.id = u.role_id WHERE u.username = %s AND u.deleted_at = 0`,
-// 			selectUserFields, sqlTableUsers, sqlTableRoles, sqlPlaceholders[0])
-// 	}
-// 	return fmt.Sprintf(`SELECT %s FROM %s u LEFT JOIN %s r on r.id = u.role_id WHERE u.username = %s AND u.deleted_at = 0
-// 		AND u.role_id is NOT NULL AND r.name = %s`,
-// 		selectUserFields, sqlTableUsers, sqlTableRoles, sqlPlaceholders[0], sqlPlaceholders[1])
-// }
-//
-// func (p *NATSProvider) validateUserAndTLSCert(username, protocol string, tlsCert *x509.Certificate) (User, error) {
-// 	return sqlCommonValidateUserAndTLSCertificate(username, protocol, tlsCert, p.kvStore)
-// }
-//
-// func (p *NATSProvider) validateUserAndPubKey(username string, publicKey []byte, isSSHCert bool) (User, string, error) {
-// 	return sqlCommonValidateUserAndPubKey(username, publicKey, isSSHCert, p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateTransferQuota(username string, uploadSize, downloadSize int64, reset bool) error {
-// 	return sqlCommonUpdateTransferQuota(username, uploadSize, downloadSize, reset, p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateQuota(username string, filesAdd int, sizeAdd int64, reset bool) error {
-// 	return sqlCommonUpdateQuota(username, filesAdd, sizeAdd, reset, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getUsedQuota(username string) (int, int64, int64, int64, error) {
-// 	return sqlCommonGetUsedQuota(username, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getAdminSignature(username string) (string, error) {
-// 	return sqlCommonGetAdminSignature(username, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getUserSignature(username string) (string, error) {
-// 	return sqlCommonGetUserSignature(username, p.kvStore)
-// }
-//
-// func (p *NATSProvider) setUpdatedAt(username string) {
-// 	sqlCommonSetUpdatedAt(username, p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateLastLogin(username string) error {
-// 	return sqlCommonUpdateLastLogin(username, p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateAdminLastLogin(username string) error {
-// 	return sqlCommonUpdateAdminLastLogin(username, p.kvStore)
-// }
+func (p *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, error) {
+	admins := make([]Admin, 0, limit)
+	bucket, err := p.getAdminsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	start := offset
+	end := offset + limit
+	if start >= len(keys) {
+		return admins, nil
+	}
+
+	if end > len(keys) {
+		end = len(keys)
+	}
+
+	for _, key := range keys[start:end] {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wAdmin := wrapper.NewWrapper(Admin{})
+		if err = wAdmin.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		admin := wAdmin.Get()
+		admin.HideConfidentialData()
+		admins = append(admins, admin)
+	}
+	return admins, nil
+}
+
+func (p *NATSProvider) dumpAdmins() ([]Admin, error) {
+	admins := make([]Admin, 0, 30)
+	bucket, err := p.getAdminsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wAdmin := wrapper.NewWrapper(Admin{})
+		if err = wAdmin.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		admins = append(admins, wAdmin.Get())
+	}
+	return admins, nil
+}
 
 func (p *NATSProvider) userExists(username, role string) (User, error) {
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return User{}, err
+	}
+
+	entry, err := bucket.Get(username)
+	if err != nil {
+		return User{}, util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
+	}
+
 	wUser := wrapper.NewWrapper(User{})
-	kv, err := p.getUsersBucket()
-	if err != nil {
-		return User{}, err
-	}
-
-	entry, err := kv.Get(username)
-	if err != nil {
-		return User{}, err
-	}
-
-	if err := wUser.UnmarshalJSON(entry.Value()); err != nil {
+	if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
 		return User{}, err
 	}
 
@@ -988,710 +1011,264 @@ func (p *NATSProvider) userExists(username, role string) (User, error) {
 		return User{}, util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
 	}
 	return user, nil
-
-	// if user.DeletedAt > 0 {
-	// 	return User{}, util.NewRecordNotFoundError("user not found")
-	// }
-	//
-	// if role != "" {
-	// 	if user.Role == "" {
-	// 		return User{}, util.NewRecordNotFoundError("user has no role")
-	// 	}
-	//
-	// 	rolesKV, ok := p.kvStore[rolesBucketNATS]
-	// 	if !ok {
-	// 		return User{}, fmt.Errorf("bucket %q not found", rolesBucketNATS)
-	// 	}
-	//
-	// 	roleEntry, err := rolesKV.Get(user.Role)
-	// 	if err != nil {
-	// 		return User{}, fmt.Errorf("role not found: %v", err)
-	// 	}
-	//
-	// 	wRole := wrapper.NewWrapper(Role{})
-	// 	if err := wRole.UnmarshalJSON(roleEntry.Value()); err != nil {
-	// 		return User{}, fmt.Errorf("unable to unmarshal role data: %v", err)
-	// 	}
-	//
-	// 	roleObj := wRole.Get()
-	//
-	// 	if roleObj.Name != role {
-	// 		return User{}, util.NewRecordNotFoundError("user role does not match")
-	// 	}
-	// }
-	//
-	// q := p.natsGetUserByUsernameQuery(role)
-	// args := []any{username}
-	// if role != "" {
-	// 	args = append(args, role)
-	// }
-	//
-	// row := dbHandle.QueryRowContext(ctx, q, args...)
-	// user, err := getUserFromDbRow(row)
-	// if err != nil {
-	// 	return user, err
-	// }
-	//
-	// user, err = getUserWithVirtualFolders(ctx, user, dbHandle)
-	// if err != nil {
-	// 	return user, err
-	// }
-	// return getUserWithGroups(ctx, user, dbHandle)
 }
 
-// func (p *NATSProvider) addUser(user *User) error {
-// 	return p.normalizeError(sqlCommonAddUser(user, p.kvStore), fieldUsername)
-// }
-//
-// func (p *NATSProvider) updateUser(user *User) error {
-// 	return p.normalizeError(sqlCommonUpdateUser(user, p.kvStore), -1)
-// }
-//
-// func (p *NATSProvider) deleteUser(user User, softDelete bool) error {
-// 	return sqlCommonDeleteUser(user, softDelete, p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateUserPassword(username, password string) error {
-// 	return sqlCommonUpdateUserPassword(username, password, p.kvStore)
-// }
-//
-// func (p *NATSProvider) dumpUsers() ([]User, error) {
-// 	return sqlCommonDumpUsers(p.kvStore)
-// }
-//
-// func (p *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
-// 	return sqlCommonGetRecentlyUpdatedUsers(after, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getUsers(limit int, offset int, order, role string) ([]User, error) {
-// 	return sqlCommonGetUsers(limit, offset, order, role, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getUsersForQuotaCheck(toFetch map[string]bool) ([]User, error) {
-// 	return sqlCommonGetUsersForQuotaCheck(toFetch, p.kvStore)
-// }
-//
-// func (p *NATSProvider) dumpFolders() ([]vfs.BaseVirtualFolder, error) {
-// 	return sqlCommonDumpFolders(p.kvStore)
-// }
-//
-// func (p *NATSProvider) getFolders(limit, offset int, order string, minimal bool) ([]vfs.BaseVirtualFolder, error) {
-// 	return sqlCommonGetFolders(limit, offset, order, minimal, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getFolderByName(name string) (vfs.BaseVirtualFolder, error) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), defaultSQLQueryTimeout)
-// 	defer cancel()
-// 	return sqlCommonGetFolderByName(ctx, name, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addFolder(folder *vfs.BaseVirtualFolder) error {
-// 	return p.normalizeError(sqlCommonAddFolder(folder, p.kvStore), fieldName)
-// }
-//
-// func (p *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
-// 	return sqlCommonUpdateFolder(folder, p.kvStore)
-// }
-//
-// func (p *NATSProvider) deleteFolder(folder vfs.BaseVirtualFolder) error {
-// 	return sqlCommonDeleteFolder(folder, p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateFolderQuota(name string, filesAdd int, sizeAdd int64, reset bool) error {
-// 	return sqlCommonUpdateFolderQuota(name, filesAdd, sizeAdd, reset, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getUsedFolderQuota(name string) (int, int64, error) {
-// 	return sqlCommonGetFolderUsedQuota(name, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getGroups(limit, offset int, order string, minimal bool) ([]Group, error) {
-// 	return sqlCommonGetGroups(limit, offset, order, minimal, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getGroupsWithNames(names []string) ([]Group, error) {
-// 	return sqlCommonGetGroupsWithNames(names, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getUsersInGroups(names []string) ([]string, error) {
-// 	return sqlCommonGetUsersInGroups(names, p.kvStore)
-// }
-//
-// func (p *NATSProvider) groupExists(name string) (Group, error) {
-// 	return sqlCommonGetGroupByName(name, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addGroup(group *Group) error {
-// 	return p.normalizeError(sqlCommonAddGroup(group, p.kvStore), fieldName)
-// }
-//
-// func (p *NATSProvider) updateGroup(group *Group) error {
-// 	return sqlCommonUpdateGroup(group, p.kvStore)
-// }
-//
-// func (p *NATSProvider) deleteGroup(group Group) error {
-// 	return sqlCommonDeleteGroup(group, p.kvStore)
-// }
-//
-// func (p *NATSProvider) dumpGroups() ([]Group, error) {
-// 	return sqlCommonDumpGroups(p.kvStore)
-// }
-//
-// func (p *NATSProvider) adminExists(username string) (Admin, error) {
-// 	return sqlCommonGetAdminByUsername(username, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addAdmin(admin *Admin) error {
-// 	return p.normalizeError(sqlCommonAddAdmin(admin, p.kvStore), fieldUsername)
-// }
-//
-// func (p *NATSProvider) updateAdmin(admin *Admin) error {
-// 	return p.normalizeError(sqlCommonUpdateAdmin(admin, p.kvStore), -1)
-// }
-//
-// func (p *NATSProvider) deleteAdmin(admin Admin) error {
-// 	return sqlCommonDeleteAdmin(admin, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, error) {
-// 	return sqlCommonGetAdmins(limit, offset, order, p.kvStore)
-// }
-//
-// func (p *NATSProvider) dumpAdmins() ([]Admin, error) {
-// 	return sqlCommonDumpAdmins(p.kvStore)
-// }
-//
-// func (p *NATSProvider) validateAdminAndPass(username, password, ip string) (Admin, error) {
-// 	return sqlCommonValidateAdminAndPass(username, password, ip, p.kvStore)
-// }
-//
-// func (p *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
-// 	return sqlCommonGetAPIKeyByID(keyID, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addAPIKey(apiKey *APIKey) error {
-// 	return p.normalizeError(sqlCommonAddAPIKey(apiKey, p.kvStore), -1)
-// }
-//
-// func (p *NATSProvider) updateAPIKey(apiKey *APIKey) error {
-// 	return p.normalizeError(sqlCommonUpdateAPIKey(apiKey, p.kvStore), -1)
-// }
-//
-// func (p *NATSProvider) deleteAPIKey(apiKey APIKey) error {
-// 	return sqlCommonDeleteAPIKey(apiKey, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getAPIKeys(limit int, offset int, order string) ([]APIKey, error) {
-// 	return sqlCommonGetAPIKeys(limit, offset, order, p.kvStore)
-// }
-//
-// func (p *NATSProvider) dumpAPIKeys() ([]APIKey, error) {
-// 	return sqlCommonDumpAPIKeys(p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateAPIKeyLastUse(keyID string) error {
-// 	return sqlCommonUpdateAPIKeyLastUse(keyID, p.kvStore)
-// }
-//
-// func (p *NATSProvider) shareExists(shareID, username string) (Share, error) {
-// 	return sqlCommonGetShareByID(shareID, username, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addShare(share *Share) error {
-// 	return p.normalizeError(sqlCommonAddShare(share, p.kvStore), fieldName)
-// }
-//
-// func (p *NATSProvider) updateShare(share *Share) error {
-// 	return p.normalizeError(sqlCommonUpdateShare(share, p.kvStore), -1)
-// }
-//
-// func (p *NATSProvider) deleteShare(share Share) error {
-// 	return sqlCommonDeleteShare(share, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getShares(limit int, offset int, order, username string) ([]Share, error) {
-// 	return sqlCommonGetShares(limit, offset, order, username, p.kvStore)
-// }
-//
-// func (p *NATSProvider) dumpShares() ([]Share, error) {
-// 	return sqlCommonDumpShares(p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateShareLastUse(shareID string, numTokens int) error {
-// 	return sqlCommonUpdateShareLastUse(shareID, numTokens, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getDefenderHosts(from int64, limit int) ([]DefenderEntry, error) {
-// 	return sqlCommonGetDefenderHosts(from, limit, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getDefenderHostByIP(ip string, from int64) (DefenderEntry, error) {
-// 	return sqlCommonGetDefenderHostByIP(ip, from, p.kvStore)
-// }
-//
-// func (p *NATSProvider) isDefenderHostBanned(ip string) (DefenderEntry, error) {
-// 	return sqlCommonIsDefenderHostBanned(ip, p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateDefenderBanTime(ip string, minutes int) error {
-// 	return sqlCommonDefenderIncrementBanTime(ip, minutes, p.kvStore)
-// }
-//
-// func (p *NATSProvider) deleteDefenderHost(ip string) error {
-// 	return sqlCommonDeleteDefenderHost(ip, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addDefenderEvent(ip string, score int) error {
-// 	return sqlCommonAddDefenderHostAndEvent(ip, score, p.kvStore)
-// }
-//
-// func (p *NATSProvider) setDefenderBanTime(ip string, banTime int64) error {
-// 	return sqlCommonSetDefenderBanTime(ip, banTime, p.kvStore)
-// }
-//
-// func (p *NATSProvider) cleanupDefender(from int64) error {
-// 	return sqlCommonDefenderCleanup(from, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addActiveTransfer(transfer ActiveTransfer) error {
-// 	return sqlCommonAddActiveTransfer(transfer, p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateActiveTransferSizes(ulSize, dlSize, transferID int64, connectionID string) error {
-// 	return sqlCommonUpdateActiveTransferSizes(ulSize, dlSize, transferID, connectionID, p.kvStore)
-// }
-//
-// func (p *NATSProvider) removeActiveTransfer(transferID int64, connectionID string) error {
-// 	return sqlCommonRemoveActiveTransfer(transferID, connectionID, p.kvStore)
-// }
-//
-// func (p *NATSProvider) cleanupActiveTransfers(before time.Time) error {
-// 	return sqlCommonCleanupActiveTransfers(before, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getActiveTransfers(from time.Time) ([]ActiveTransfer, error) {
-// 	return sqlCommonGetActiveTransfers(from, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addSharedSession(session Session) error {
-// 	return sqlCommonAddSession(session, p.kvStore)
-// }
-//
-// func (p *NATSProvider) deleteSharedSession(key string, sessionType SessionType) error {
-// 	return sqlCommonDeleteSession(key, sessionType, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getSharedSession(key string, sessionType SessionType) (Session, error) {
-// 	return sqlCommonGetSession(key, sessionType, p.kvStore)
-// }
-//
-// func (p *NATSProvider) cleanupSharedSessions(sessionType SessionType, before int64) error {
-// 	return sqlCommonCleanupSessions(sessionType, before, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getEventActions(limit, offset int, order string, minimal bool) ([]BaseEventAction, error) {
-// 	return sqlCommonGetEventActions(limit, offset, order, minimal, p.kvStore)
-// }
-//
-// func (p *NATSProvider) dumpEventActions() ([]BaseEventAction, error) {
-// 	return sqlCommonDumpEventActions(p.kvStore)
-// }
-//
-// func (p *NATSProvider) eventActionExists(name string) (BaseEventAction, error) {
-// 	return sqlCommonGetEventActionByName(name, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addEventAction(action *BaseEventAction) error {
-// 	return p.normalizeError(sqlCommonAddEventAction(action, p.kvStore), fieldName)
-// }
-//
-// func (p *NATSProvider) updateEventAction(action *BaseEventAction) error {
-// 	return sqlCommonUpdateEventAction(action, p.kvStore)
-// }
-//
-// func (p *NATSProvider) deleteEventAction(action BaseEventAction) error {
-// 	return sqlCommonDeleteEventAction(action, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getEventRules(limit, offset int, order string) ([]EventRule, error) {
-// 	return sqlCommonGetEventRules(limit, offset, order, p.kvStore)
-// }
-//
-// func (p *NATSProvider) dumpEventRules() ([]EventRule, error) {
-// 	return sqlCommonDumpEventRules(p.kvStore)
-// }
-//
-// func (p *NATSProvider) getRecentlyUpdatedRules(after int64) ([]EventRule, error) {
-// 	return sqlCommonGetRecentlyUpdatedRules(after, p.kvStore)
-// }
-//
-// func (p *NATSProvider) eventRuleExists(name string) (EventRule, error) {
-// 	return sqlCommonGetEventRuleByName(name, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addEventRule(rule *EventRule) error {
-// 	return p.normalizeError(sqlCommonAddEventRule(rule, p.kvStore), fieldName)
-// }
-//
-// func (p *NATSProvider) updateEventRule(rule *EventRule) error {
-// 	return sqlCommonUpdateEventRule(rule, p.kvStore)
-// }
-//
-// func (p *NATSProvider) deleteEventRule(rule EventRule, softDelete bool) error {
-// 	return sqlCommonDeleteEventRule(rule, softDelete, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getTaskByName(name string) (Task, error) {
-// 	return sqlCommonGetTaskByName(name, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addTask(name string) error {
-// 	return sqlCommonAddTask(name, p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateTask(name string, version int64) error {
-// 	return sqlCommonUpdateTask(name, version, p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateTaskTimestamp(name string) error {
-// 	return sqlCommonUpdateTaskTimestamp(name, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addNode() error {
-// 	return sqlCommonAddNode(p.kvStore)
-// }
-//
-// func (p *NATSProvider) getNodeByName(name string) (Node, error) {
-// 	return sqlCommonGetNodeByName(name, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getNodes() ([]Node, error) {
-// 	return sqlCommonGetNodes(p.kvStore)
-// }
-//
-// func (p *NATSProvider) updateNodeTimestamp() error {
-// 	return sqlCommonUpdateNodeTimestamp(p.kvStore)
-// }
-//
-// func (p *NATSProvider) cleanupNodes() error {
-// 	return sqlCommonCleanupNodes(p.kvStore)
-// }
-//
-// func (p *NATSProvider) roleExists(name string) (Role, error) {
-// 	return sqlCommonGetRoleByName(name, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addRole(role *Role) error {
-// 	return p.normalizeError(sqlCommonAddRole(role, p.kvStore), fieldName)
-// }
-//
-// func (p *NATSProvider) updateRole(role *Role) error {
-// 	return sqlCommonUpdateRole(role, p.kvStore)
-// }
-//
-// func (p *NATSProvider) deleteRole(role Role) error {
-// 	return sqlCommonDeleteRole(role, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getRoles(limit int, offset int, order string, minimal bool) ([]Role, error) {
-// 	return sqlCommonGetRoles(limit, offset, order, minimal, p.kvStore)
-// }
-//
-// func (p *NATSProvider) dumpRoles() ([]Role, error) {
-// 	return sqlCommonDumpRoles(p.kvStore)
-// }
-//
-// func (p *NATSProvider) ipListEntryExists(ipOrNet string, listType IPListType) (IPListEntry, error) {
-// 	return sqlCommonGetIPListEntry(ipOrNet, listType, p.kvStore)
-// }
-//
-// func (p *NATSProvider) addIPListEntry(entry *IPListEntry) error {
-// 	return p.normalizeError(sqlCommonAddIPListEntry(entry, p.kvStore), fieldIPNet)
-// }
-//
-// func (p *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
-// 	return sqlCommonUpdateIPListEntry(entry, p.kvStore)
-// }
-//
-// func (p *NATSProvider) deleteIPListEntry(entry IPListEntry, softDelete bool) error {
-// 	return sqlCommonDeleteIPListEntry(entry, softDelete, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getIPListEntries(listType IPListType, filter, from, order string, limit int) ([]IPListEntry, error) {
-// 	return sqlCommonGetIPListEntries(listType, filter, from, order, limit, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getRecentlyUpdatedIPListEntries(after int64) ([]IPListEntry, error) {
-// 	return sqlCommonGetRecentlyUpdatedIPListEntries(after, p.kvStore)
-// }
-//
-// func (p *NATSProvider) dumpIPListEntries() ([]IPListEntry, error) {
-// 	return sqlCommonDumpIPListEntries(p.kvStore)
-// }
-//
-// func (p *NATSProvider) countIPListEntries(listType IPListType) (int64, error) {
-// 	return sqlCommonCountIPListEntries(listType, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getListEntriesForIP(ip string, listType IPListType) ([]IPListEntry, error) {
-// 	return sqlCommonGetListEntriesForIP(ip, listType, p.kvStore)
-// }
-//
-// func (p *NATSProvider) getConfigs() (Configs, error) {
-// 	return sqlCommonGetConfigs(p.kvStore)
-// }
-//
-// func (p *NATSProvider) setConfigs(configs *Configs) error {
-// 	return sqlCommonSetConfigs(configs, p.kvStore)
-// }
-//
-// func (p *NATSProvider) setFirstDownloadTimestamp(username string) error {
-// 	return sqlCommonSetFirstDownloadTimestamp(username, p.kvStore)
-// }
-//
-// func (p *NATSProvider) setFirstUploadTimestamp(username string) error {
-// 	return sqlCommonSetFirstUploadTimestamp(username, p.kvStore)
-// }
-//
-// func (p *NATSProvider) close() error {
-// 	return p.kvStore.Close()
-// }
-//
-// func (p *NATSProvider) reloadConfig() error {
-// 	return nil
-// }
-//
-// // initializeDatabase creates the initial database structure
-// func (p *NATSProvider) initializeDatabase() error {
-// 	dbVersion, err := sqlCommonGetDatabaseVersion(p.kvStore, false)
-// 	if err == nil && dbVersion.Version > 0 {
-// 		return ErrNoInitRequired
-// 	}
-// 	if errors.Is(err, sql.ErrNoRows) {
-// 		return errSchemaVersionEmpty
-// 	}
-// 	logger.InfoToConsole("creating initial database schema, version 29")
-// 	providerLog(logger.LevelInfo, "creating initial database schema, version 29")
-// 	initialSQL := sqlReplaceAll(mysqlInitialSQL)
-//
-// 	return sqlCommonExecSQLAndUpdateDBVersion(p.kvStore, strings.Split(initialSQL, ";"), 29, true)
-// }
-//
-// func (p *NATSProvider) migrateDatabase() error {
-// 	dbVersion, err := sqlCommonGetDatabaseVersion(p.kvStore, true)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	switch version := dbVersion.Version; {
-// 	case version == sqlDatabaseVersion:
-// 		providerLog(logger.LevelDebug, "sql database is up to date, current version: %d", version)
-// 		return ErrNoInitRequired
-// 	case version < 29:
-// 		err = errSchemaVersionTooOld(version)
-// 		providerLog(logger.LevelError, "%v", err)
-// 		logger.ErrorToConsole("%v", err)
-// 		return err
-// 	case version == 29:
-// 		return updateNATSDatabaseFromV29(p.kvStore)
-// 	case version == 30:
-// 		return updateNATSDatabaseFromV30(p.kvStore)
-// 	case version == 31:
-// 		return updateNATSDatabaseFromV31(p.kvStore)
-// 	default:
-// 		if version > sqlDatabaseVersion {
-// 			providerLog(logger.LevelError, "database schema version %d is newer than the supported one: %d", version,
-// 				sqlDatabaseVersion)
-// 			logger.WarnToConsole("database schema version %d is newer than the supported one: %d", version,
-// 				sqlDatabaseVersion)
-// 			return nil
-// 		}
-// 		return fmt.Errorf("database schema version not handled: %d", version)
-// 	}
-// }
-//
-// func (p *NATSProvider) revertDatabase(targetVersion int) error {
-// 	dbVersion, err := sqlCommonGetDatabaseVersion(p.kvStore, true)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if dbVersion.Version == targetVersion {
-// 		return errors.New("current version match target version, nothing to do")
-// 	}
-//
-// 	switch dbVersion.Version {
-// 	case 30:
-// 		return downgradeNATSDatabaseFromV30(p.kvStore)
-// 	case 31:
-// 		return downgradeNATSDatabaseFromV31(p.kvStore)
-// 	case 32:
-// 		return downgradeNATSDatabaseFromV32(p.kvStore)
-// 	default:
-// 		return fmt.Errorf("database schema version not handled: %d", dbVersion.Version)
-// 	}
-// }
-//
-// func (p *NATSProvider) resetDatabase() error {
-// 	sql := sqlReplaceAll(mysqlResetSQL)
-// 	return sqlCommonExecSQLAndUpdateDBVersion(p.kvStore, strings.Split(sql, ";"), 0, false)
-// }
-//
-// func (p *NATSProvider) normalizeError(err error, fieldType int) error {
-// 	if err == nil {
-// 		return nil
-// 	}
-// 	var mysqlErr *mysql.NATSError
-// 	if errors.As(err, &mysqlErr) {
-// 		switch mysqlErr.Number {
-// 		case 1062:
-// 			var message string
-// 			switch fieldType {
-// 			case fieldUsername:
-// 				message = util.I18nErrorDuplicatedUsername
-// 			case fieldIPNet:
-// 				message = util.I18nErrorDuplicatedIPNet
-// 			default:
-// 				message = util.I18nErrorDuplicatedName
-// 			}
-// 			return util.NewI18nError(
-// 				fmt.Errorf("%w: %s", ErrDuplicatedKey, err.Error()),
-// 				message,
-// 			)
-// 		case 1452:
-// 			return fmt.Errorf("%w: %s", ErrForeignKeyViolated, err.Error())
-// 		}
-// 	}
-// 	return err
-// }
-//
-// func updateNATSDatabaseFromV29(dbHandle *sql.DB) error {
-// 	if err := updateNATSDatabaseFrom29To30(dbHandle); err != nil {
-// 		return err
-// 	}
-// 	return updateNATSDatabaseFromV30(dbHandle)
-// }
-//
-// func updateNATSDatabaseFromV30(dbHandle *sql.DB) error {
-// 	if err := updateNATSDatabaseFrom30To31(dbHandle); err != nil {
-// 		return err
-// 	}
-// 	return updateNATSDatabaseFromV31(dbHandle)
-// }
-//
-// func updateNATSDatabaseFromV31(dbHandle *sql.DB) error {
-// 	return updateSQLDatabaseFrom31To32(dbHandle)
-// }
-//
-// func downgradeNATSDatabaseFromV30(dbHandle *sql.DB) error {
-// 	return downgradeNATSDatabaseFrom30To29(dbHandle)
-// }
-//
-// func downgradeNATSDatabaseFromV31(dbHandle *sql.DB) error {
-// 	if err := downgradeNATSDatabaseFrom31To30(dbHandle); err != nil {
-// 		return err
-// 	}
-// 	return downgradeNATSDatabaseFromV30(dbHandle)
-// }
-//
-// func downgradeNATSDatabaseFromV32(dbHandle *sql.DB) error {
-// 	if err := downgradeSQLDatabaseFrom32To31(dbHandle); err != nil {
-// 		return err
-// 	}
-// 	return downgradeNATSDatabaseFromV31(dbHandle)
-// }
-//
-// func updateNATSDatabaseFrom29To30(dbHandle *sql.DB) error {
-// 	logger.InfoToConsole("updating database schema version: 29 -> 30")
-// 	providerLog(logger.LevelInfo, "updating database schema version: 29 -> 30")
-//
-// 	sql := strings.ReplaceAll(mysqlV30SQL, "{{shares}}", sqlTableShares)
-// 	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 30, true)
-// }
-//
-// func downgradeNATSDatabaseFrom30To29(dbHandle *sql.DB) error {
-// 	logger.InfoToConsole("downgrading database schema version: 30 -> 29")
-// 	providerLog(logger.LevelInfo, "downgrading database schema version: 30 -> 29")
-//
-// 	sql := strings.ReplaceAll(mysqlV30DownSQL, "{{shares}}", sqlTableShares)
-// 	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 29, false)
-// }
-//
-// func updateNATSDatabaseFrom30To31(dbHandle *sql.DB) error {
-// 	logger.InfoToConsole("updating database schema version: 30 -> 31")
-// 	providerLog(logger.LevelInfo, "updating database schema version: 30 -> 31")
-//
-// 	sql := strings.ReplaceAll(mysqlV31SQL, "{{shared_sessions}}", sqlTableSharedSessions)
-// 	sql = strings.ReplaceAll(sql, "{{prefix}}", config.SQLTablesPrefix)
-// 	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 31, true)
-// }
-//
-// func downgradeNATSDatabaseFrom31To30(dbHandle *sql.DB) error {
-// 	logger.InfoToConsole("downgrading database schema version: 31 -> 30")
-// 	providerLog(logger.LevelInfo, "downgrading database schema version: 31 -> 30")
-//
-// 	sql := strings.ReplaceAll(mysqlV31DownSQL, "{{shared_sessions}}", sqlTableSharedSessions)
-// 	sql = strings.ReplaceAll(sql, "{{prefix}}", config.SQLTablesPrefix)
-// 	return sqlCommonExecSQLAndUpdateDBVersion(dbHandle, strings.Split(sql, ";"), 30, false)
-// }
-//
-// func (p *NATSProvider) checkUserAndPass(user *User, password, ip, protocol string) (User, error) {
-// 	if err := user.LoadAndApplyGroupSettings(); err != nil {
-// 		return *user, err
-// 	}
-//
-// 	if err := user.CheckLoginConditions(); err != nil {
-// 		return *user, err
-// 	}
-//
-// 	if protocol != protocolHTTP && user.MustChangePassword() {
-// 		return *user, errors.New("login not allowed, password change required")
-// 	}
-//
-// 	if user.Filters.IsAnonymous {
-// 		user.setAnonymousSettings()
-// 		return *user, nil
-// 	}
-//
-// 	password, err := checkUserPasscode(user, password, protocol)
-// 	if err != nil {
-// 		return *user, ErrInvalidCredentials
-// 	}
-//
-// 	if user.Password == "" || password == "" {
-// 		return *user, errors.New("credentials cannot be null or empty")
-// 	}
-//
-// 	if !user.Filters.Hooks.CheckPasswordDisabled {
-// 		hookResponse, err := executeCheckPasswordHook(user.Username, password, ip, protocol)
-// 		if err != nil {
-// 			providerLog(logger.LevelDebug, "error executing check password hook for user %q, ip %v, protocol %v: %v", user.Username, ip, protocol, err)
-// 			return *user, errors.New("unable to check credentials")
-// 		}
-//
-// 		switch hookResponse.Status {
-// 		case -1:
-// 			// no hook configured
-// 		case 1:
-// 			providerLog(logger.LevelDebug, "password accepted by check password hook for user %q, ip %v, protocol %v",
-// 				user.Username, ip, protocol)
-// 			return *user, nil
-// 		case 2:
-// 			providerLog(logger.LevelDebug, "partial success from check password hook for user %q, ip %v, protocol %v",
-// 				user.Username, ip, protocol)
-// 			password = hookResponse.ToVerify
-// 		default:
-// 			providerLog(logger.LevelDebug, "password rejected by check password hook for user %q, ip %v, protocol %v, status: %v",
-// 				user.Username, ip, protocol, hookResponse.Status)
-// 			return *user, ErrInvalidCredentials
-// 		}
-// 	}
-//
-// 	match, err := isPasswordOK(user, password)
-// 	if !match {
-// 		err = ErrInvalidCredentials
-// 	}
-// 	return *user, err
-// }
+func (p *NATSProvider) addUser(user *User) error {
+	if err := ValidateUser(user); err != nil {
+		return err
+	}
+
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(user.Username)
+	if err == nil {
+		return util.NewI18nError(
+			fmt.Errorf("%w: username %v already exists", ErrDuplicatedKey, user.Username),
+			util.I18nErrorDuplicatedUsername,
+		)
+	}
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	groupBucket, err := p.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	rolesBucket, err := p.getRolesBucket()
+	if err != nil {
+		return err
+	}
+
+	user.ID = time.Now().UnixNano()
+	user.LastQuotaUpdate = 0
+	user.UsedQuotaSize = 0
+	user.UsedQuotaFiles = 0
+	user.UsedUploadDataTransfer = 0
+	user.UsedDownloadDataTransfer = 0
+	user.LastLogin = 0
+	user.FirstDownload = 0
+	user.FirstUpload = 0
+	user.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	if err := p.addUserToRole(user.Username, user.Role, rolesBucket); err != nil {
+		return err
+	}
+
+	sort.Slice(user.VirtualFolders, func(i, j int) bool {
+		return user.VirtualFolders[i].Name < user.VirtualFolders[j].Name
+	})
+	for idx := range user.VirtualFolders {
+		if err = p.addRelationToFolderMapping(user.VirtualFolders[idx].Name, user, nil, foldersBucket); err != nil {
+			return err
+		}
+	}
+
+	sort.Slice(user.Groups, func(i, j int) bool {
+		return user.Groups[i].Name < user.Groups[j].Name
+	})
+
+	for idx := range user.Groups {
+		if err = p.addUserToGroupMapping(user.Username, user.Groups[idx].Name, groupBucket); err != nil {
+			return err
+		}
+	}
+
+	wUser := wrapper.NewWrapper(User{})
+	data, err := wUser.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(user.Username, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) updateUser(user *User) error {
+	if err := ValidateUser(user); err != nil {
+		return err
+	}
+
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(user.Username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", user.Username))
+	}
+
+	wOldUser := wrapper.NewWrapper(User{})
+	if err = wOldUser.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldUser := wOldUser.Get()
+
+	if err = p.updateUserRelations(user, oldUser); err != nil {
+		return err
+	}
+
+	user.ID = oldUser.ID
+	user.LastQuotaUpdate = oldUser.LastQuotaUpdate
+	user.UsedQuotaSize = oldUser.UsedQuotaSize
+	user.UsedQuotaFiles = oldUser.UsedQuotaFiles
+	user.UsedUploadDataTransfer = oldUser.UsedUploadDataTransfer
+	user.UsedDownloadDataTransfer = oldUser.UsedDownloadDataTransfer
+	user.LastLogin = oldUser.LastLogin
+	user.FirstDownload = oldUser.FirstDownload
+	user.FirstUpload = oldUser.FirstUpload
+	user.CreatedAt = oldUser.CreatedAt
+	user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	wUser := wrapper.NewWrapper(User{})
+	data, err := wUser.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	if _, err := bucket.Update(user.Username, data, entry.Revision()); err != nil {
+		return err
+	}
+
+	setLastUserUpdate()
+	return nil
+}
+
+func (p *NATSProvider) deleteUser(user User, _ bool) error {
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(user.Username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", user.Username))
+	}
+
+	wOldUser := wrapper.NewWrapper(User{})
+	if err = wOldUser.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldUser := wOldUser.Get()
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	groupBucket, err := p.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	rolesBucket, err := p.getRolesBucket()
+	if err != nil {
+		return err
+	}
+
+	if err := p.removeUserFromRole(oldUser.Username, oldUser.Role, rolesBucket); err != nil {
+		return err
+	}
+
+	for idx := range oldUser.VirtualFolders {
+		if err = p.removeRelationFromFolderMapping(oldUser.VirtualFolders[idx], oldUser.Username, "", foldersBucket); err != nil {
+			return err
+		}
+	}
+
+	for idx := range oldUser.Groups {
+		if err = p.removeUserFromGroupMapping(oldUser.Username, oldUser.Groups[idx].Name, groupBucket); err != nil {
+			return err
+		}
+	}
+
+	if err := p.deleteRelatedAPIKey(user.Username, APIKeyScopeUser); err != nil {
+		return err
+	}
+
+	if err := p.deleteRelatedShares(user.Username); err != nil {
+		return err
+	}
+	return bucket.Delete(user.Username)
+}
+
+func (p *NATSProvider) updateUserPassword(username, password string) error {
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
+	}
+
+	wUser := wrapper.NewWrapper(User{})
+	if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	user := wUser.Get()
+
+	user.Password = password
+	user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	wUser.Set(user)
+	data, err := wUser.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(username, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) dumpUsers() ([]User, error) {
+	users := make([]User, 0, 100)
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wUser := wrapper.NewWrapper(User{})
+		if err := wUser.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		user, err := p.joinUserAndFolders(wUser.Get(), foldersBucket)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
 
 func (p *NATSProvider) getFoldersBucket() (nats.KeyValue, error) {
 	kv, ok := p.kvStore[foldersBucketNATS]
@@ -1802,4 +1379,211 @@ func (p *NATSProvider) folderExistsInternal(name string, bucket nats.KeyValue) (
 		return vfs.BaseVirtualFolder{}, err
 	}
 	return wFolder.Get(), err
+}
+
+func (p *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
+	if getLastUserUpdate() < after {
+		return nil, nil
+	}
+
+	users := make([]User, 0, 10)
+
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	groupsBucket, err := p.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wUser := wrapper.NewWrapper(User{})
+		if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		user := wUser.Get()
+
+		if user.UpdatedAt < after {
+			continue
+		}
+
+		if len(user.VirtualFolders) > 0 {
+			var folders []vfs.VirtualFolder
+			for idx := range user.VirtualFolders {
+				folder := &user.VirtualFolders[idx]
+				baseFolder, err := p.folderExistsInternal(folder.Name, foldersBucket)
+				if err != nil {
+					continue
+				}
+
+				folder.BaseVirtualFolder = baseFolder
+				folders = append(folders, *folder)
+			}
+			user.VirtualFolders = folders
+		}
+
+		if len(user.Groups) > 0 {
+			groupMapping := make(map[string]Group)
+			for idx := range user.Groups {
+				group, err := p.groupExistsInternal(user.Groups[idx].Name, groupsBucket)
+				if err != nil {
+					continue
+				}
+
+				groupMapping[group.Name] = group
+			}
+			user.applyGroupSettings(groupMapping)
+		}
+
+		user.SetEmptySecretsIfNil()
+		users = append(users, user)
+	}
+	return users, err
+}
+
+func (p *NATSProvider) getUsersForQuotaCheck(toFetch map[string]bool) ([]User, error) {
+	users := make([]User, 0, 10)
+
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	groupsBucket, err := p.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	for username, needFolders := range toFetch {
+		entry, err := bucket.Get(username)
+		if err != nil {
+			continue
+		}
+
+		wUser := wrapper.NewWrapper(User{})
+		if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		user := wUser.Get()
+
+		if needFolders && len(user.VirtualFolders) > 0 {
+			var folders []vfs.VirtualFolder
+			for idx := range user.VirtualFolders {
+				folder := &user.VirtualFolders[idx]
+				baseFolder, err := p.folderExistsInternal(folder.Name, foldersBucket)
+				if err != nil {
+					continue
+				}
+
+				folder.BaseVirtualFolder = baseFolder
+				folders = append(folders, *folder)
+			}
+			user.VirtualFolders = folders
+		}
+
+		if len(user.Groups) > 0 {
+			groupMapping := make(map[string]Group)
+			for idx := range user.Groups {
+				group, err := p.groupExistsInternal(user.Groups[idx].Name, groupsBucket)
+				if err != nil {
+					continue
+				}
+
+				groupMapping[group.Name] = group
+			}
+			user.applyGroupSettings(groupMapping)
+		}
+
+		user.SetEmptySecretsIfNil()
+		user.PrepareForRendering()
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+func (p *NATSProvider) getUsers(limit int, offset int, order, role string) ([]User, error) {
+	users := make([]User, 0, limit)
+	if limit <= 0 {
+		return users, nil
+	}
+
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	start := offset
+	end := offset + limit
+	if start >= len(keys) {
+		return users, nil
+	}
+
+	if end > len(keys) {
+		end = len(keys)
+	}
+
+	for _, key := range keys[start:end] {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wUser := wrapper.NewWrapper(User{})
+		if err := wUser.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		user, err := p.joinUserAndFolders(wUser.Get(), foldersBucket)
+		if err != nil {
+			return nil, err
+		}
+
+		if !user.hasRole(role) {
+			continue
+		}
+
+		user.PrepareForRendering()
+		users = append(users, user)
+	}
+	return users, nil
 }
