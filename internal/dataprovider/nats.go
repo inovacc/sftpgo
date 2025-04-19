@@ -4075,3 +4075,229 @@ func (p *NATSProvider) removeUserFromRole(username, roleName string, bucket nats
 	}
 	return nil
 }
+
+func (p *NATSProvider) addRuleToActionMapping(ruleName, actionName string, bucket nats.KeyValue) error {
+	entry, err := bucket.Get(actionName)
+	if err != nil {
+		return util.NewGenericError(fmt.Sprintf("action %q does not exist", actionName))
+	}
+
+	wAction := wrapper.NewWrapper(BaseEventAction{})
+	if err = wAction.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	action := wAction.Get()
+
+	if !slices.Contains(action.Rules, ruleName) {
+		action.Rules = append(action.Rules, ruleName)
+		wAction = wrapper.NewWrapper(action)
+		data, err := wAction.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		_, err = bucket.Update(action.Name, data, entry.Revision())
+		return err
+	}
+	return nil
+}
+
+func (p *NATSProvider) removeRuleFromActionMapping(ruleName, actionName string, bucket nats.KeyValue) error {
+	entry, err := bucket.Get(actionName)
+	if err != nil {
+		providerLog(logger.LevelWarn, "action %q does not exist, cannot remove from mapping", actionName)
+		return nil
+	}
+
+	wAction := wrapper.NewWrapper(BaseEventAction{})
+	if err = wAction.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	action := wAction.Get()
+
+	if slices.Contains(action.Rules, ruleName) {
+		var rules []string
+		for _, r := range action.Rules {
+			if r != ruleName {
+				rules = append(rules, r)
+			}
+		}
+		action.Rules = util.RemoveDuplicates(rules, false)
+		wAction = wrapper.NewWrapper(action)
+		data, err := wAction.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		_, err = bucket.Update(action.Name, data, entry.Revision())
+		return err
+	}
+	return nil
+}
+
+func (p *NATSProvider) addUserToGroupMapping(username, groupname string, bucket nats.KeyValue) error {
+	entry, err := bucket.Get(groupname)
+	if err != nil {
+		return util.NewGenericError(fmt.Sprintf("group %q does not exist", groupname))
+	}
+
+	wGroup := wrapper.NewWrapper(Group{})
+	if err = wGroup.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	group := wGroup.Get()
+
+	if !slices.Contains(group.Users, username) {
+		group.Users = append(group.Users, username)
+		wGroup = wrapper.NewWrapper(group)
+		data, err := wGroup.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		_, err = bucket.Update(group.Name, data, entry.Revision())
+		return err
+	}
+	return nil
+}
+
+func (p *NATSProvider) removeUserFromGroupMapping(username, groupname string, bucket nats.KeyValue) error {
+	entry, err := bucket.Get(groupname)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", groupname))
+	}
+
+	wGroup := wrapper.NewWrapper(Group{})
+	if err = wGroup.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	group := wGroup.Get()
+
+	users := make([]string, 0)
+	for _, u := range group.Users {
+		if u != username {
+			users = append(users, u)
+		}
+	}
+	group.Users = util.RemoveDuplicates(users, false)
+	wGroup = wrapper.NewWrapper(group)
+	data, err := wGroup.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	_, err = bucket.Update(group.Name, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) addAdminToGroupMapping(username, groupname string, bucket nats.KeyValue) error {
+	entry, err := bucket.Get(groupname)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", groupname))
+	}
+
+	wGroup := wrapper.NewWrapper(Group{})
+	if err = wGroup.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	group := wGroup.Get()
+
+	if !slices.Contains(group.Admins, username) {
+		group.Admins = append(group.Admins, username)
+		wGroup = wrapper.NewWrapper(group)
+		data, err := wGroup.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		_, err = bucket.Update(group.Name, data, entry.Revision())
+		return err
+	}
+	return nil
+}
+
+func (p *NATSProvider) removeAdminFromGroupMapping(username, groupname string, bucket nats.KeyValue) error {
+	entry, err := bucket.Get(groupname)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", groupname))
+	}
+
+	wGroup := wrapper.NewWrapper(Group{})
+	if err = wGroup.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	group := wGroup.Get()
+
+	admins := make([]string, 0)
+	for _, a := range group.Admins {
+		if a != username {
+			admins = append(admins, a)
+		}
+	}
+	group.Admins = util.RemoveDuplicates(admins, false)
+	wGroup = wrapper.NewWrapper(group)
+	data, err := wGroup.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	_, err = bucket.Update(group.Name, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) removeGroupFromAdminMapping(groupName, adminName string, bucket nats.KeyValue) error {
+	entry, err := bucket.Get(adminName)
+	if err != nil {
+		// the admin does not exist so there is no associated group
+		return nil
+	}
+
+	wAdmin := wrapper.NewWrapper(Admin{})
+	if err = wAdmin.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	admin := wAdmin.Get()
+
+	var newGroups []AdminGroupMapping
+	for _, g := range admin.Groups {
+		if g.Name != groupName {
+			newGroups = append(newGroups, g)
+		}
+	}
+	admin.Groups = newGroups
+	wAdmin = wrapper.NewWrapper(admin)
+	data, err := wAdmin.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	_, err = bucket.Update(adminName, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) addRelationToFolderMapping(folderName string, user *User, group *Group, bucket nats.KeyValue) error {
+	entry, err := bucket.Get(folderName)
+	if err != nil {
+		return util.NewGenericError(fmt.Sprintf("folder %q does not exist", folderName))
+	}
+
+	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+	if err = wFolder.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	folder := wFolder.Get()
+
+	updated := false
+	if user != nil && !slices.Contains(folder.Users, user.Username) {
+		folder.Users = append(folder.Users, user.Username)
+		updated = true
+	}
+	if group != nil && !slices.Contains(folder.Groups, group.Name) {
+		folder.Groups = append(folder.Groups, group.Name)
+		updated = true
+	}
+	if !updated {
+		return nil
+	}
+
+	wFolder = wrapper.NewWrapper(folder)
+	data, err := wFolder.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	_, err = bucket.Update(folder.Name, data, entry.Revision())
+	return err
+}
