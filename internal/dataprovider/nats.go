@@ -2227,3 +2227,251 @@ func (p *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
 	}
 	return wAPIKey.Get(), nil
 }
+
+func (p *NATSProvider) addAPIKey(apiKey *APIKey) error {
+	if err := apiKey.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getAPIKeysBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(apiKey.KeyID)
+	if err != nil {
+		return fmt.Errorf("API key %v already exists", apiKey.KeyID)
+	}
+
+	apiKey.ID = p.getNextAPIKeyID()
+	apiKey.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	apiKey.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	apiKey.LastUseAt = 0
+
+	if apiKey.User != "" {
+		if err := p.userExists(apiKey.User); err != nil {
+			return fmt.Errorf("%w: related user %q does not exists", ErrForeignKeyViolated, apiKey.User)
+		}
+	}
+
+	if apiKey.Admin != "" {
+		if err := p.adminExists(apiKey.Admin); err != nil {
+			return fmt.Errorf("%w: related admin %q does not exists", ErrForeignKeyViolated, apiKey.Admin)
+		}
+	}
+
+	wAPIKey := wrapper.NewWrapper(*apiKey)
+	data, err := wAPIKey.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(apiKey.KeyID, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) updateAPIKey(apiKey *APIKey) error {
+	if err := apiKey.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getAPIKeysBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(apiKey.KeyID)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("API key %v does not exist", apiKey.KeyID))
+	}
+
+	wOldAPIKey := wrapper.NewWrapper(APIKey{})
+	if err = wOldAPIKey.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldAPIKey := wOldAPIKey.Get()
+
+	apiKey.ID = oldAPIKey.ID
+	apiKey.KeyID = oldAPIKey.KeyID
+	apiKey.Key = oldAPIKey.Key
+	apiKey.CreatedAt = oldAPIKey.CreatedAt
+	apiKey.LastUseAt = oldAPIKey.LastUseAt
+	apiKey.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	if apiKey.User != "" {
+		if _, err := p.userExists(apiKey.User, ""); err != nil {
+			return fmt.Errorf("%w: related user %q does not exists", ErrForeignKeyViolated, apiKey.User)
+		}
+	}
+	if apiKey.Admin != "" {
+		if _, err := p.adminExists(apiKey.Admin); err != nil {
+			return fmt.Errorf("%w: related admin %q does not exists", ErrForeignKeyViolated, apiKey.Admin)
+		}
+	}
+
+	wAPIKey := wrapper.NewWrapper(APIKey{})
+	data, err := wAPIKey.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(apiKey.KeyID, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) deleteAPIKey(apiKey APIKey) error {
+	bucket, err := p.getAPIKeysBucket()
+	if err != nil {
+		return err
+	}
+
+	if _, err = bucket.Get(apiKey.KeyID); err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("API key %v does not exist", apiKey.KeyID))
+	}
+	return bucket.Delete(apiKey.KeyID)
+}
+
+func (p *NATSProvider) getAPIKeys(limit int, offset int, order string) ([]APIKey, error) {
+	apiKeys := make([]APIKey, 0, limit)
+
+	bucket, err := p.getAPIKeysBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	start := offset
+	end := offset + limit
+	if start >= len(keys) {
+		return apiKeys, nil
+	}
+
+	if end > len(keys) {
+		end = len(keys)
+	}
+
+	for _, key := range keys[start:end] {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wAPIKey := wrapper.NewWrapper(APIKey{})
+		if err = wAPIKey.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		apiKey := wAPIKey.Get()
+		apiKey.HideConfidentialData()
+		apiKeys = append(apiKeys, apiKey)
+	}
+	return apiKeys, nil
+}
+
+func (p *NATSProvider) dumpAPIKeys() ([]APIKey, error) {
+	apiKeys := make([]APIKey, 0, 30)
+	bucket, err := p.getAPIKeysBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wAPIKey := wrapper.NewWrapper(APIKey{})
+		if err = wAPIKey.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		apiKeys = append(apiKeys, wAPIKey.Get())
+	}
+	return apiKeys, nil
+}
+
+func (p *NATSProvider) shareExists(shareID, username string) (Share, error) {
+	bucket, err := p.getSharesBucket()
+	if err != nil {
+		return Share{}, err
+	}
+
+	entry, err := bucket.Get(shareID)
+	if err != nil {
+		return Share{}, util.NewRecordNotFoundError(fmt.Sprintf("Share %v does not exist", shareID))
+	}
+
+	wShare := wrapper.NewWrapper(Share{})
+	if err = wShare.UnmarshalJSON(entry.Value()); err != nil {
+		return Share{}, err
+	}
+
+	share := wShare.Get()
+
+	if username != "" && share.Username != username {
+		return Share{}, util.NewRecordNotFoundError(fmt.Sprintf("Share %v does not exist", shareID))
+	}
+	return share, nil
+}
+
+func (p *NATSProvider) addShare(share *Share) error {
+	if err := share.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getSharesBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(share.ShareID)
+	if err == nil {
+		return fmt.Errorf("share %q already exists", share.ShareID)
+	}
+
+	share.ID = time.Now().UnixNano()
+	if !share.IsRestore {
+		share.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+		share.UpdatedAt = share.CreatedAt
+		share.LastUseAt = 0
+		share.UsedTokens = 0
+	}
+
+	if share.CreatedAt == 0 {
+		share.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	}
+
+	if share.UpdatedAt == 0 {
+		share.UpdatedAt = share.CreatedAt
+	}
+
+	if _, err := p.userExists(share.Username, ""); err != nil {
+		return util.NewValidationError(fmt.Sprintf("related user %q does not exists", share.Username))
+	}
+
+	wShare := wrapper.NewWrapper(*share)
+	data, err := wShare.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(share.ShareID, data, entry.Revision())
+	return err
+}
