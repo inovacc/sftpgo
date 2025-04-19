@@ -26,6 +26,7 @@ import (
 	"net/netip"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -56,6 +57,12 @@ const (
 	dbVersionBucketNATS = "db_version"
 	dbVersionKeyNATS    = "version"
 )
+
+var storageNames = []string{
+	usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS,
+	actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS, configsBucketNATS, dbVersionBucketNATS,
+	dbVersionKeyNATS,
+}
 
 func init() {
 	version.AddFeature("+nats")
@@ -114,12 +121,6 @@ func initializeNATSProvider() error {
 		cancel()
 	}()
 
-	storageNames := []string{
-		usersBucketNATS, groupsBucketNATS, foldersBucketNATS, adminsBucketNATS, apiKeysBucketNATS, sharesBucketNATS,
-		actionsBucketNATS, rulesBucketNATS, rolesBucketNATS, ipListsBucketNATS, configsBucketNATS, dbVersionBucketNATS,
-		dbVersionKeyNATS,
-	}
-
 	for _, name := range storageNames {
 		subBucket, err := db.createBucket(js, name)
 		if err != nil {
@@ -171,9 +172,7 @@ func getNATSOptions() ([]nats.Option, error) {
 		tlsConfig.ServerName = config.Host
 	}
 
-	providerLog(logger.LevelInfo,
-		"registering custom TLS config, root cert %q, client cert %q, client key %q, disable SNI? %v",
-		config.RootCert, config.ClientCert, config.ClientKey, config.DisableSNI)
+	providerLog(logger.LevelInfo, "registering custom TLS config, root cert %q, client cert %q, client key %q, disable SNI? %v", config.RootCert, config.ClientCert, config.ClientKey, config.DisableSNI)
 
 	opts = append(opts, nats.Secure(tlsConfig))
 	return opts, nil
@@ -204,12 +203,24 @@ func getNATSConnectionString(redactedPwd bool) (string, error) {
 
 // core components
 
-func (p *NATSProvider) createBucket(js nats.JetStreamContext, bucket string) (nats.KeyValue, error) {
-	kv, err := js.CreateKeyValue(&nats.KeyValueConfig{
-		Bucket:      bucket,
-		Compression: true,
-	})
+func (p *NATSProvider) resetDatabase() error {
+	for _, name := range storageNames {
+		kv, err := p.js.KeyValue(name)
+		if err != nil {
+			if errors.Is(err, nats.ErrBucketNotFound) {
+				continue
+			}
+			return fmt.Errorf("unable to get bucket %v: %w", name, err)
+		}
+		if err := kv.Purge(name); err != nil {
+			return fmt.Errorf("unable to purge bucket %v: %w", name, err)
+		}
+	}
+	return nil
+}
 
+func (p *NATSProvider) createBucket(js nats.JetStreamContext, bucket string) (nats.KeyValue, error) {
+	kv, err := js.CreateKeyValue(&nats.KeyValueConfig{Bucket: bucket, Compression: true})
 	if err != nil && !errors.Is(err, jetstream.ErrBucketExists) {
 		return nil, err
 	}
@@ -1351,24 +1362,6 @@ func (p *NATSProvider) getRulesBucket() (nats.KeyValue, error) {
 		return nil, fmt.Errorf("bucket %q not found", rolesBucketNATS)
 	}
 	return kv, nil
-}
-
-func (p *NATSProvider) joinUserAndFolders(user User, foldersBucket nats.KeyValue) (User, error) {
-	if len(user.VirtualFolders) > 0 {
-		var folders []vfs.VirtualFolder
-		for idx := range user.VirtualFolders {
-			folder := &user.VirtualFolders[idx]
-			baseFolder, err := p.folderExistsInternal(folder.Name, foldersBucket)
-			if err != nil {
-				continue
-			}
-			folder.BaseVirtualFolder = baseFolder
-			folders = append(folders, *folder)
-		}
-		user.VirtualFolders = folders
-	}
-	user.SetEmptySecretsIfNil()
-	return user, nil
 }
 
 func (p *NATSProvider) folderExistsInternal(name string, bucket nats.KeyValue) (vfs.BaseVirtualFolder, error) {
@@ -3814,25 +3807,6 @@ func (p *NATSProvider) revertDatabase(targetVersion int) error {
 	}
 }
 
-func (p *NATSProvider) resetDatabase() error {
-	for _, bucket := range []string{
-		"users", "folders", "admins", "roles", "groups",
-		"actions", "rules", "configs", "iplists", "shares",
-	} {
-		kv, err := p.js.KeyValue(bucket)
-		if err != nil {
-			if errors.Is(err, nats.ErrBucketNotFound) {
-				continue
-			}
-			return fmt.Errorf("unable to get bucket %v: %w", bucket, err)
-		}
-		if err := kv.Purge(); err != nil {
-			return fmt.Errorf("unable to purge bucket %v: %w", bucket, err)
-		}
-	}
-	return nil
-}
-
 func (p *NATSProvider) joinRuleAndActions(r []byte, actionsBucket nats.KeyValue) (EventRule, error) {
 	var rule EventRule
 	wRule := wrapper.NewWrapper(EventRule{})
@@ -3862,4 +3836,242 @@ func (p *NATSProvider) joinRuleAndActions(r []byte, actionsBucket nats.KeyValue)
 	}
 	rule.Actions = actions
 	return rule, nil
+}
+
+func (p *NATSProvider) joinGroupAndFolders(g []byte, foldersBucket nats.KeyValue) (Group, error) {
+	var group Group
+	wGroup := wrapper.NewWrapper(Group{})
+	if err := wGroup.UnmarshalJSON(g); err != nil {
+		return group, err
+	}
+
+	group = wGroup.Get()
+
+	if len(group.VirtualFolders) > 0 {
+		var folders []vfs.VirtualFolder
+		for idx := range group.VirtualFolders {
+			folder := &group.VirtualFolders[idx]
+			baseFolder, err := p.folderExistsInternal(folder.Name, foldersBucket)
+			if err != nil {
+				continue
+			}
+			folder.BaseVirtualFolder = baseFolder
+			folders = append(folders, *folder)
+		}
+		group.VirtualFolders = folders
+	}
+
+	group.SetEmptySecretsIfNil()
+	return group, nil
+}
+
+func (p *NATSProvider) joinUserAndFolders(u []byte, foldersBucket nats.KeyValue) (User, error) {
+	var user User
+	wUser := wrapper.NewWrapper(User{})
+	if err := wUser.UnmarshalJSON(u); err != nil {
+		return user, err
+	}
+
+	user = wUser.Get()
+
+	if len(user.VirtualFolders) > 0 {
+		var folders []vfs.VirtualFolder
+		for idx := range user.VirtualFolders {
+			folder := &user.VirtualFolders[idx]
+			baseFolder, err := p.folderExistsInternal(folder.Name, foldersBucket)
+			if err != nil {
+				continue
+			}
+			folder.BaseVirtualFolder = baseFolder
+			folders = append(folders, *folder)
+		}
+		user.VirtualFolders = folders
+	}
+
+	user.SetEmptySecretsIfNil()
+	return user, nil
+}
+
+func (p *NATSProvider) groupExistsInternal(name string, bucket nats.KeyValue) (Group, error) {
+	var group Group
+	entry, err := bucket.Get(name)
+	if err != nil {
+		return group, util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", name))
+	}
+
+	wGroup := wrapper.NewWrapper(Group{})
+	if err = wGroup.UnmarshalJSON(entry.Value()); err != nil {
+		return group, err
+	}
+	return wGroup.Get(), nil
+}
+
+func (p *NATSProvider) addFolderInternal(folder vfs.BaseVirtualFolder, bucket nats.KeyValue) error {
+	folder.ID = time.Now().UnixNano()
+	wFolder := wrapper.NewWrapper(folder)
+	data, err := wFolder.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	_, err = bucket.Create(folder.Name, data)
+	return err
+}
+
+func (p *NATSProvider) removeRoleFromUser(username, role string, bucket nats.KeyValue) error {
+	entry, err := bucket.Get(username)
+	if err != nil {
+		providerLog(logger.LevelWarn, "user %q does not exist, cannot remove role %q", username, role)
+		return nil
+	}
+
+	wUser := wrapper.NewWrapper(User{})
+	if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	user := wUser.Get()
+
+	if user.Role == role {
+		user.Role = ""
+		wUser = wrapper.NewWrapper(user)
+		data, err := wUser.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		_, err = bucket.Update(user.Username, data, entry.Revision())
+		return err
+	}
+
+	providerLog(logger.LevelError, "user %q does not have the expected role %q, actual %q", username, role, user.Role)
+	return nil
+}
+
+func (p *NATSProvider) addAdminToRole(username, roleName string, bucket nats.KeyValue) error {
+	if roleName == "" {
+		return nil
+	}
+
+	entry, err := bucket.Get(roleName)
+	if err != nil {
+		return fmt.Errorf("%w: role %q does not exist", ErrForeignKeyViolated, roleName)
+	}
+
+	wRole := wrapper.NewWrapper(Role{})
+	if err = wRole.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	role := wRole.Get()
+
+	if !slices.Contains(role.Admins, username) {
+		role.Admins = append(role.Admins, username)
+		wRole = wrapper.NewWrapper(role)
+		data, err := wRole.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		_, err = bucket.Update(role.Name, data, entry.Revision())
+		return err
+	}
+	return nil
+}
+
+func (p *NATSProvider) removeAdminFromRole(username, roleName string, bucket nats.KeyValue) error {
+	if roleName == "" {
+		return nil
+	}
+
+	entry, err := bucket.Get(roleName)
+	if err != nil {
+		providerLog(logger.LevelWarn, "role %q does not exist, cannot remove admin %q", roleName, username)
+		return nil
+	}
+
+	wRole := wrapper.NewWrapper(Role{})
+	if err = wRole.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	role := wRole.Get()
+
+	if slices.Contains(role.Admins, username) {
+		var admins []string
+		for _, admin := range role.Admins {
+			if admin != username {
+				admins = append(admins, admin)
+			}
+		}
+		role.Admins = util.RemoveDuplicates(admins, false)
+		wRole = wrapper.NewWrapper(role)
+		data, err := wRole.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		_, err = bucket.Update(role.Name, data, entry.Revision())
+		return err
+	}
+	return nil
+}
+
+func (p *NATSProvider) addUserToRole(username, roleName string, bucket nats.KeyValue) error {
+	if roleName == "" {
+		return nil
+	}
+
+	entry, err := bucket.Get(roleName)
+	if err != nil {
+		return fmt.Errorf("%w: role %q does not exist", ErrForeignKeyViolated, roleName)
+	}
+
+	wRole := wrapper.NewWrapper(Role{})
+	if err = wRole.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	role := wRole.Get()
+
+	if !slices.Contains(role.Users, username) {
+		role.Users = append(role.Users, username)
+		wRole = wrapper.NewWrapper(role)
+		data, err := wRole.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		_, err = bucket.Update(role.Name, data, entry.Revision())
+		return err
+	}
+	return nil
+}
+
+func (p *NATSProvider) removeUserFromRole(username, roleName string, bucket nats.KeyValue) error {
+	if roleName == "" {
+		return nil
+	}
+
+	entry, err := bucket.Get(roleName)
+	if err != nil {
+		providerLog(logger.LevelWarn, "role %q does not exist, cannot remove user %q", roleName, username)
+		return nil
+	}
+
+	wRole := wrapper.NewWrapper(Role{})
+	if err = wRole.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	role := wRole.Get()
+
+	if slices.Contains(role.Users, username) {
+		var users []string
+		for _, user := range role.Users {
+			if user != username {
+				users = append(users, user)
+			}
+		}
+		users = util.RemoveDuplicates(users, false)
+		role.Users = users
+		wRole = wrapper.NewWrapper(role)
+		data, err := wRole.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		_, err = bucket.Update(role.Name, data, entry.Revision())
+		return err
+	}
+	return nil
 }
