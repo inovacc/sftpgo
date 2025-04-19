@@ -2671,3 +2671,257 @@ func (p *NATSProvider) deleteShare(share Share) error {
 	_, err = bucket.Update(share.ShareID, nil, entry.Revision())
 	return err
 }
+
+func (p *NATSProvider) dumpEventActions() ([]BaseEventAction, error) {
+	actions := make([]BaseEventAction, 0, 50)
+	bucket, err := p.getActionsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wAction := wrapper.NewWrapper(BaseEventAction{})
+		if err = wAction.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		actions = append(actions, wAction.Get())
+	}
+	return actions, nil
+}
+
+func (p *NATSProvider) eventActionExists(name string) (BaseEventAction, error) {
+	bucket, err := p.getActionsBucket()
+	if err != nil {
+		return BaseEventAction{}, err
+	}
+
+	entry, err := bucket.Get(name)
+	if err != nil {
+		return BaseEventAction{}, util.NewRecordNotFoundError(fmt.Sprintf("action %q does not exist", name))
+	}
+
+	wAction := wrapper.NewWrapper(BaseEventAction{})
+	if err = wAction.UnmarshalJSON(entry.Value()); err != nil {
+		return BaseEventAction{}, err
+	}
+	return wAction.Get(), nil
+}
+
+func (p *NATSProvider) addEventAction(action *BaseEventAction) error {
+	if err := action.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getActionsBucket()
+	if err != nil {
+		return err
+	}
+
+	if _, err := bucket.Get(action.Name); err == nil {
+		return util.NewI18nError(fmt.Errorf("%w: event action %q already exists", ErrDuplicatedKey, action.Name), util.I18nErrorDuplicatedName)
+	}
+
+	action.ID = time.Now().UnixNano()
+	action.Rules = nil
+
+	wAction := wrapper.NewWrapper(*action)
+	data, err := wAction.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Create(action.Name, data)
+	return err
+}
+
+func (p *NATSProvider) updateEventAction(action *BaseEventAction) error {
+	if err := action.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getActionsBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(action.Name)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("event action %s does not exist", action.Name))
+	}
+
+	wOldAction := wrapper.NewWrapper(BaseEventAction{})
+	if err = wOldAction.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldAction := wOldAction.Get()
+
+	action.ID = oldAction.ID
+	action.Name = oldAction.Name
+	action.Rules = nil
+
+	if len(oldAction.Rules) > 0 {
+		rulesBucket, err := p.getRulesBucket()
+		if err != nil {
+			return err
+		}
+
+		var relatedRules []string
+		for _, ruleName := range oldAction.Rules {
+			ruleEntry, err := rulesBucket.Get(ruleName)
+			if err == nil {
+				relatedRules = append(relatedRules, ruleName)
+				wRule := wrapper.NewWrapper(EventRule{})
+				if err := wRule.UnmarshalJSON(ruleEntry.Value()); err != nil {
+					return err
+				}
+
+				rule := wRule.Get()
+				rule.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+				wUpdatedRule := wrapper.NewWrapper(rule)
+				data, err := wUpdatedRule.MarshalJSON()
+				if err != nil {
+					return err
+				}
+
+				if _, err = rulesBucket.Update(rule.Name, data, ruleEntry.Revision()); err != nil {
+					return err
+				}
+				setLastRuleUpdate()
+			}
+		}
+		action.Rules = relatedRules
+	}
+
+	wAction := wrapper.NewWrapper(*action)
+	data, err := wAction.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(action.Name, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) deleteEventAction(action BaseEventAction) error {
+	bucket, err := p.getActionsBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(action.Name)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("action %s does not exist", action.Name))
+	}
+
+	wOldAction := wrapper.NewWrapper(BaseEventAction{})
+	if err = wOldAction.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldAction := wOldAction.Get()
+
+	if len(oldAction.Rules) > 0 {
+		return util.NewValidationError(fmt.Sprintf("action %s is referenced, it cannot be removed", oldAction.Name))
+	}
+
+	_, err = bucket.Update(action.Name, nil, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) getEventRules(limit, offset int, order string) ([]EventRule, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+
+	rules := make([]EventRule, 0, limit)
+	bucket, err := p.getRulesBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	actionsBucket, err := p.getActionsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	start := offset
+	end := offset + limit
+	if start >= len(keys) {
+		return rules, nil
+	}
+
+	if end > len(keys) {
+		end = len(keys)
+	}
+
+	for _, key := range keys[start:end] {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		rule, err := p.joinRuleAndActions(entry.Value(), actionsBucket)
+		if err != nil {
+			return nil, err
+		}
+		rule.PrepareForRendering()
+		rules = append(rules, rule)
+	}
+	return rules, nil
+}
+
+func (p *NATSProvider) dumpEventRules() ([]EventRule, error) {
+	rules := make([]EventRule, 0, 50)
+	bucket, err := p.getRulesBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	actionsBucket, err := p.getActionsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		rule, err := p.joinRuleAndActions(entry.Value(), actionsBucket)
+		if err != nil {
+			return nil, err
+		}
+		rules = append(rules, rule)
+	}
+	return rules, nil
+}
