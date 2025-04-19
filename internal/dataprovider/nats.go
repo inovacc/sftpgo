@@ -43,19 +43,21 @@ import (
 )
 
 const (
-	usersBucketNATS     = "users"
-	groupsBucketNATS    = "groups"
-	foldersBucketNATS   = "folders"
-	adminsBucketNATS    = "admins"
-	apiKeysBucketNATS   = "api_keys"
-	sharesBucketNATS    = "shares"
-	actionsBucketNATS   = "events_actions"
-	rulesBucketNATS     = "events_rules"
-	rolesBucketNATS     = "roles"
-	ipListsBucketNATS   = "ip_lists"
-	configsBucketNATS   = "configs"
-	dbVersionBucketNATS = "db_version"
-	dbVersionKeyNATS    = "version"
+	currentDatabaseVersionNATS = 32
+	usersBucketNATS            = "users"
+	groupsBucketNATS           = "groups"
+	foldersBucketNATS          = "folders"
+	adminsBucketNATS           = "admins"
+	apiKeysBucketNATS          = "api_keys"
+	sharesBucketNATS           = "shares"
+	actionsBucketNATS          = "events_actions"
+	rulesBucketNATS            = "events_rules"
+	rolesBucketNATS            = "roles"
+	ipListsBucketNATS          = "ip_lists"
+	configsBucketNATS          = "configs"
+	dbVersionBucketNATS        = "db_version"
+	dbVersionKeyNATS           = "version"
+	dbMetadataNATS             = "metadata"
 )
 
 var storageNames = []string{
@@ -1360,6 +1362,14 @@ func (p *NATSProvider) getRulesBucket() (nats.KeyValue, error) {
 	kv, ok := p.kvStore[rolesBucketNATS]
 	if !ok {
 		return nil, fmt.Errorf("bucket %q not found", rolesBucketNATS)
+	}
+	return kv, nil
+}
+
+func (p *NATSProvider) getConfigsBucket() (nats.KeyValue, error) {
+	kv, ok := p.kvStore[dbMetadataNATS]
+	if !ok {
+		return nil, fmt.Errorf("bucket %q not found", dbMetadataNATS)
 	}
 	return kv, nil
 }
@@ -3622,12 +3632,11 @@ func (p *NATSProvider) getConfigs() (Configs, error) {
 		return Configs{}, err
 	}
 
-	entry, err := bucket.Get(string(configsKey))
+	entry, err := bucket.Get(configsBucketNATS)
 	if err != nil {
 		return Configs{}, nil
 	}
 
-	var configs Configs
 	wConfigs := wrapper.NewWrapper(Configs{})
 	if err = wConfigs.UnmarshalJSON(entry.Value()); err != nil {
 		return Configs{}, err
@@ -3741,7 +3750,7 @@ func (p *NATSProvider) initializeDatabase() error {
 		_, err := p.js.CreateKeyValue(&nats.KeyValueConfig{
 			Bucket: bucket,
 		})
-		if err != nil && !errors.Is(err, nats.ErrBucketExists) {
+		if err != nil && !errors.Is(err, jetstream.ErrBucketExists) {
 			return fmt.Errorf("unable to create bucket %v: %w", bucket, err)
 		}
 	}
@@ -3755,7 +3764,7 @@ func (p *NATSProvider) migrateDatabase() error {
 	}
 
 	switch version := dbVersion.Version; {
-	case version == currentDatabaseVersion:
+	case version == currentDatabaseVersionNATS:
 		providerLog(logger.LevelDebug, "database is up to date, current version: %d", version)
 		return ErrNoInitRequired
 	case version < 29:
@@ -3771,11 +3780,9 @@ func (p *NATSProvider) migrateDatabase() error {
 		}
 		return p.updateDatabaseVersion(32)
 	default:
-		if version > currentDatabaseVersion {
-			providerLog(logger.LevelError, "database schema version %d is newer than the supported one: %d", version,
-				currentDatabaseVersion)
-			logger.WarnToConsole("database schema version %d is newer than the supported one: %d", version,
-				currentDatabaseVersion)
+		if version > currentDatabaseVersionNATS {
+			providerLog(logger.LevelError, "database schema version %d is newer than the supported one: %d", version, currentDatabaseVersionNATS)
+			logger.WarnToConsole("database schema version %d is newer than the supported one: %d", version, currentDatabaseVersionNATS)
 			return nil
 		}
 		return fmt.Errorf("database schema version not handled: %d", version)
@@ -4299,5 +4306,228 @@ func (p *NATSProvider) addRelationToFolderMapping(folderName string, user *User,
 		return err
 	}
 	_, err = bucket.Update(folder.Name, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) removeRelationFromFolderMapping(folder vfs.VirtualFolder, username, groupname string, bucket nats.KeyValue) error {
+	entry, err := bucket.Get(folder.Name)
+	if err != nil {
+		// the folder does not exist so there is no associated user/group
+		return nil
+	}
+
+	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+	if err = wFolder.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+	baseFolder := wFolder.Get()
+
+	found := false
+	if username != "" {
+		found = true
+		var newUserMapping []string
+		for _, u := range baseFolder.Users {
+			if u != username {
+				newUserMapping = append(newUserMapping, u)
+			}
+		}
+		baseFolder.Users = newUserMapping
+	}
+	if groupname != "" {
+		found = true
+		var newGroupMapping []string
+		for _, g := range baseFolder.Groups {
+			if g != groupname {
+				newGroupMapping = append(newGroupMapping, g)
+			}
+		}
+		baseFolder.Groups = newGroupMapping
+	}
+	if !found {
+		return nil
+	}
+
+	wFolder = wrapper.NewWrapper(baseFolder)
+	data, err := wFolder.MarshalJSON()
+	if err != nil {
+		return err
+	}
+	_, err = bucket.Update(folder.Name, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) updateUserRelations(user *User, oldUser User) error {
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+	groupsBucket, err := p.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+	rolesBucket, err := p.getRolesBucket()
+	if err != nil {
+		return err
+	}
+
+	for idx := range oldUser.VirtualFolders {
+		err = p.removeRelationFromFolderMapping(oldUser.VirtualFolders[idx], oldUser.Username, "", foldersBucket)
+		if err != nil {
+			return err
+		}
+	}
+	for idx := range oldUser.Groups {
+		err = p.removeUserFromGroupMapping(user.Username, oldUser.Groups[idx].Name, groupsBucket)
+		if err != nil {
+			return err
+		}
+	}
+	if err = p.removeUserFromRole(oldUser.Username, oldUser.Role, rolesBucket); err != nil {
+		return err
+	}
+
+	sort.Slice(user.VirtualFolders, func(i, j int) bool {
+		return user.VirtualFolders[i].Name < user.VirtualFolders[j].Name
+	})
+	for idx := range user.VirtualFolders {
+		err = p.addRelationToFolderMapping(user.VirtualFolders[idx].Name, user, nil, foldersBucket)
+		if err != nil {
+			return err
+		}
+	}
+
+	sort.Slice(user.Groups, func(i, j int) bool {
+		return user.Groups[i].Name < user.Groups[j].Name
+	})
+	for idx := range user.Groups {
+		err = p.addUserToGroupMapping(user.Username, user.Groups[idx].Name, groupsBucket)
+		if err != nil {
+			return err
+		}
+	}
+	return p.addUserToRole(user.Username, user.Role, rolesBucket)
+}
+
+func (p *NATSProvider) adminExistsInternal(username string) error {
+	bucket, err := p.getAdminsBucket()
+	if err != nil {
+		return err
+	}
+	_, err = bucket.Get(username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("admin %v does not exist", username))
+	}
+	return nil
+}
+
+func (p *NATSProvider) userExistsInternal(username string) error {
+	bucket, err := p.getUsersBucket()
+	if err != nil {
+		return err
+	}
+	_, err = bucket.Get(username)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
+	}
+	return nil
+}
+
+func (p *NATSProvider) deleteRelatedShares(username string) error {
+	bucket, err := p.getSharesBucket()
+	if err != nil {
+		return err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return err
+	}
+
+	for _, k := range keys {
+		entry, err := bucket.Get(k)
+		if err != nil {
+			continue
+		}
+
+		wShare := wrapper.NewWrapper(Share{})
+		if err = wShare.UnmarshalJSON(entry.Value()); err != nil {
+			continue
+		}
+		share := wShare.Get()
+
+		if share.Username == username {
+			if err := bucket.Delete(share.ShareID); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (p *NATSProvider) deleteRelatedAPIKey(username string, scope APIKeyScope) error {
+	bucket, err := p.getAPIKeysBucket()
+	if err != nil {
+		return err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return err
+	}
+
+	for _, k := range keys {
+		entry, err := bucket.Get(k)
+		if err != nil {
+			continue
+		}
+
+		wAPIKey := wrapper.NewWrapper(APIKey{})
+		if err = wAPIKey.UnmarshalJSON(entry.Value()); err != nil {
+			continue
+		}
+		apiKey := wAPIKey.Get()
+
+		if (scope == APIKeyScopeUser && apiKey.User == username) ||
+			(scope == APIKeyScopeAdmin && apiKey.Admin == username) {
+			if err := bucket.Delete(apiKey.KeyID); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (p *NATSProvider) getDatabaseVersion() (schemaVersion, error) {
+	bucket, err := p.js.KeyValue("dbversion")
+	if err != nil {
+		return schemaVersion{}, err
+	}
+
+	entry, err := bucket.Get("version")
+	if err != nil {
+		return schemaVersion{Version: 29}, nil
+	}
+
+	wVersion := wrapper.NewWrapper(schemaVersion{})
+	if err = wVersion.UnmarshalJSON(entry.Value()); err != nil {
+		return schemaVersion{}, err
+	}
+	return wVersion.Get(), nil
+}
+
+func (p *NATSProvider) updateDatabaseVersion(version int) error {
+	bucket, err := p.js.KeyValue("dbversion")
+	if err != nil {
+		return err
+	}
+
+	newVersion := schemaVersion{Version: version}
+	wVersion := wrapper.NewWrapper(newVersion)
+	data, err := wVersion.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Put("version", data)
 	return err
 }
