@@ -205,6 +205,186 @@ func getNATSConnectionString(redactedPwd bool) (string, error) {
 
 // core components
 
+func (p *NATSProvider) validateUserAndTLSCert(username, protocol string, tlsCert *x509.Certificate) (User, error) {
+	var user User
+	if tlsCert == nil {
+		return user, errors.New("TLS certificate cannot be null or empty")
+	}
+
+	user, err := p.userExists(username, "")
+	if err != nil {
+		providerLog(logger.LevelWarn, "error authenticating user %q: %v", username, err)
+		return user, err
+	}
+
+	return checkUserAndTLSCertificate(&user, protocol, tlsCert)
+}
+
+func (p *NATSProvider) validateAdminAndPass(username, password, ip string) (Admin, error) {
+	admin, err := p.adminExists(username)
+	if err != nil {
+		providerLog(logger.LevelWarn, "error authenticating admin %q: %v", username, err)
+		return admin, err
+	}
+	err = admin.checkUserAndPass(password, ip)
+	return admin, err
+}
+
+func (p *NATSProvider) getDefenderHosts(_ int64, _ int) ([]DefenderEntry, error) {
+	return nil, ErrNotImplemented
+}
+
+func (p *NATSProvider) getDefenderHostByIP(_ string, _ int64) (DefenderEntry, error) {
+	return DefenderEntry{}, ErrNotImplemented
+}
+
+func (p *NATSProvider) isDefenderHostBanned(_ string) (DefenderEntry, error) {
+	return DefenderEntry{}, ErrNotImplemented
+}
+
+func (p *NATSProvider) updateDefenderBanTime(_ string, _ int) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) deleteDefenderHost(_ string) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) addDefenderEvent(_ string, _ int) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) setDefenderBanTime(_ string, _ int64) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) cleanupDefender(_ int64) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) addActiveTransfer(_ ActiveTransfer) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) updateActiveTransferSizes(_, _, _ int64, _ string) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) removeActiveTransfer(_ int64, _ string) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) cleanupActiveTransfers(_ time.Time) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) getActiveTransfers(_ time.Time) ([]ActiveTransfer, error) {
+	return nil, ErrNotImplemented
+}
+
+func (p *NATSProvider) addSharedSession(_ Session) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) deleteSharedSession(_ string, _ SessionType) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) getSharedSession(_ string, _ SessionType) (Session, error) {
+	return Session{}, ErrNotImplemented
+}
+
+func (p *NATSProvider) cleanupSharedSessions(_ SessionType, _ int64) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) getEventActions(limit, offset int, order string, _ bool) ([]BaseEventAction, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+
+	bucket, err := p.getActionsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	if order == OrderDESC {
+		slices.Reverse(keys)
+	}
+
+	actions := make([]BaseEventAction, 0, limit)
+	itNum := 0
+
+	for _, k := range keys {
+		itNum++
+		if itNum <= offset {
+			continue
+		}
+
+		entry, err := bucket.Get(k)
+		if err != nil {
+			continue
+		}
+
+		wAction := wrapper.NewWrapper(BaseEventAction{})
+		if err := wAction.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		action := wAction.Get()
+
+		action.PrepareForRendering()
+		actions = append(actions, action)
+
+		if len(actions) >= limit {
+			break
+		}
+	}
+
+	return actions, nil
+}
+
+func (p *NATSProvider) getTaskByName(_ string) (Task, error) {
+	return Task{}, ErrNotImplemented
+}
+
+func (p *NATSProvider) addTask(_ string) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) updateTask(_ string, _ int64) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) updateTaskTimestamp(_ string) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) addNode() error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) getNodeByName(_ string) (Node, error) {
+	return Node{}, ErrNotImplemented
+}
+
+func (p *NATSProvider) getNodes() ([]Node, error) {
+	return nil, ErrNotImplemented
+}
+
+func (p *NATSProvider) updateNodeTimestamp() error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) cleanupNodes() error {
+	return ErrNotImplemented
+}
+
 func (p *NATSProvider) resetDatabase() error {
 	for _, name := range storageNames {
 		kv, err := p.js.KeyValue(name)
@@ -1008,17 +1188,12 @@ func (p *NATSProvider) userExists(username, role string) (User, error) {
 		return User{}, util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
 	}
 
-	wUser := wrapper.NewWrapper(User{})
-	if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
-		return User{}, err
-	}
-
 	foldersBucket, err := p.getFoldersBucket()
 	if err != nil {
 		return User{}, err
 	}
 
-	user, err := p.joinUserAndFolders(wUser.Get(), foldersBucket)
+	user, err := p.joinUserAndFolders(entry.Value(), foldersBucket)
 	if err != nil {
 		return User{}, err
 	}
@@ -1272,12 +1447,7 @@ func (p *NATSProvider) dumpUsers() ([]User, error) {
 			continue
 		}
 
-		wUser := wrapper.NewWrapper(User{})
-		if err := wUser.UnmarshalJSON(entry.Value()); err != nil {
-			return nil, err
-		}
-
-		user, err := p.joinUserAndFolders(wUser.Get(), foldersBucket)
+		user, err := p.joinUserAndFolders(entry.Value(), foldersBucket)
 		if err != nil {
 			return nil, err
 		}
@@ -1574,12 +1744,7 @@ func (p *NATSProvider) getUsers(limit int, offset int, order, role string) ([]Us
 			continue
 		}
 
-		wUser := wrapper.NewWrapper(User{})
-		if err := wUser.UnmarshalJSON(entry.Value()); err != nil {
-			return nil, err
-		}
-
-		user, err := p.joinUserAndFolders(wUser.Get(), foldersBucket)
+		user, err := p.joinUserAndFolders(entry.Value(), foldersBucket)
 		if err != nil {
 			return nil, err
 		}
@@ -2043,7 +2208,7 @@ func (p *NATSProvider) addGroup(group *Group) error {
 		return util.NewI18nError(fmt.Errorf("%w: group %q already exists", ErrDuplicatedKey, group.Name), util.I18nErrorDuplicatedUsername)
 	}
 
-	group.ID = p.getNextGroupID()
+	group.ID = time.Now().UnixNano()
 	group.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
 	group.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
 	group.Users = nil
@@ -3731,9 +3896,6 @@ func (p *NATSProvider) setFirstUploadTimestamp(username string) error {
 }
 
 func (p *NATSProvider) close() error {
-	if p.js != nil {
-		return p.js.Close()
-	}
 	return nil
 }
 
@@ -3741,7 +3903,6 @@ func (p *NATSProvider) reloadConfig() error {
 	return nil
 }
 
-// initializeDatabase creates required KV stores if they don't exist
 func (p *NATSProvider) initializeDatabase() error {
 	for _, bucket := range []string{
 		"users", "folders", "admins", "roles", "groups",
@@ -3763,29 +3924,29 @@ func (p *NATSProvider) migrateDatabase() error {
 		return err
 	}
 
-	switch version := dbVersion.Version; {
-	case version == currentDatabaseVersionNATS:
-		providerLog(logger.LevelDebug, "database is up to date, current version: %d", version)
+	switch ver := dbVersion.Version; {
+	case ver == currentDatabaseVersionNATS:
+		providerLog(logger.LevelDebug, "database is up to date, current ver: %d", ver)
 		return ErrNoInitRequired
-	case version < 29:
-		err = errSchemaVersionTooOld(version)
-		providerLog(logger.LevelError, "%v", err)
-		logger.ErrorToConsole("%v", err)
+	case ver < 29:
+		err = errSchemaVersionTooOld(ver)
+		providerLog(logger.LevelError, "%ver", err)
+		logger.ErrorToConsole("%ver", err)
 		return err
-	case version == 29, version == 30, version == 31:
-		logger.InfoToConsole("updating database schema version: %d -> 32", version)
-		providerLog(logger.LevelInfo, "updating database schema version: %d -> 32", version)
+	case ver == 29, ver == 30, ver == 31:
+		logger.InfoToConsole("updating database schema ver: %d -> 32", ver)
+		providerLog(logger.LevelInfo, "updating database schema ver: %d -> 32", ver)
 		if err := updateEventActions(); err != nil {
 			return err
 		}
 		return p.updateDatabaseVersion(32)
 	default:
-		if version > currentDatabaseVersionNATS {
-			providerLog(logger.LevelError, "database schema version %d is newer than the supported one: %d", version, currentDatabaseVersionNATS)
-			logger.WarnToConsole("database schema version %d is newer than the supported one: %d", version, currentDatabaseVersionNATS)
+		if ver > currentDatabaseVersionNATS {
+			providerLog(logger.LevelError, "database schema ver %d is newer than the supported one: %d", ver, currentDatabaseVersionNATS)
+			logger.WarnToConsole("database schema ver %d is newer than the supported one: %d", ver, currentDatabaseVersionNATS)
 			return nil
 		}
-		return fmt.Errorf("database schema version not handled: %d", version)
+		return fmt.Errorf("database schema ver not handled: %d", ver)
 	}
 }
 
