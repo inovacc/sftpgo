@@ -2925,3 +2925,191 @@ func (p *NATSProvider) dumpEventRules() ([]EventRule, error) {
 	}
 	return rules, nil
 }
+
+func (p *NATSProvider) getRecentlyUpdatedRules(after int64) ([]EventRule, error) {
+	if getLastRuleUpdate() < after {
+		return nil, nil
+	}
+
+	rules := make([]EventRule, 0, 10)
+	rulesBucket, err := p.getRulesBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	actionsBucket, err := p.getActionsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := rulesBucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := rulesBucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wRule := wrapper.NewWrapper(EventRule{})
+		if err = wRule.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		rule := wRule.Get()
+
+		if rule.UpdatedAt < after {
+			continue
+		}
+
+		var actions []EventAction
+		for idx := range rule.Actions {
+			action := &rule.Actions[idx]
+			actionEntry, err := actionsBucket.Get(action.Name)
+			if err != nil {
+				continue
+			}
+
+			wBaseAction := wrapper.NewWrapper(BaseEventAction{})
+			if err = wBaseAction.UnmarshalJSON(actionEntry.Value()); err != nil {
+				continue
+			}
+
+			baseAction := wBaseAction.Get()
+			baseAction.Options.SetEmptySecretsIfNil()
+			action.BaseEventAction = baseAction
+			actions = append(actions, *action)
+		}
+		rule.Actions = actions
+		rules = append(rules, rule)
+	}
+	return rules, nil
+}
+
+func (p *NATSProvider) eventRuleExists(name string) (EventRule, error) {
+	rulesBucket, err := p.getRulesBucket()
+	if err != nil {
+		return EventRule{}, err
+	}
+
+	entry, err := rulesBucket.Get(name)
+	if err != nil {
+		return EventRule{}, util.NewRecordNotFoundError(fmt.Sprintf("event rule %q does not exist", name))
+	}
+
+	actionsBucket, err := p.getActionsBucket()
+	if err != nil {
+		return EventRule{}, err
+	}
+	return p.joinRuleAndActions(entry.Value(), actionsBucket)
+}
+
+func (p *NATSProvider) addEventRule(rule *EventRule) error {
+	if err := rule.validate(); err != nil {
+		return err
+	}
+
+	rulesBucket, err := p.getRulesBucket()
+	if err != nil {
+		return err
+	}
+
+	actionsBucket, err := p.getActionsBucket()
+	if err != nil {
+		return err
+	}
+
+	_, err = rulesBucket.Get(rule.Name)
+	if err == nil {
+		return util.NewI18nError(
+			fmt.Errorf("%w: event rule %q already exists", ErrDuplicatedKey, rule.Name),
+			util.I18nErrorDuplicatedName,
+		)
+	}
+
+	rule.ID = time.Now().UnixNano()
+	rule.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	rule.UpdatedAt = rule.CreatedAt
+
+	for idx := range rule.Actions {
+		if err = p.addRuleToActionMapping(rule.Name, rule.Actions[idx].Name, actionsBucket); err != nil {
+			return err
+		}
+	}
+
+	sort.Slice(rule.Actions, func(i, j int) bool {
+		return rule.Actions[i].Order < rule.Actions[j].Order
+	})
+
+	wRule := wrapper.NewWrapper(*rule)
+	data, err := wRule.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	if _, err = rulesBucket.Create(rule.Name, data); err == nil {
+		setLastRuleUpdate()
+	}
+	return err
+}
+
+func (p *NATSProvider) updateEventRule(rule *EventRule) error {
+	if err := rule.validate(); err != nil {
+		return err
+	}
+
+	rulesBucket, err := p.getRulesBucket()
+	if err != nil {
+		return err
+	}
+
+	actionsBucket, err := p.getActionsBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := rulesBucket.Get(rule.Name)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("event rule %q does not exist", rule.Name))
+	}
+
+	wOldRule := wrapper.NewWrapper(EventRule{})
+	if err = wOldRule.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldRule := wOldRule.Get()
+
+	for idx := range oldRule.Actions {
+		if err = p.removeRuleFromActionMapping(rule.Name, oldRule.Actions[idx].Name, actionsBucket); err != nil {
+			return err
+		}
+	}
+
+	for idx := range rule.Actions {
+		if err = p.addRuleToActionMapping(rule.Name, rule.Actions[idx].Name, actionsBucket); err != nil {
+			return err
+		}
+	}
+
+	rule.ID = oldRule.ID
+	rule.CreatedAt = oldRule.CreatedAt
+	rule.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	sort.Slice(rule.Actions, func(i, j int) bool {
+		return rule.Actions[i].Order < rule.Actions[j].Order
+	})
+
+	wRule := wrapper.NewWrapper(*rule)
+	data, err := wRule.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	if _, err = rulesBucket.Update(rule.Name, data, entry.Revision()); err == nil {
+		setLastRuleUpdate()
+	}
+	return err
+}
