@@ -1587,3 +1587,164 @@ func (p *NATSProvider) getUsers(limit int, offset int, order, role string) ([]Us
 	}
 	return users, nil
 }
+
+func (p *NATSProvider) dumpFolders() ([]vfs.BaseVirtualFolder, error) {
+	folders := make([]vfs.BaseVirtualFolder, 0, 50)
+	bucket, err := p.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+		if err = wFolder.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		folders = append(folders, wFolder.Get())
+	}
+	return folders, nil
+}
+
+func (p *NATSProvider) getFolders(limit, offset int, order string, _ bool) ([]vfs.BaseVirtualFolder, error) {
+	folders := make([]vfs.BaseVirtualFolder, 0, limit)
+	if limit <= 0 {
+		return folders, nil
+	}
+
+	bucket, err := p.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	if order == OrderDESC {
+		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	} else {
+		sort.Strings(keys)
+	}
+
+	start := offset
+	end := offset + limit
+	if start >= len(keys) {
+		return folders, nil
+	}
+
+	if end > len(keys) {
+		end = len(keys)
+	}
+
+	for _, key := range keys[start:end] {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+		if err = wFolder.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		folder := wFolder.Get()
+		folder.PrepareForRendering()
+		folders = append(folders, folder)
+	}
+	return folders, nil
+}
+
+func (p *NATSProvider) getFolderByName(name string) (vfs.BaseVirtualFolder, error) {
+	bucket, err := p.getFoldersBucket()
+	if err != nil {
+		return vfs.BaseVirtualFolder{}, err
+	}
+
+	folder, err := p.folderExistsInternal(name, bucket)
+	return folder, err
+}
+
+func (p *NATSProvider) addFolder(folder *vfs.BaseVirtualFolder) error {
+	if err := ValidateFolder(folder); err != nil {
+		return err
+	}
+
+	bucket, err := p.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(folder.Name)
+	if err != nil {
+		return util.NewI18nError(fmt.Errorf("%w: folder %q already exists", ErrDuplicatedKey, folder.Name), util.I18nErrorDuplicatedUsername)
+	}
+
+	folder.Users = nil
+	folder.Groups = nil
+
+	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+	if err := wFolder.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	wFolder.Set(*folder)
+
+	data, err := wFolder.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(folder.Name, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
+	if err := ValidateFolder(folder); err != nil {
+		return err
+	}
+
+	bucket, err := p.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(folder.Name)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("folder %v does not exist", folder.Name))
+	}
+
+	wOldFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+	if err = wOldFolder.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldFolder := wOldFolder.Get()
+
+	folder.ID = oldFolder.ID
+	folder.LastQuotaUpdate = oldFolder.LastQuotaUpdate
+	folder.UsedQuotaFiles = oldFolder.UsedQuotaFiles
+	folder.UsedQuotaSize = oldFolder.UsedQuotaSize
+	folder.Users = oldFolder.Users
+	folder.Groups = oldFolder.Groups
+
+	wFolder := wrapper.NewWrapper(*folder)
+	data, err := wFolder.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(folder.Name, data, entry.Revision())
+	return err
+}
