@@ -1951,3 +1951,279 @@ func (p *NATSProvider) getGroups(limit, offset int, order string, _ bool) ([]Gro
 	}
 	return groups, nil
 }
+
+func (p *NATSProvider) getGroupsWithNames(names []string) ([]Group, error) {
+	var groups []Group
+	bucket, err := p.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, name := range names {
+		entry, err := bucket.Get(name)
+		if err != nil {
+			continue
+		}
+
+		group, err := p.joinGroupAndFolders(entry.Value(), foldersBucket)
+		if err != nil {
+			return nil, err
+		}
+
+		groups = append(groups, group)
+	}
+	return groups, nil
+}
+
+func (p *NATSProvider) getUsersInGroups(names []string) ([]string, error) {
+	var usernames []string
+	bucket, err := p.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, name := range names {
+		entry, err := bucket.Get(name)
+		if err != nil {
+			continue
+		}
+
+		wGroup := wrapper.NewWrapper(Group{})
+		if err = wGroup.UnmarshalJSON(entry.Value()); err != nil {
+			return nil, err
+		}
+
+		group := wGroup.Get()
+		usernames = append(usernames, group.Users...)
+	}
+	return usernames, nil
+}
+
+func (p *NATSProvider) groupExists(name string) (Group, error) {
+	bucket, err := p.getGroupsBucket()
+	if err != nil {
+		return Group{}, err
+	}
+
+	entry, err := bucket.Get(name)
+	if err != nil {
+		return Group{}, util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", name))
+	}
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return Group{}, err
+	}
+	return p.joinGroupAndFolders(entry.Value(), foldersBucket)
+}
+
+func (p *NATSProvider) addGroup(group *Group) error {
+	if err := group.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(group.Name)
+	if err == nil {
+		return util.NewI18nError(fmt.Errorf("%w: group %q already exists", ErrDuplicatedKey, group.Name), util.I18nErrorDuplicatedUsername)
+	}
+
+	group.ID = p.getNextGroupID()
+	group.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	group.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	group.Users = nil
+	group.Admins = nil
+
+	sort.Slice(group.VirtualFolders, func(i, j int) bool {
+		return group.VirtualFolders[i].Name < group.VirtualFolders[j].Name
+	})
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	for idx := range group.VirtualFolders {
+		if err = p.addRelationToFolderMapping(group.VirtualFolders[idx].Name, nil, group, foldersBucket); err != nil {
+			return err
+		}
+	}
+
+	wGroup := wrapper.NewWrapper(*group)
+	data, err := wGroup.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(group.Name, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) updateGroup(group *Group) error {
+	if err := group.validate(); err != nil {
+		return err
+	}
+
+	bucket, err := p.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(group.Name)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", group.Name))
+	}
+
+	wOldGroup := wrapper.NewWrapper(Group{})
+	if err = wOldGroup.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldGroup := wOldGroup.Get()
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return err
+	}
+
+	for idx := range oldGroup.VirtualFolders {
+		if err = p.removeRelationFromFolderMapping(oldGroup.VirtualFolders[idx], "", oldGroup.Name, foldersBucket); err != nil {
+			return err
+		}
+	}
+
+	sort.Slice(group.VirtualFolders, func(i, j int) bool {
+		return group.VirtualFolders[i].Name < group.VirtualFolders[j].Name
+	})
+
+	for idx := range group.VirtualFolders {
+		if err = p.addRelationToFolderMapping(group.VirtualFolders[idx].Name, nil, group, foldersBucket); err != nil {
+			return err
+		}
+	}
+
+	group.ID = oldGroup.ID
+	group.CreatedAt = oldGroup.CreatedAt
+	group.Users = oldGroup.Users
+	group.Admins = oldGroup.Admins
+	group.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+
+	wGroup := wrapper.NewWrapper(Group{})
+	data, err := wGroup.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = bucket.Update(group.Name, data, entry.Revision())
+	return err
+}
+
+func (p *NATSProvider) deleteGroup(group Group) error {
+	bucket, err := p.getGroupsBucket()
+	if err != nil {
+		return err
+	}
+
+	entry, err := bucket.Get(group.Name)
+	if err != nil {
+		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", group.Name))
+	}
+
+	wOldGroup := wrapper.NewWrapper(Group{})
+	if err = wOldGroup.UnmarshalJSON(entry.Value()); err != nil {
+		return err
+	}
+
+	oldGroup := wOldGroup.Get()
+
+	if len(oldGroup.Users) > 0 {
+		return util.NewValidationError(fmt.Sprintf("the group %q is referenced, it cannot be removed", oldGroup.Name))
+	}
+
+	if len(oldGroup.VirtualFolders) > 0 {
+		foldersBucket, err := p.getFoldersBucket()
+		if err != nil {
+			return err
+		}
+
+		for idx := range oldGroup.VirtualFolders {
+			if err = p.removeRelationFromFolderMapping(oldGroup.VirtualFolders[idx], "", oldGroup.Name, foldersBucket); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(oldGroup.Admins) > 0 {
+		adminsBucket, err := p.getAdminsBucket()
+		if err != nil {
+			return err
+		}
+
+		for idx := range oldGroup.Admins {
+			if err = p.removeGroupFromAdminMapping(oldGroup.Name, oldGroup.Admins[idx], adminsBucket); err != nil {
+				return err
+			}
+		}
+	}
+	return bucket.Delete(group.Name)
+}
+
+func (p *NATSProvider) dumpGroups() ([]Group, error) {
+	groups := make([]Group, 0, 50)
+	bucket, err := p.getGroupsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	foldersBucket, err := p.getFoldersBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	keys, err := bucket.Keys()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		entry, err := bucket.Get(key)
+		if err != nil {
+			continue
+		}
+
+		group, err := p.joinGroupAndFolders(entry.Value(), foldersBucket)
+		if err != nil {
+			return nil, err
+		}
+
+		groups = append(groups, group)
+	}
+	return groups, nil
+}
+
+func (p *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
+	bucket, err := p.getAPIKeysBucket()
+	if err != nil {
+		return APIKey{}, err
+	}
+
+	entry, err := bucket.Get(keyID)
+	if err != nil {
+		return APIKey{}, util.NewRecordNotFoundError(fmt.Sprintf("API key %v does not exist", keyID))
+	}
+
+	wAPIKey := wrapper.NewWrapper(APIKey{})
+	if err = wAPIKey.UnmarshalJSON(entry.Value()); err != nil {
+		return APIKey{}, err
+	}
+	return wAPIKey.Get(), nil
+}
