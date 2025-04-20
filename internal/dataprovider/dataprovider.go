@@ -910,7 +910,7 @@ func Initialize(cnf Config, basePath string, checkAdmins bool) error {
 	}
 	absoluteBackupPath, err := util.GetAbsolutePath(cnf.BackupsPath)
 	if err != nil {
-		return fmt.Errorf("unable to getItem absolute backup path: %w", err)
+		return fmt.Errorf("unable to get absolute backup path: %w", err)
 	}
 	config.BackupsPath = absoluteBackupPath
 

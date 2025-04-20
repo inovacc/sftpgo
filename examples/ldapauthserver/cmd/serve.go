@@ -3,12 +3,13 @@ package cmd
 import (
 	"path/filepath"
 
+	"github.com/rs/zerolog"
+	"github.com/spf13/cobra"
+
 	"github.com/drakkan/sftpgo/ldapauthserver/config"
 	"github.com/drakkan/sftpgo/ldapauthserver/httpd"
 	"github.com/drakkan/sftpgo/ldapauthserver/logger"
 	"github.com/drakkan/sftpgo/ldapauthserver/utils"
-	"github.com/rs/zerolog"
-	"github.com/spf13/cobra"
 )
 
 var (
