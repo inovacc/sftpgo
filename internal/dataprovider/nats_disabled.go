@@ -16,10 +16,16 @@
 
 package dataprovider
 
+import (
+	"errors"
+
+	"github.com/drakkan/sftpgo/v2/internal/version"
+)
+
 func init() {
 	version.AddFeature("-nats")
 }
 
-func initializeNatsProvider(_ string) error {
+func initializeNATSProvider() error {
 	return errors.New("nats disabled at build time")
 }
