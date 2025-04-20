@@ -10,12 +10,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/drakkan/sftpgo/ldapauthserver/config"
-	"github.com/drakkan/sftpgo/ldapauthserver/logger"
-	"github.com/drakkan/sftpgo/ldapauthserver/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
+
+	"github.com/drakkan/sftpgo/ldapauthserver/config"
+	"github.com/drakkan/sftpgo/ldapauthserver/logger"
+	"github.com/drakkan/sftpgo/ldapauthserver/utils"
 )
 
 const (

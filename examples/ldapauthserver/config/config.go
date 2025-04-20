@@ -3,8 +3,9 @@ package config
 import (
 	"strings"
 
-	"github.com/drakkan/sftpgo/ldapauthserver/logger"
 	"github.com/spf13/viper"
+
+	"github.com/drakkan/sftpgo/ldapauthserver/logger"
 )
 
 const (
