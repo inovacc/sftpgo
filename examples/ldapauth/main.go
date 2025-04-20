@@ -17,7 +17,7 @@ import (
 const (
 	rootDN       = "dc=example,dc=com"
 	bindUsername = "cn=sftpgo," + rootDN
-	bindURL      = "ldap:///" // That is, the server on the default port of localhost.
+	bindURL      = "ldap:///"                       // That is, the server on the default port of localhost.
 	passwordFile = "/etc/sftpgo/admin-password.txt" // make this file readable only by the server
 	publicDir    = "/var/www/webdav/public"
 )
@@ -57,7 +57,7 @@ func printSuccessResponse(username, homeDir string, uid, gid int, permissions []
 	u.Permissions = make(map[string][]string)
 	u.Permissions["/"] = permissions
 	// uncomment the next line to require publickey+password authentication
-	//u.Filters.DeniedLoginMethods = []string{"publickey", "password", "keyboard-interactive", "publickey+keyboard-interactive"}
+	// u.Filters.DeniedLoginMethods = []string{"publickey", "password", "keyboard-interactive", "publickey+keyboard-interactive"}
 	resp, _ := json.Marshal(u)
 	log.Printf("%v\n", string(resp))
 	fmt.Printf("%v\n", string(resp))
@@ -99,7 +99,7 @@ func main() {
 	log.Printf("username=%s\n", username)
 	searchFilter := fmt.Sprintf("(uid=%s)", ldap.EscapeFilter(username))
 	searchRequest := ldap.NewSearchRequest(
-		"ou=people," + rootDN,
+		"ou=people,"+rootDN,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 		searchFilter,
 		[]string{"dn", "uid", "homeDirectory", "uidNumber", "gidNumber", "nsSshPublicKey"},
@@ -157,17 +157,17 @@ func main() {
 	uidNumber := sr.Entries[0].GetAttributeValue("uidNumber")
 	uid, err := strconv.Atoi(uidNumber)
 	if err != nil {
-		//log.Printf("uid Atoi(%s) = %s\n", uidNumber, err.Error())
+		// log.Printf("uid Atoi(%s) = %s\n", uidNumber, err.Error())
 		uid = 0
 	}
 	gidNumber := sr.Entries[0].GetAttributeValue("gidNumber")
 	gid, err := strconv.Atoi(gidNumber)
 	if err != nil {
-		//log.Printf("gid Atoi(%s) = %s\n", gidNumber, err.Error())
+		// log.Printf("gid Atoi(%s) = %s\n", gidNumber, err.Error())
 		gid = 0
 	}
 	homeDir := sr.Entries[0].GetAttributeValue("homeDirectory")
-	if (len(homeDir) <= 0) {
+	if len(homeDir) <= 0 {
 		homeDir = publicDir // homeDir is a required attribute.
 	}
 	// return the authenticated user

@@ -1,21 +1,21 @@
-﻿$ErrorActionPreference  = 'Stop'
-$packageName    = 'sftpgo'
-$softwareName   = 'SFTPGo'
-$url            = 'https://github.com/drakkan/sftpgo/releases/download/v2.6.6/sftpgo_v2.6.6_windows_x86_64.exe'
-$checksum       = '42FD81261F8472E67DA18206EF96050329D156B745AC5F9FF1CA31DD3EE9114C'
-$silentArgs     = '/VERYSILENT'
+﻿$ErrorActionPreference = 'Stop'
+$packageName = 'sftpgo'
+$softwareName = 'SFTPGo'
+$url = 'https://github.com/drakkan/sftpgo/releases/download/v2.6.6/sftpgo_v2.6.6_windows_x86_64.exe'
+$checksum = '42FD81261F8472E67DA18206EF96050329D156B745AC5F9FF1CA31DD3EE9114C'
+$silentArgs = '/VERYSILENT'
 $validExitCodes = @(0)
 
 $packageArgs = @{
-  packageName   = $packageName
-  fileType      = 'exe'
-  file          = $fileLocation
-  url           = $url
-  checksum      = $checksum
-  checksumType  = 'sha256'
-  silentArgs    = $silentArgs
-  validExitCodes= $validExitCodes
-  softwareName  = $softwareName
+    packageName = $packageName
+    fileType = 'exe'
+    file = $fileLocation
+    url = $url
+    checksum = $checksum
+    checksumType = 'sha256'
+    silentArgs = $silentArgs
+    validExitCodes = $validExitCodes
+    softwareName = $softwareName
 }
 
 Install-ChocolateyPackage @packageArgs

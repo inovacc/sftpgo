@@ -3694,7 +3694,7 @@ func TestPasswordCaching(t *testing.T) {
 	found, match = dataprovider.CheckCachedUserPassword(user.Username, defaultPassword, dbUser.Password)
 	assert.True(t, found)
 	assert.True(t, match)
-	//change password
+	// change password
 	newPassword := defaultPassword + "mod"
 	user.Password = newPassword
 	_, _, err = httpdtest.UpdateUser(user, http.StatusOK, "")

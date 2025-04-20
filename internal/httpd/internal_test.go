@@ -2901,7 +2901,7 @@ func TestParseRangeRequests(t *testing.T) {
 	resp = fmt.Sprintf("bytes %d-%d/%d", offset, offset+size-1, fileSize)
 	assert.Equal(t, "bytes 20-169739/169740", resp)
 	require.Equal(t, int64(169720), size)
-	//curl --verbose  "http://127.0.0.1:8080/static/css/sb-admin-2.min.css" -H "Range: bytes=0-" > /dev/null
+	// curl --verbose  "http://127.0.0.1:8080/static/css/sb-admin-2.min.css" -H "Range: bytes=0-" > /dev/null
 	rangeHeader = "bytes=0-"
 	offset, size, err = parseRangeRequest(rangeHeader[6:], fileSize)
 	require.NoError(t, err)

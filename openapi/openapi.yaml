@@ -39,12 +39,12 @@ info:
 servers:
   - url: /api/v2
 security:
-  - BearerAuth: []
-  - APIKeyAuth: []
+  - BearerAuth: [ ]
+  - APIKeyAuth: [ ]
 paths:
   /healthz:
     get:
-      security: []
+      security: [ ]
       servers:
         - url: /
       tags:
@@ -70,7 +70,7 @@ paths:
           type: string
     get:
       security:
-        - BasicAuth: []
+        - BasicAuth: [ ]
       tags:
         - public shares
       summary: Download shared files and folders as a single zip file
@@ -103,7 +103,7 @@ paths:
           $ref: '#/components/responses/DefaultResponse'
     post:
       security:
-        - BasicAuth: []
+        - BasicAuth: [ ]
       tags:
         - public shares
       summary: Upload one or more files to the shared path
@@ -152,7 +152,7 @@ paths:
           type: string
     get:
       security:
-        - BasicAuth: []
+        - BasicAuth: [ ]
       tags:
         - public shares
       summary: Download a single file
@@ -206,7 +206,7 @@ paths:
           type: string
     get:
       security:
-        - BasicAuth: []
+        - BasicAuth: [ ]
       tags:
         - public shares
       summary: Read directory contents
@@ -258,7 +258,7 @@ paths:
         description: File modification time as unix timestamp in milliseconds
     post:
       security:
-        - BasicAuth: []
+        - BasicAuth: [ ]
       tags:
         - public shares
       summary: Upload a single file to the shared path
@@ -309,7 +309,7 @@ paths:
   /token:
     get:
       security:
-        - BasicAuth: []
+        - BasicAuth: [ ]
       tags:
         - token
       summary: Get a new admin access token
@@ -340,7 +340,7 @@ paths:
   /logout:
     get:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - token
       summary: Invalidate an admin access token
@@ -364,7 +364,7 @@ paths:
   /user/token:
     get:
       security:
-        - BasicAuth: []
+        - BasicAuth: [ ]
       tags:
         - token
       summary: Get a new user access token
@@ -395,7 +395,7 @@ paths:
   /user/logout:
     get:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - token
       summary: Invalidate a user access token
@@ -441,7 +441,7 @@ paths:
   /admin/changepwd:
     put:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - admins
       summary: Change admin password
@@ -471,7 +471,7 @@ paths:
   /admin/profile:
     get:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - admins
       summary: Get admin profile
@@ -494,7 +494,7 @@ paths:
           $ref: '#/components/responses/DefaultResponse'
     put:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - admins
       summary: Update admin profile
@@ -526,7 +526,7 @@ paths:
   /admin/2fa/recoverycodes:
     get:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - admins
       summary: Get recovery codes
@@ -551,7 +551,7 @@ paths:
           $ref: '#/components/responses/DefaultResponse'
     post:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - admins
       summary: Generate recovery codes
@@ -579,7 +579,7 @@ paths:
   /admin/totp/configs:
     get:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - admins
       summary: Get available TOTP configuration
@@ -605,7 +605,7 @@ paths:
   /admin/totp/generate:
     post:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - admins
       summary: Generate a new TOTP secret
@@ -654,7 +654,7 @@ paths:
   /admin/totp/validate:
     post:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - admins
       summary: Validate a one time authentication code
@@ -698,7 +698,7 @@ paths:
   /admin/totp/save:
     post:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - admins
       summary: Save a TOTP config
@@ -2860,7 +2860,7 @@ paths:
   /apikeys:
     get:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - API keys
       summary: Get API keys
@@ -2914,7 +2914,7 @@ paths:
           $ref: '#/components/responses/DefaultResponse'
     post:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - API keys
       summary: Add API key
@@ -2969,7 +2969,7 @@ paths:
           type: string
     get:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - API keys
       summary: Find API key by id
@@ -2996,7 +2996,7 @@ paths:
           $ref: '#/components/responses/DefaultResponse'
     put:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - API keys
       summary: Update API key
@@ -3031,7 +3031,7 @@ paths:
           $ref: '#/components/responses/DefaultResponse'
     delete:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - API keys
       summary: Delete API key
@@ -3282,7 +3282,7 @@ paths:
         schema:
           type: string
     post:
-      security: []
+      security: [ ]
       tags:
         - admins
       summary: Send a password reset code by email
@@ -3316,7 +3316,7 @@ paths:
         schema:
           type: string
     post:
-      security: []
+      security: [ ]
       tags:
         - admins
       summary: Reset the password
@@ -3600,7 +3600,7 @@ paths:
         schema:
           type: string
     post:
-      security: []
+      security: [ ]
       tags:
         - users
       summary: Send a password reset code by email
@@ -3634,7 +3634,7 @@ paths:
         schema:
           type: string
     post:
-      security: []
+      security: [ ]
       tags:
         - users
       summary: Reset the password
@@ -3852,7 +3852,7 @@ paths:
   /user/changepwd:
     put:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - user APIs
       summary: Change user password
@@ -3882,7 +3882,7 @@ paths:
   /user/profile:
     get:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - user APIs
       summary: Get user profile
@@ -3905,7 +3905,7 @@ paths:
           $ref: '#/components/responses/DefaultResponse'
     put:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - user APIs
       summary: Update user profile
@@ -3937,7 +3937,7 @@ paths:
   /user/2fa/recoverycodes:
     get:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - user APIs
       summary: Get recovery codes
@@ -3962,7 +3962,7 @@ paths:
           $ref: '#/components/responses/DefaultResponse'
     post:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - user APIs
       summary: Generate recovery codes
@@ -3990,7 +3990,7 @@ paths:
   /user/totp/configs:
     get:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - user APIs
       summary: Get available TOTP configuration
@@ -4016,7 +4016,7 @@ paths:
   /user/totp/generate:
     post:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - user APIs
       summary: Generate a new TOTP secret
@@ -4063,7 +4063,7 @@ paths:
   /user/totp/validate:
     post:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - user APIs
       summary: Validate a one time authentication code
@@ -4107,7 +4107,7 @@ paths:
   /user/totp/save:
     post:
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       tags:
         - user APIs
       summary: Save a TOTP config
@@ -5753,9 +5753,9 @@ components:
             - 0
             - 1
           description: |
-             Defines how to check if this config points to the same server as another config. If different configs point to the same server the renaming between the fs configs is allowed:
-              * `0` username and endpoint must match. This is the default
-              * `1` only the endpoint must match
+            Defines how to check if this config points to the same server as another config. If different configs point to the same server the renaming between the fs configs is allowed:
+             * `0` username and endpoint must match. This is the default
+             * `1` only the endpoint must match
     HTTPFsConfig:
       type: object
       properties:
@@ -5776,9 +5776,9 @@ components:
             - 0
             - 1
           description: |
-             Defines how to check if this config points to the same server as another config. If different configs point to the same server the renaming between the fs configs is allowed:
-              * `0` username and endpoint must match. This is the default
-              * `1` only the endpoint must match
+            Defines how to check if this config points to the same server as another config. If different configs point to the same server the renaming between the fs configs is allowed:
+             * `0` username and endpoint must match. This is the default
+             * `1` only the endpoint must match
     FilesystemConfig:
       type: object
       properties:

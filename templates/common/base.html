@@ -14,61 +14,64 @@ therefore cannot be used in derivative works/products without an
 explicit grant from the SFTPGo Team (support@sftpgo.com).
 -->
 {{- define "errmsg"}}
-<div id="errorMsg" class="{{if not . }}d-none {{end}}rounded border-warning border border-dashed bg-light-warning d-flex align-items-center p-5 mb-10">
+<div class="{{if not . }}d-none {{end}}rounded border-warning border border-dashed bg-light-warning d-flex align-items-center p-5 mb-10"
+     id="errorMsg">
     <i class="ki-duotone ki-information-5 fs-3x text-warning me-5">
         <span class="path1"></span>
         <span class="path2"></span>
         <span class="path3"></span>
     </i>
     <div class="text-gray-800 fw-bold fs-5 d-flex flex-column pe-0 pe-sm-10">
-		<span {{if .}}data-i18n="{{.Message}}" {{if .HasArgs}}data-i18n-options="{{.Args}}"{{end}}{{end}} id="errorTxt"></span>
-	</div>
-    <button id="id_dismiss_error_msg" type="button" class="position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 btn btn-icon btn-sm btn-active-light-primary ms-sm-auto">
+        <span .HasArgs}}data-i18n-options="{{.Args}}" .}}data-i18n="{{.Message}}" id="errorTxt" {{end}}{{end}} {{if
+              {{if></span>
+    </div>
+    <button class="position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 btn btn-icon btn-sm btn-active-light-primary ms-sm-auto" id="id_dismiss_error_msg"
+            type="button">
         <i class="ki-solid ki-cross fs-2x text-gray-700"></i>
     </button>
 </div>
 {{- end}}
 
 {{- define "theme-setup"}}
-<script type="text/javascript" {{- if .}} nonce="{{.}}"{{- end}}>
+<script .}} end}} if nonce="{{.}}" type="text/javascript" {{- {{->
     var defaultThemeMode = "system";
     var themeMode;
-	if ( document.documentElement ) {
-		if ( document.documentElement.hasAttribute("data-bs-theme-mode")) {
-			themeMode = document.documentElement.getAttribute("data-bs-theme-mode");
-		} else {
-			if ( localStorage.getItem("data-bs-theme") !== null ) {
-				themeMode = localStorage.getItem("data-bs-theme");
-			} else {
-				themeMode = defaultThemeMode;
-			}
-		}
-		if (themeMode === "system") {
-			themeMode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-		}
-		document.documentElement.setAttribute("data-bs-theme", themeMode);
-	}
+    if (document.documentElement) {
+        if (document.documentElement.hasAttribute("data-bs-theme-mode")) {
+            themeMode = document.documentElement.getAttribute("data-bs-theme-mode");
+        } else {
+            if (localStorage.getItem("data-bs-theme") !== null) {
+                themeMode = localStorage.getItem("data-bs-theme");
+            } else {
+                themeMode = defaultThemeMode;
+            }
+        }
+        if (themeMode === "system") {
+            themeMode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        document.documentElement.setAttribute("data-bs-theme", themeMode);
+    }
 </script>
 {{- end }}
 
 {{- define "commonjs"}}
-<script type="text/javascript" {{- if .}} nonce="{{.}}"{{- end}}>
+<script .}} end}} if nonce="{{.}}" type="text/javascript" {{- {{->
     window.addEventListener("pageshow", function (event) {
         if (event.persisted) {
-			let loadings = document.querySelectorAll('[data-kt-indicator=on]');
-            if (loadings){
-				[].forEach.call(loadings, function (loading) {
-					loading.removeAttribute('data-kt-indicator');
-					loading.disabled = false;
-				});
+            let loadings = document.querySelectorAll('[data-kt-indicator=on]');
+            if (loadings) {
+                [].forEach.call(loadings, function (loading) {
+                    loading.removeAttribute('data-kt-indicator');
+                    loading.disabled = false;
+                });
             }
-		}
-	});
+        }
+    });
 </script>
 {{- end}}
 
 {{- define "basejs"}}
-<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
     // https://developer.mozilla.org/en-US/docs/Web/API/Document/createTextNode
     function escapeHTML(str) {
         var div = document.createElement('div');
@@ -76,14 +79,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         return div.innerHTML;
     }
 
-    function fileSizeIEC(a,b,c,d,e){
-        return (b=Math,c=b.log,d=1024,e=c(a)/c(d)|0,a/b.pow(d,e)).toFixed(1)
-            +' '+(e?'KMGTPEZY'[--e]+'iB':'Bytes')
+    function fileSizeIEC(a, b, c, d, e) {
+        return (b = Math, c = b.log, d = 1024, e = c(a) / c(d) | 0, a / b.pow(d, e)).toFixed(1)
+            + ' ' + (e ? 'KMGTPEZY'[--e] + 'iB' : 'Bytes')
     }
 
-    function humanizeSpeed(a,b,c,d,e){
-        return (b=Math,c=b.log,d=1024,e=c(a)/c(d)|0,a/b.pow(d,e)).toFixed(1)
-            +' '+(e?'KMGTPEZY'[--e]+'B/s':'Bytes/s')
+    function humanizeSpeed(a, b, c, d, e) {
+        return (b = Math, c = b.log, d = 1024, e = c(a) / c(d) | 0, a / b.pow(d, e)).toFixed(1)
+            + ' ' + (e ? 'KMGTPEZY'[--e] + 'B/s' : 'Bytes/s')
     }
 
     function initRepeaterItems() {
@@ -91,13 +94,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         let repeaterCreateButtons = document.querySelectorAll('[data-repeater-create]');
 
         repeaterDeleteButtons.forEach(d => {
-            d.addEventListener("click", function(e){
+            d.addEventListener("click", function (e) {
                 e.preventDefault();
             });
         });
 
         repeaterCreateButtons.forEach(d => {
-            d.addEventListener("click", function(e){
+            d.addEventListener("click", function (e) {
                 e.preventDefault();
             });
         });
@@ -108,17 +111,17 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             initEmpty: false,
 
             show: function () {
-                $(this).find('.select-repetear').each(function(){
+                $(this).find('.select-repetear').each(function () {
                     initializeSelect2El(this);
                     let el = $(this);
-                    if (el.hasClass('select-first')){
+                    if (el.hasClass('select-first')) {
                         let firstVal = el.find("option:first-child").val();
                         el.val(firstVal).trigger('change');
                     }
                 });
                 $(this).localize();
                 $(this).slideDown();
-                $(this).find('[data-repeater-delete]').on("click", function(e){
+                $(this).find('[data-repeater-delete]').on("click", function (e) {
                     e.preventDefault();
                 });
             },
@@ -128,7 +131,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             }
         });
 
-        $(selector).find('.select-repetear').each(function(){
+        $(selector).find('.select-repetear').each(function () {
             initializeSelect2El(this);
         });
     }
@@ -158,7 +161,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 removeItem: function () {
                     return $.t('select2.remove');
                 },
-                search: function() {
+                search: function () {
                     return $.t('general.search');
                 }
             }
@@ -175,25 +178,25 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
     const lngs = {};
     //{{- range .Languages}}
     //{{- if eq . "en"}}
-    lngs.en = { nativeName: 'English' };
+    lngs.en = {nativeName: 'English'};
     //{{- else if eq . "it" }}
-    lngs.it = { nativeName: 'Italiano' };
+    lngs.it = {nativeName: 'Italiano'};
     //{{- else if eq . "de" }}
-    lngs.de = { nativeName: 'Deutsch' };
+    lngs.de = {nativeName: 'Deutsch'};
     //{{- else if eq . "fr" }}
-    lngs.fr = { nativeName: 'Français' };
+    lngs.fr = {nativeName: 'Français'};
     //{{- end}}
     //{{- end}}
-    if (Object.keys(lngs).length == 0){
-        lngs.en = { nativeName: 'English' };
+    if (Object.keys(lngs).length == 0) {
+        lngs.en = {nativeName: 'English'};
     }
 
     const renderI18n = () => {
         document.documentElement.setAttribute('lang', i18next.resolvedLanguage);
-        $('title').text('{{.Branding.Name}} - '+$.t('{{.Title}}'));
+        $('title').text('{{.Branding.Name}} - ' + $.t('{{.Title}}'));
         $('body').localize();
         let select2elements = [].slice.call(document.querySelectorAll('[data-control="i18n-select2"]'));
-        select2elements.map(function (element){
+        select2elements.map(function (element) {
             initializeSelect2El(element);
         });
     }
@@ -216,7 +219,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         expirationTime: 7 * 24 * 60 * 60 * 1000, // 7 days
                         defaultVersion: '{{.Version}}'
                     }, {
-                        loadPath: '{{.StaticURL}}/locales/{{"{{lng}}"}}/{{"{{ns}}"}}.json?_='+new Date().getTime().toString()
+                        loadPath: '{{.StaticURL}}/locales/{{"{{lng}}"}}/{{"{{ns}}"}}.json?_=' + new Date().getTime().toString()
                     }
                     ]
                 }
@@ -224,10 +227,10 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 if (err) {
                     console.error(err);
                 } else {
-                    jqueryI18next.init(i18next, $, { useOptionsAttr: true });
+                    jqueryI18next.init(i18next, $, {useOptionsAttr: true});
 
                     var languageSwitcher = $('#languageSwitcher');
-                    if (languageSwitcher.length){
+                    if (languageSwitcher.length) {
                         if (Object.keys(lngs).length > 1) {
                             languageSwitcher.removeClass("d-none");
                             Object.keys(lngs).map((lng) => {
@@ -268,37 +271,37 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
     }
 
     function handlePasswordInputVisibility(el) {
-		let pwdVisibility = $(el.querySelector('[data-password-control="visibility"]'));
-		let passwordInput = el.querySelector('[data-password-control="input"]');
+        let pwdVisibility = $(el.querySelector('[data-password-control="visibility"]'));
+        let passwordInput = el.querySelector('[data-password-control="input"]');
         pwdVisibility.off("click");
-		pwdVisibility.on('click', function(){
-			let visibleIcon = this.querySelector(':scope > i:not(.d-none)');
+        pwdVisibility.on('click', function () {
+            let visibleIcon = this.querySelector(':scope > i:not(.d-none)');
             let hiddenIcon = this.querySelector(':scope > i.d-none');
             visibleIcon.classList.add('d-none');
             hiddenIcon.classList.remove('d-none');
-            if (passwordInput){
-				if (passwordInput.getAttribute('type').toLowerCase() === 'password' ) {
-            		passwordInput.setAttribute('type', 'text');
-        		} else {
-            		passwordInput.setAttribute('type', 'password');
-        		}
-				passwordInput.focus();
-			}
-		});
-	}
-
-    function getCurrentURI(){
-        let port = window.location.port;
-        if (port){
-            return window.location.protocol+"//"+window.location.hostname+":"+port;
-        }
-        return window.location.protocol+"//"+window.location.hostname;
+            if (passwordInput) {
+                if (passwordInput.getAttribute('type').toLowerCase() === 'password') {
+                    passwordInput.setAttribute('type', 'text');
+                } else {
+                    passwordInput.setAttribute('type', 'password');
+                }
+                passwordInput.focus();
+            }
+        });
     }
 
-    function onFilesystemChanged(val){
+    function getCurrentURI() {
+        let port = window.location.port;
+        if (port) {
+            return window.location.protocol + "//" + window.location.hostname + ":" + port;
+        }
+        return window.location.protocol + "//" + window.location.hostname;
+    }
+
+    function onFilesystemChanged(val) {
         const supportedFs = ["local", "s3", "gcs", "azblob", "crypt", "sftp", "http"];
         let fsName = "local";
-        switch (val){
+        switch (val) {
             case '1':
                 fsName = "s3";
                 break;
@@ -318,11 +321,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 fsName = "http";
                 break;
         }
-        for (let i = 0; i < supportedFs.length; i++){
-            if (supportedFs[i] == fsName){
-                $('.form-group.fsconfig-'+fsName).show();
+        for (let i = 0; i < supportedFs.length; i++) {
+            if (supportedFs[i] == fsName) {
+                $('.form-group.fsconfig-' + fsName).show();
             } else {
-                $('.form-group.fsconfig-'+supportedFs[i]).hide();
+                $('.form-group.fsconfig-' + supportedFs[i]).hide();
             }
         }
     }
@@ -339,38 +342,38 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
     KTUtil.onDOMContentLoaded(function () {
         var dismissErrorBtn = $('#id_dismiss_error_msg');
-        if (dismissErrorBtn.length){
-            dismissErrorBtn.on("click", function(){
+        if (dismissErrorBtn.length) {
+            dismissErrorBtn.on("click", function () {
                 $('#errorMsg').addClass("d-none");
             });
         }
 
         var logoutBtn = $('#id_logout_link');
-        if (logoutBtn.length){
-            logoutBtn.on("click", function(){
+        if (logoutBtn.length) {
+            logoutBtn.on("click", function () {
                 doLogout();
             });
         }
 
         document.querySelectorAll('[data-password-control="container"]').forEach(el => {
-			handlePasswordInputVisibility(el);
-		});
+            handlePasswordInputVisibility(el);
+        });
 
         initLocalizer();
         // Workaround to fix scrollbar in navigation sidebar.
         window.dispatchEvent(new Event('resize'));
-	});
+    });
 </script>
 {{- end}}
 
 {{- define "globalstyle"}}
-<style {{- if .}} nonce="{{.}}"{{- end}}>
+<style .}} end}} if nonce="{{.}}" {{- {{->
     .text-sidebar {
-		color: var(--bs-white);
-	}
+        color: var(--bs-white);
+    }
 
-	[data-bs-theme="dark"] .text-sidebar {
-		color: var(--bs-white);
+    [data-bs-theme="dark"] .text-sidebar {
+        color: var(--bs-white);
     }
 
     .wrap-word {
@@ -400,12 +403,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
     }
 
     .shortcut {
-        font-family: monospace; color: #666;
+        font-family: monospace;
+        color: #666;
     }
 
     .overflow-auto {
         overflow: auto;
     }
+
     .visibility-auto {
         content-visibility: auto;
     }
@@ -413,7 +418,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "fonts"}}
-<style {{- if .}} nonce="{{.CSPNonce}}"{{- end}}>
+<style .}} end}} if nonce="{{.CSPNonce}}" {{- {{->
     /* cyrillic-ext */
     @font-face {
         font-family: 'Inter';
@@ -733,7 +738,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
 {{- define "theme-switcher"}}
 <div class="d-flex align-items-center ms-2 ms-lg-3">
-    <a href="#" class="btn btn-icon btn-active-light-primary w-35px h-35px w-md-40px h-md-40px" data-kt-menu-trigger="{default:'click', lg: 'hover'}" data-kt-menu-attach="parent" data-kt-menu-placement="bottom-end">
+    <a class="btn btn-icon btn-active-light-primary w-35px h-35px w-md-40px h-md-40px" data-kt-menu-attach="parent"
+       data-kt-menu-placement="bottom-end" data-kt-menu-trigger="{default:'click', lg: 'hover'}"
+       href="#">
         <i class="ki-duotone ki-night-day theme-light-show fs-2">
             <span class="path1"></span>
             <span class="path2"></span>
@@ -751,9 +758,10 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             <span class="path2"></span>
         </i>
     </a>
-    <div class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-title-gray-700 menu-icon-gray-500 menu-active-bg menu-state-color fw-semibold py-4 fs-base w-150px" data-kt-menu="true" data-kt-element="theme-mode-menu">
+    <div class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-title-gray-700 menu-icon-gray-500 menu-active-bg menu-state-color fw-semibold py-4 fs-base w-150px"
+         data-kt-element="theme-mode-menu" data-kt-menu="true">
         <div class="menu-item px-3 my-0">
-            <a href="#" class="menu-link px-3 py-2" data-kt-element="mode" data-kt-value="light">
+            <a class="menu-link px-3 py-2" data-kt-element="mode" data-kt-value="light" href="#">
                 <span class="menu-icon" data-kt-element="icon">
                     <i class="ki-duotone ki-night-day fs-2">
                         <span class="path1"></span>
@@ -768,22 +776,22 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         <span class="path10"></span>
                     </i>
                 </span>
-                <span data-i18n="theme.light" class="menu-title">Light</span>
+                <span class="menu-title" data-i18n="theme.light">Light</span>
             </a>
         </div>
         <div class="menu-item px-3 my-0">
-            <a href="#" class="menu-link px-3 py-2" data-kt-element="mode" data-kt-value="dark">
+            <a class="menu-link px-3 py-2" data-kt-element="mode" data-kt-value="dark" href="#">
                 <span class="menu-icon" data-kt-element="icon">
                     <i class="ki-duotone ki-moon fs-2">
                         <span class="path1"></span>
                         <span class="path2"></span>
                     </i>
                 </span>
-                <span data-i18n="theme.dark" class="menu-title">Dark</span>
+                <span class="menu-title" data-i18n="theme.dark">Dark</span>
             </a>
         </div>
         <div class="menu-item px-3 my-0">
-            <a href="#" class="menu-link px-3 py-2" data-kt-element="mode" data-kt-value="system">
+            <a class="menu-link px-3 py-2" data-kt-element="mode" data-kt-value="system" href="#">
                 <span class="menu-icon" data-kt-element="icon">
                     <i class="ki-duotone ki-screen fs-2">
                         <span class="path1"></span>
@@ -792,7 +800,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         <span class="path4"></span>
                     </i>
                 </span>
-                <span data-i18n="theme.system" class="menu-title">System</span>
+                <span class="menu-title" data-i18n="theme.system">System</span>
             </a>
         </div>
     </div>
@@ -822,305 +830,328 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "base"}}
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title></title>
-        <meta charset="utf-8" />
-        <meta name="description" content="" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="robots" content="noindex">
-        <link rel="icon" type="image/png" href="{{.StaticURL}}{{.Branding.FaviconPath}}" />
-		{{- template "fonts" . }}
-        {{- block "extra_css" .}}{{- end}}
-        {{- range .Branding.DefaultCSS}}
-        <link href="{{$.StaticURL}}{{.}}" rel="stylesheet" type="text/css">
-        {{- end}}
-        {{- template "globalstyle" .CSPNonce }}
-        {{- range .Branding.ExtraCSS}}
-        <link href="{{$.StaticURL}}{{.}}" rel="stylesheet" type="text/css">
-        {{- end}}
-        {{- template "commonjs" .CSPNonce }}
-    </head>
+<head>
+    <title></title>
+    <meta charset="utf-8"/>
+    <meta content="" name="description"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <meta content="noindex" name="robots">
+    <link href="{{.StaticURL}}{{.Branding.FaviconPath}}" rel="icon" type="image/png"/>
+    {{- template "fonts" . }}
+    {{- block "extra_css" .}}{{- end}}
+    {{- range .Branding.DefaultCSS}}
+    <link href="{{$.StaticURL}}{{.}}" rel="stylesheet" type="text/css">
+    {{- end}}
+    {{- template "globalstyle" .CSPNonce }}
+    {{- range .Branding.ExtraCSS}}
+    <link href="{{$.StaticURL}}{{.}}" rel="stylesheet" type="text/css">
+    {{- end}}
+    {{- template "commonjs" .CSPNonce }}
+</head>
 
-    <body data-kt-app-header-fixed="true" data-kt-app-header-fixed-mobile="true" data-kt-app-toolbar-enabled="true" data-kt-app-sidebar-enabled="true" data-kt-app-sidebar-fixed="true" data-kt-app-sidebar-push-header="true" data-kt-app-sidebar-push-toolbar="true" data-kt-app-sidebar-push-footer="true"  class="app-default">
-        {{- template "theme-setup" .CSPNonce }}
-        <div id="app_loader" class="align-items-center text-center my-10">
-            <span class="spinner-border w-15px h-15px text-muted align-middle me-2"></span>
-        </div>
-        <div class="d-flex flex-column flex-root app-root d-none" id="app_root">
-            <div class="app-page  flex-column flex-column-fluid " id="kt_app_page">
-                {{- if .LoggedUser.Username}}
-                <div id="kt_app_header" class="app-header" data-kt-sticky="true" data-kt-sticky-activate="{default: true, lg: true}" data-kt-sticky-name="app-header-minimize" data-kt-sticky-offset="{default: '200px', lg: '300px'}" data-kt-sticky-animation="false">
-                    <div class="app-container  container-fluid d-flex align-items-stretch flex-stack " id="kt_app_header_container">
-                        <div class="d-flex align-items-center d-block d-lg-none ms-n3" title="Show sidebar menu">
-                            <div class="btn btn-icon btn-color-gray-800 btn-active-color-primary w-35px h-35px me-1" id="kt_app_sidebar_mobile_toggle">
-                                <i class="ki-duotone ki-abstract-14 fs-2">
-                                    <span class="path1"></span>
-                                    <span class="path2"></span>
-                                </i>
-                            </div>
-                            <span>
-                                <img alt="Logo" src="{{.StaticURL}}{{.Branding.LogoPath}}" class="h-30px" />
+<body class="app-default" data-kt-app-header-fixed="true" data-kt-app-header-fixed-mobile="true"
+      data-kt-app-sidebar-enabled="true" data-kt-app-sidebar-fixed="true" data-kt-app-sidebar-push-footer="true"
+      data-kt-app-sidebar-push-header="true" data-kt-app-sidebar-push-toolbar="true" data-kt-app-toolbar-enabled="true">
+{{- template "theme-setup" .CSPNonce }}
+<div class="align-items-center text-center my-10" id="app_loader">
+    <span class="spinner-border w-15px h-15px text-muted align-middle me-2"></span>
+</div>
+<div class="d-flex flex-column flex-root app-root d-none" id="app_root">
+    <div class="app-page  flex-column flex-column-fluid " id="kt_app_page">
+        {{- if .LoggedUser.Username}}
+        <div class="app-header" data-kt-sticky="true" data-kt-sticky-activate="{default: true, lg: true}"
+             data-kt-sticky-animation="false" data-kt-sticky-name="app-header-minimize"
+             data-kt-sticky-offset="{default: '200px', lg: '300px'}" id="kt_app_header">
+            <div class="app-container  container-fluid d-flex align-items-stretch flex-stack "
+                 id="kt_app_header_container">
+                <div class="d-flex align-items-center d-block d-lg-none ms-n3" title="Show sidebar menu">
+                    <div class="btn btn-icon btn-color-gray-800 btn-active-color-primary w-35px h-35px me-1"
+                         id="kt_app_sidebar_mobile_toggle">
+                        <i class="ki-duotone ki-abstract-14 fs-2">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                        </i>
+                    </div>
+                    <span>
+                                <img alt="Logo" class="h-30px" src="{{.StaticURL}}{{.Branding.LogoPath}}"/>
                             </span>
-                        </div>
-                        <div class="app-navbar flex-lg-grow-1" id="kt_app_header_navbar">
-                            <div class="app-navbar-item d-flex align-items-center flex-lg-grow-1 me-2 me-lg-0">
-                            </div>
-                            <!-- <div class="d-flex align-self-center flex-center flex-shrink-0">
-                            </div> -->
-                            <div class="d-flex align-self-center flex-center flex-shrink-0">
-                                {{- template "navitems" .}}
-							</div>
+                </div>
+                <div class="app-navbar flex-lg-grow-1" id="kt_app_header_navbar">
+                    <div class="app-navbar-item d-flex align-items-center flex-lg-grow-1 me-2 me-lg-0">
+                    </div>
+                    <!-- <div class="d-flex align-self-center flex-center flex-shrink-0">
+                    </div> -->
+                    <div class="d-flex align-self-center flex-center flex-shrink-0">
+                        {{- template "navitems" .}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{- else if .IsLoggedToShare}}
+        <div class="app-container container-fluid d-flex mt-5">
+            <div class="d-flex align-items-center d-block ms-3">
+                <img alt="Logo" class="h-50px" src="{{.StaticURL}}{{.Branding.LogoPath}}"/>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-end">
+                    {{- template "navitems" .}}
+                </div>
+            </div>
+        </div>
+        {{- end}}
+        <div class="{{- if .LoggedUser.Username}}app-wrapper{{- end}} flex-column flex-row-fluid " id="kt_app_wrapper">
+            {{- if .LoggedUser.Username}}
+            <!-- <div id="kt_app_toolbar" class="app-toolbar">
+                <div id="kt_app_toolbar_container" class="app-container  container-fluid d-flex flex-lg-column py-3 py-lg-6 ">
+
+                </div>
+            </div> -->
+            <div class="app-sidebar flex-column" data-kt-drawer="true" data-kt-drawer-activate="{default: true, lg: false}"
+                 data-kt-drawer-direction="start" data-kt-drawer-name="app-sidebar"
+                 data-kt-drawer-overlay="true" data-kt-drawer-toggle="#kt_app_sidebar_mobile_toggle" data-kt-drawer-width="300px"
+                 id="kt_app_sidebar">
+                <div class="app-sidebar-header flex-column mx-10 pt-8" id="kt_app_sidebar_header">
+                    <div class="d-flex flex-stack d-none d-lg-flex mb-13">
+                        <div class="app-sidebar-logo">
+                            <img alt="Logo" class="h-40px app-sidebar-logo-default"
+                                 src="{{.StaticURL}}{{.Branding.LogoPath}}"/>
+                            <span class="text-sidebar fs-4 fw-semibold ps-5">{{.Branding.ShortName}}</span>
                         </div>
                     </div>
                 </div>
-                {{- else if .IsLoggedToShare}}
-                <div class="app-container container-fluid d-flex mt-5">
-                    <div class="d-flex align-items-center d-block ms-3">
-                        <img alt="Logo" src="{{.StaticURL}}{{.Branding.LogoPath}}" class="h-50px" />
+                <div class="app-sidebar-navs flex-column-fluid pb-6" id="kt_app_sidebar_navs">
+                    <div class="hover-scroll-y my-2 mx-4" data-kt-scroll="true" data-kt-scroll-activate="true"
+                         data-kt-scroll-dependencies="#kt_app_sidebar_header" data-kt-scroll-height="auto"
+                         data-kt-scroll-offset="5px"
+                         data-kt-scroll-wrappers="#kt_app_sidebar_navs" id="kt_app_sidebar_navs_wrappers">
+                        <div class="menu menu-column menu-rounded menu-sub-indention menu-active-bg mb-7" data-kt-menu="true" data-kt-menu-expand="false"
+                             id="#kt_app_sidebar_menu">
+                            {{- template "sidebaritems" .}}
+                        </div>
                     </div>
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-end">
-                            {{- template "navitems" .}}
+                </div>
+            </div>
+            {{- end}}
+            <div class="app-main flex-column flex-row-fluid " id="kt_app_main">
+                <div class="d-flex flex-column flex-column-fluid">
+                    <div class="app-content flex-column-fluid" id="kt_app_content">
+                        <div class="app-container container-fluid" id="kt_app_content_container">
+                            {{- template "page_body" .}}
+                        </div>
+                    </div>
+                </div>
+                {{- if .LoggedUser.Username}}
+                <div class="app-footer" id="kt_app_footer">
+                    <div class="app-container  container-fluid d-flex flex-column flex-md-row flex-center flex-md-stack py-3 align-items-center justify-content-center">
+                        <div class="text-gray-900 order-2 order-md-1">
+                            <span class="text-gray-700 fw-semibold me-1">{{.Version}}</span>
                         </div>
                     </div>
                 </div>
                 {{- end}}
-                <div class="{{- if .LoggedUser.Username}}app-wrapper{{- end}} flex-column flex-row-fluid " id="kt_app_wrapper">
-                    {{- if .LoggedUser.Username}}
-                    <!-- <div id="kt_app_toolbar" class="app-toolbar">
-                        <div id="kt_app_toolbar_container" class="app-container  container-fluid d-flex flex-lg-column py-3 py-lg-6 ">
-
-                        </div>
-                    </div> -->
-                    <div id="kt_app_sidebar" class="app-sidebar flex-column" data-kt-drawer="true" data-kt-drawer-name="app-sidebar" data-kt-drawer-activate="{default: true, lg: false}" data-kt-drawer-overlay="true" data-kt-drawer-width="300px" data-kt-drawer-direction="start" data-kt-drawer-toggle="#kt_app_sidebar_mobile_toggle">
-                        <div class="app-sidebar-header flex-column mx-10 pt-8" id="kt_app_sidebar_header">
-                            <div class="d-flex flex-stack d-none d-lg-flex mb-13">
-                                <div class="app-sidebar-logo">
-									<img alt="Logo" src="{{.StaticURL}}{{.Branding.LogoPath}}" class="h-40px app-sidebar-logo-default" />
-									<span class="text-sidebar fs-4 fw-semibold ps-5">{{.Branding.ShortName}}</span>
-								</div>
-                            </div>
-                        </div>
-                        <div class="app-sidebar-navs flex-column-fluid pb-6" id="kt_app_sidebar_navs">
-                            <div id="kt_app_sidebar_navs_wrappers" class="hover-scroll-y my-2 mx-4" data-kt-scroll="true" data-kt-scroll-activate="true" data-kt-scroll-height="auto" data-kt-scroll-dependencies="#kt_app_sidebar_header" data-kt-scroll-wrappers="#kt_app_sidebar_navs" data-kt-scroll-offset="5px">
-                                <div id="#kt_app_sidebar_menu" data-kt-menu="true" data-kt-menu-expand="false" class="menu menu-column menu-rounded menu-sub-indention menu-active-bg mb-7">
-                                    {{- template "sidebaritems" .}}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {{- end}}
-                    <div class="app-main flex-column flex-row-fluid " id="kt_app_main">
-                        <div class="d-flex flex-column flex-column-fluid">
-                            <div id="kt_app_content" class="app-content flex-column-fluid">
-                                <div id="kt_app_content_container" class="app-container container-fluid">
-                                    {{- template "page_body" .}}
-                                </div>
-                            </div>
-                        </div>
-                        {{- if .LoggedUser.Username}}
-                        <div id="kt_app_footer" class="app-footer">
-                            <div class="app-container  container-fluid d-flex flex-column flex-md-row flex-center flex-md-stack py-3 align-items-center justify-content-center">
-                                <div class="text-gray-900 order-2 order-md-1">
-                                    <span class="text-gray-700 fw-semibold me-1">{{.Version}}</span>
-                                </div>
-                            </div>
-                        </div>
-                        {{- end}}
-                    </div>
-                </div>
             </div>
         </div>
-        <div id="kt_scrolltop" class="scrolltop" data-kt-scrolltop="true">
-            <i class="ki-duotone ki-arrow-up">
-                <span class="path1"></span>
-                <span class="path2"></span>
-            </i>
-        </div>
-        <div class="page-loader flex-column">
-			<span class="spinner-border text-primary" role="status"></span>
-			<span id="loading_info" class="text-muted fs-4 fw-semibold mt-5"></span>
-            <span id="loading_message" class="text-muted fs-4 fw-semibold mt-5"></span>
-		</div>
+    </div>
+</div>
+<div class="scrolltop" data-kt-scrolltop="true" id="kt_scrolltop">
+    <i class="ki-duotone ki-arrow-up">
+        <span class="path1"></span>
+        <span class="path2"></span>
+    </i>
+</div>
+<div class="page-loader flex-column">
+    <span class="spinner-border text-primary" role="status"></span>
+    <span class="text-muted fs-4 fw-semibold mt-5" id="loading_info"></span>
+    <span class="text-muted fs-4 fw-semibold mt-5" id="loading_message"></span>
+</div>
 
-        <div class="modal fade" tabindex="-1" id="modal_alert">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-body">
-                        <div class="d-flex flex-center flex-column">
+<div class="modal fade" id="modal_alert" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="d-flex flex-center flex-column">
                             <span id="modal_alert_icon">
                             </span>
-                            <div class="mt-10 text-center">
-                                <span id="modal_alert_text" class="fs-6 text-gray-900 fw-semibold"></span>
-                            </div>
-                        </div>
-                        <div id="modal_alert_items" class="d-flex flex-column mt-5 d-none">
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0 justify-content-center">
-                        <button id="modal_alert_cancel" type="button" class="btn btn-secondary m-2"></button>
-                        <button id="modal_alert_ok" type="button" class="btn btn-primary m-2"></button>
+                    <div class="mt-10 text-center">
+                        <span class="fs-6 text-gray-900 fw-semibold" id="modal_alert_text"></span>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="toast-container position-fixed top-0 end-0 p-3">
-            <div id="toast_container" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
-                <div class="toast-body border-0 d-flex align-items-center">
-                    <span id="toast_icon"></span>
-                    <span id="toast_msg" class="fs-5 fw-semibold text-gray-800 me-auto"></span>
-                    <button data-i18n="[aria-label]general.close" type="button" class="btn btn-icon btn-sm btn-active-light-primary position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 ms-sm-auto" data-bs-dismiss="toast" aria-label="Close">
-                        <i class="ki-solid ki-cross fs-2x text-gray-700"></i>
-                    </button>
+                <div class="d-flex flex-column mt-5 d-none" id="modal_alert_items">
                 </div>
             </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button class="btn btn-secondary m-2" id="modal_alert_cancel" type="button"></button>
+                <button class="btn btn-primary m-2" id="modal_alert_ok" type="button"></button>
+            </div>
         </div>
+    </div>
+</div>
 
-        {{- block "modals" .}}{{- end}}
-		<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/global/plugins.bundle.js"></script>
-		<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/js/scripts.bundle.js"></script>
-        <script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/vendor/i18next/i18next.min.js"></script>
-		<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/vendor/i18next/jquery-i18next.min.js"></script>
-		<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/vendor/i18next/i18nextBrowserLanguageDetector.min.js"></script>
-		<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/vendor/i18next/i18nextChainedBackend.min.js"></script>
-        <script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/vendor/i18next/i18nextLocalStorageBackend.min.js"></script>
-        <script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/vendor/i18next/i18nextHttpBackend.min.js"></script>
-		{{- template "basejs" . }}
-        <script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
-            var ModalAlert = function () {
-                var modal;
-                var promiseResolve;
-                var isResolved;
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div aria-atomic="true" aria-live="assertive" class="toast" data-bs-autohide="false" id="toast_container"
+         role="alert">
+        <div class="toast-body border-0 d-flex align-items-center">
+            <span id="toast_icon"></span>
+            <span class="fs-5 fw-semibold text-gray-800 me-auto" id="toast_msg"></span>
+            <button aria-label="Close" class="btn btn-icon btn-sm btn-active-light-primary position-absolute position-sm-relative m-2 m-sm-0 top-0 end-0 ms-sm-auto"
+                    data-bs-dismiss="toast"
+                    data-i18n="[aria-label]general.close" type="button">
+                <i class="ki-solid ki-cross fs-2x text-gray-700"></i>
+            </button>
+        </div>
+    </div>
+</div>
 
-                function resolvePromise(result) {
-                    if (!isResolved) {
-                        isResolved = true;
-                        promiseResolve({
-                            isConfirmed: result
-                        });
-                    }
+{{- block "modals" .}}{{- end}}
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/global/plugins.bundle.js" {{-
+        {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/js/scripts.bundle.js" {{- {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18next.min.js" {{- {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/jquery-i18next.min.js" {{-
+        {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18nextBrowserLanguageDetector.min.js" {{-
+        {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18nextChainedBackend.min.js" {{-
+        {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18nextLocalStorageBackend.min.js" {{-
+        {{-></script>
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/i18next/i18nextHttpBackend.min.js" {{-
+        {{-></script>
+{{- template "basejs" . }}
+<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
+    var ModalAlert = function () {
+        var modal;
+        var promiseResolve;
+        var isResolved;
+
+        function resolvePromise(result) {
+            if (!isResolved) {
+                isResolved = true;
+                promiseResolve({
+                    isConfirmed: result
+                });
+            }
+        }
+
+        var cancelFn = function () {
+            resolvePromise(false);
+            modal.hide();
+        }
+
+        var okFn = function () {
+            resolvePromise(true);
+            modal.hide();
+        }
+
+        var hideFn = function () {
+            resolvePromise(false);
+        }
+
+        return {
+            fire: function (params) {
+                modal = new bootstrap.Modal('#modal_alert');
+                let modalEl = $('#modal_alert');
+                let okBtn = $("#modal_alert_ok");
+                let cancelBtn = $("#modal_alert_cancel");
+                let itemsList = $('#modal_alert_items');
+
+                modalEl.off('hide.bs.modal');
+                modalEl.on('hide.bs.modal', hideFn);
+                cancelBtn.off("click");
+                okBtn.off("click");
+                cancelBtn.on("click", cancelFn);
+                okBtn.on("click", okFn);
+                okBtn.removeClass();
+                okBtn.addClass(params.customClass.confirmButton);
+                okBtn.addClass("m-2");
+                okBtn.text(params.confirmButtonText);
+                if (params.cancelButtonText) {
+                    cancelBtn.text(params.cancelButtonText);
+                    cancelBtn.removeClass();
+                    cancelBtn.addClass(params.customClass.cancelButton);
+                    cancelBtn.addClass("m-2");
+                } else {
+                    cancelBtn.addClass("d-none");
                 }
 
-                var cancelFn = function() {
-                    resolvePromise(false);
-                    modal.hide();
+                $("#modal_alert_text").text(params.text);
+                itemsList.empty();
+                itemsList.addClass("d-none");
+                if (params.items && params.items.length > 0) {
+                    itemsList.removeClass("d-none");
+                    $.each(params.items, function (key, item) {
+                        itemText = escapeHTML(item);
+                        itemsList.append(`<li class="d-flex align-items-center py-2 fw-bold fs-6 text-gray-800"><span class="bullet bullet-dot bg-primary me-2"></span>${itemText}</li>`);
+                    });
                 }
 
-                var okFn = function() {
-                    resolvePromise(true);
-                    modal.hide();
-                }
-
-                var hideFn = function() {
-                    resolvePromise(false);
-                }
-
-                return {
-                    fire: function (params) {
-                        modal = new bootstrap.Modal('#modal_alert');
-                        let modalEl = $('#modal_alert');
-                        let okBtn = $("#modal_alert_ok");
-                        let cancelBtn = $("#modal_alert_cancel");
-                        let itemsList = $('#modal_alert_items');
-
-                        modalEl.off('hide.bs.modal');
-                        modalEl.on('hide.bs.modal', hideFn);
-                        cancelBtn.off("click");
-                        okBtn.off("click");
-                        cancelBtn.on("click", cancelFn);
-                        okBtn.on("click", okFn);
-                        okBtn.removeClass();
-                        okBtn.addClass(params.customClass.confirmButton);
-                        okBtn.addClass("m-2");
-                        okBtn.text(params.confirmButtonText);
-                        if (params.cancelButtonText){
-                            cancelBtn.text(params.cancelButtonText);
-                            cancelBtn.removeClass();
-                            cancelBtn.addClass(params.customClass.cancelButton);
-                            cancelBtn.addClass("m-2");
-                        } else {
-                            cancelBtn.addClass("d-none");
-                        }
-
-                        $("#modal_alert_text").text(params.text);
-                        itemsList.empty();
-                        itemsList.addClass("d-none");
-                        if (params.items && params.items.length > 0){
-                            itemsList.removeClass("d-none");
-                            $.each(params.items, function(key, item) {
-                                itemText = escapeHTML(item);
-                                itemsList.append(`<li class="d-flex align-items-center py-2 fw-bold fs-6 text-gray-800"><span class="bullet bullet-dot bg-primary me-2"></span>${itemText}</li>`);
-                            });
-                        }
-
-                        switch (params.icon){
-                            case "warning":
-                                $("#modal_alert_icon").html(`<i class="ki-duotone ki-information-5 fs-5x text-danger">
+                switch (params.icon) {
+                    case "warning":
+                        $("#modal_alert_icon").html(`<i class="ki-duotone ki-information-5 fs-5x text-danger">
                                                                 <span class="path1"></span>
                                                                 <span class="path2"></span>
                                                                 <span class="path3"></span>
                                                             </i>`);
-                                break;
-                            case "success":
-                                $("#modal_alert_icon").html(`<i class="ki-duotone ki-check-square fs-5x text-success">
+                        break;
+                    case "success":
+                        $("#modal_alert_icon").html(`<i class="ki-duotone ki-check-square fs-5x text-success">
                                                                 <span class="path1"></span>
                                                                 <span class="path2"></span>
                                                             </i>`);
-                                break;
-                            default:
-                                $("#modal_alert_icon").html(`<i class="ki-duotone ki-question-2 fs-5x text-primary">
+                        break;
+                    default:
+                        $("#modal_alert_icon").html(`<i class="ki-duotone ki-question-2 fs-5x text-primary">
                                                                 <span class="path1"></span>
                                                                 <span class="path2"></span>
                                                                 <span class="path3"></span>
                                                             </i>`);
-                        }
-
-                        return new Promise(function(resolve, reject) {
-                            promiseResolve = resolve;
-                            isResolved = false;
-                            modal.show();
-                        });
-                    }
                 }
-            }();
 
-            function showToast(status, msg, options) {
-                const toast = bootstrap.Toast.getOrCreateInstance(document.getElementById('toast_container'));
-                if (status === 1){
-                    $("#toast_icon").html(`<i class="ki-duotone ki-check-square fs-3x text-success me-5">
+                return new Promise(function (resolve, reject) {
+                    promiseResolve = resolve;
+                    isResolved = false;
+                    modal.show();
+                });
+            }
+        }
+    }();
+
+    function showToast(status, msg, options) {
+        const toast = bootstrap.Toast.getOrCreateInstance(document.getElementById('toast_container'));
+        if (status === 1) {
+            $("#toast_icon").html(`<i class="ki-duotone ki-check-square fs-3x text-success me-5">
                                             <span class="path1"></span>
                                             <span class="path2"></span>
                                         </i>`);
-                } else {
-                    $("#toast_icon").html(`<i class="ki-duotone ki-information-5 fs-3x text-warning me-5">
+        } else {
+            $("#toast_icon").html(`<i class="ki-duotone ki-information-5 fs-3x text-warning me-5">
                                             <span class="path1"></span>
                                             <span class="path2"></span>
                                             <span class="path3"></span>
                                         </i>`);
-                }
-                setI18NData($('#toast_msg'), msg, options)
-                toast.show();
-            }
+        }
+        setI18NData($('#toast_msg'), msg, options)
+        toast.show();
+    }
 
-            function doLogout() {
-                ModalAlert.fire({
-                    text: $.t("general.confirm_logout"),
-                    icon: "question",
-                    confirmButtonText: $.t("login.signout"),
-                    cancelButtonText: $.t("general.cancel"),
-                    customClass: {
-                        confirmButton: "btn btn-primary",
-                        cancelButton: 'btn btn-secondary'
-                    }
-                }).then((result) =>{
-                    if (result.isConfirmed){
-                        window.location.replace('{{.LogoutURL}}');
-                    }
-                });
+    function doLogout() {
+        ModalAlert.fire({
+            text: $.t("general.confirm_logout"),
+            icon: "question",
+            confirmButtonText: $.t("login.signout"),
+            cancelButtonText: $.t("general.cancel"),
+            customClass: {
+                confirmButton: "btn btn-primary",
+                cancelButton: 'btn btn-secondary'
             }
-        </script>
-		{{- block "extra_js" .}}{{- end}}
-    </body>
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.replace('{{.LogoutURL}}');
+            }
+        });
+    }
+</script>
+{{- block "extra_js" .}}{{- end}}
+</body>
 </html>
 {{- end}}

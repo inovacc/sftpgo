@@ -30,7 +30,13 @@ curl -XPOST "https://api.authy.com/protected/json/users/new" \
 The response is something like this:
 
 ```json
-{"message":"User created successfully.","user":{"id":xxxxxxxx},"success":true}
+{
+  "message": "User created successfully.",
+  "user": {
+    "id": xxxxxxxx
+  },
+  "success": true
+}
 ```
 
 Save the user id somewhere and add a reference to the matching SFTPGo account. You could also store this ID in the

@@ -9701,7 +9701,7 @@ func TestAdminTwoFactorLogin(t *testing.T) {
 	assert.Equal(t, webUsersPath, rr.Header().Get("Location"))
 	authenticatedCookie, err := getCookieFromResponse(rr)
 	assert.NoError(t, err)
-	//render MFA page
+	// render MFA page
 	req, err = http.NewRequest(http.MethodGet, webAdminMFAPath, nil)
 	assert.NoError(t, err)
 	req.RemoteAddr = defaultRemoteAddr
@@ -10477,7 +10477,7 @@ func TestWebUserTwoFactorLogin(t *testing.T) {
 	assert.Equal(t, webClientFilesPath, rr.Header().Get("Location"))
 	authenticatedCookie, err := getCookieFromResponse(rr)
 	assert.NoError(t, err)
-	//render MFA page
+	// render MFA page
 	req, err = http.NewRequest(http.MethodGet, webClientMFAPath, nil)
 	assert.NoError(t, err)
 	req.RemoteAddr = defaultRemoteAddr

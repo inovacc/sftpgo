@@ -2522,7 +2522,7 @@ func TestGETAsPROPFIND(t *testing.T) {
 		resp, err := httpClient.Do(req)
 		if assert.NoError(t, err) {
 			// before the performance patch we have a 500 here, now we have 207 but an empty list
-			//assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+			// assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 			assert.Equal(t, http.StatusMultiStatus, resp.StatusCode)
 			resp.Body.Close()
 		}
