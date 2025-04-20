@@ -18,36 +18,28 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 .IsAdd}}data-i18n="title.add_share" class="card-title section-title" {{else}}data-i18n="title.update_share" {{end}}
-            {{if></h3>
+        <h3 {{if .IsAdd}}data-i18n="title.add_share"{{else}}data-i18n="title.update_share"{{end}} class="card-title section-title"></h3>
     </div>
     <div class="card-body">
         {{- template "errmsg" .Error}}
-        <form action="{{.CurrentURL}}" autocomplete="off" id="share_form" method="POST">
+        <form id="share_form" action="{{.CurrentURL}}" method="POST" autocomplete="off">
             <div class="form-group row">
-                <label class="col-md-3 col-form-label" data-i18n="general.name" for="name">Name</label>
+                <label for="name" data-i18n="general.name" class="col-md-3 col-form-label">Name</label>
                 <div class="col-md-9">
-                    <input .IsAdd}}class="form-control-plaintext readonly-input" autocomplete="off" id="name" maxlength="255" name="name" not
-                           placeholder=""
-                           readonly{{else}}class="form-control" required type="text" value="{{.Share.Name}}"
-                           {{end}} {{if/>
+                    <input id="name" type="text" placeholder="" name="name" value="{{.Share.Name}}" maxlength="255" autocomplete="off"
+                        required {{if not .IsAdd}}class="form-control-plaintext readonly-input" readonly{{else}}class="form-control"{{end}} />
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="share.scope" for="scope">Scope</label>
+                <label for="scope" data-i18n="share.scope" class="col-md-3 col-form-label">Scope</label>
                 <div class="col-md-9">
-                    <select aria-describedby="scopeHelp" class="form-select" data-control="i18n-select2" data-hide-search="true"
-                            id="scope" name="scope">
-                        <option .Share.Scope 1 data-i18n="share.scope_read" eq value="1" {{if }}selected{{end}}>Read
-                        </option>
-                        <option .Share.Scope 2 data-i18n="share.scope_write" eq value="2" {{if }}selected{{end}}>Write
-                        </option>
-                        <option .Share.Scope 3 data-i18n="share.scope_read_write" eq value="3" {{if }}selected{{end}}>
-                            Read/Write
-                        </option>
+                    <select id="scope" name="scope" class="form-select" data-control="i18n-select2" data-hide-search="true" aria-describedby="scopeHelp">
+                        <option data-i18n="share.scope_read" value="1" {{if eq .Share.Scope 1 }}selected{{end}}>Read</option>
+                        <option data-i18n="share.scope_write" value="2" {{if eq .Share.Scope 2 }}selected{{end}}>Write</option>
+                        <option data-i18n="share.scope_read_write" value="3" {{if eq .Share.Scope 3 }}selected{{end}}>Read/Write</option>
                     </select>
-                    <div class="form-text" data-i18n="share.scope_help" id="scopeHelp">
+                    <div id="scopeHelp" data-i18n="share.scope_help" class="form-text">
                         For scope "Write" and "Read/Write" you have to define one path and it must be a directory
                     </div>
                 </div>
@@ -55,7 +47,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 class="card-title section-title-inner" data-i18n="general.paths">Paths</h3>
+                    <h3 data-i18n="general.paths" class="card-title section-title-inner">Paths</h3>
                 </div>
                 <div class="card-body">
                     <div id="paths">
@@ -65,13 +57,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <input class="form-control" data-i18n="[placeholder]share.path_help"
-                                                   name="path"
-                                                   type="text" value="{{$val}}"/>
+                                            <input data-i18n="[placeholder]share.path_help" type="text" class="form-control"
+                                                name="path" value="{{$val}}" />
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a class="btn btn-light-danger" data-repeater-delete
-                                               href="#">
+                                            <a href="#" data-repeater-delete
+                                                class="btn btn-light-danger">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -88,13 +79,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <input class="form-control" data-i18n="[placeholder]share.path_help"
-                                                   name="path"
-                                                   type="text" value=""/>
+                                            <input data-i18n="[placeholder]share.path_help" type="text" class="form-control"
+                                                name="path" value="" />
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a class="btn btn-light-danger" data-repeater-delete
-                                               href="#">
+                                            <a href="#" data-repeater-delete
+                                                class="btn btn-light-danger">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -112,7 +102,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a class="btn btn-light-primary" data-repeater-create href="#">
+                            <a href="#" data-repeater-create class="btn btn-light-primary">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -122,24 +112,20 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="login.password" for="password">Password</label>
+                <label for="password" data-i18n="login.password" class="col-md-3 col-form-label">Password</label>
                 <div class="col-md-9">
-                    <input aria-describedby="passwordHelp" autocomplete="new-password" class="form-control" id="password"
-                           name="password"
-                           placeholder="" spellcheck="false" type="password"
-                           value="{{.Share.Password}}"/>
-                    <div class="form-text" data-i18n="share.password_help" id="passwordHelp">
+                    <input id="password" type="password" class="form-control" name="password" autocomplete="new-password"
+                        placeholder="" spellcheck="false" value="{{.Share.Password}}" aria-describedby="passwordHelp" />
+                    <div id="passwordHelp" data-i18n="share.password_help" class="form-text">
                         If set the share will be password-protected
                     </div>
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.expiration"
-                       for="id_expiration">Expiration</label>
+                <label for="id_expiration" data-i18n="general.expiration" class="col-md-3 col-form-label">Expiration</label>
                 <div class="col-md-9 d-flex">
-                    <input class="form-control" data-i18n="[placeholder]general.expiration_help" id="id_expiration"
-                           placeholder="Pick an expiration date"/>
+                    <input data-i18n="[placeholder]general.expiration_help" id="id_expiration" class="form-control" placeholder="Pick an expiration date" />
                     <button class="btn btn-icon btn-light-danger ms-2 d-none" id="id_expiration_clear">
                         <i class="ki-solid ki-cross fs-1"></i>
                     </button>
@@ -147,46 +133,42 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="share.max_tokens" for="max_tokens">Max tokens</label>
+                <label for="max_tokens" data-i18n="share.max_tokens" class="col-md-3 col-form-label">Max tokens</label>
                 <div class="col-md-9">
-                    <input aria-describedby="max_tokens_help" class="form-control" id="max_tokens" min="0" name="max_tokens"
-                           type="number" value="{{.Share.MaxTokens}}"/>
-                    <div class="form-text" data-i18n="share.max_tokens_help" id="max_tokens_help">
+                    <input id="max_tokens" type="number" min="0" class="form-control" name="max_tokens" value="{{.Share.MaxTokens}}" aria-describedby="max_tokens_help" />
+                    <div id="max_tokens_help" data-i18n="share.max_tokens_help" class="form-text">
                         Maximum number of times this share can be accessed. 0 means no limit
                     </div>
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.allowed_ip_mask" for="allowed_ip">Allowed
-                    IP/Mask</label>
+                <label for="allowed_ip" data-i18n="general.allowed_ip_mask" class="col-md-3 col-form-label">Allowed IP/Mask</label>
                 <div class="col-md-9">
-                    <textarea aria-describedby="allowed_ip_help" class="form-control" id="allowed_ip" name="allowed_ip"
-                              placeholder=""
-                              rows="3">{{.Share.GetAllowedFromAsString}}</textarea>
-                    <div class="form-text" data-i18n="general.ip_mask_help" id="allowed_ip_help">
+                    <textarea id="allowed_ip" class="form-control" name="allowed_ip" rows="3" aria-describedby="allowed_ip_help"
+                        placeholder="">{{.Share.GetAllowedFromAsString}}</textarea>
+                    <div id="allowed_ip_help" data-i18n="general.ip_mask_help" class="form-text">
                         Comma separated IP/Mask in CIDR format, for example "192.168.1.0/24,10.8.0.100/32"
                     </div>
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.description"
-                       for="description">Description</label>
+                <label for="description" data-i18n="general.description" class="col-md-3 col-form-label">Description</label>
                 <div class="col-md-9">
-                    <textarea class="form-control" id="description" name="description" placeholder=""
-                              rows="3">{{.Share.Description}}</textarea>
+                    <textarea id="description" class="form-control" name="description" rows="3"
+                        placeholder="">{{.Share.Description}}</textarea>
                 </div>
             </div>
 
             <div class="d-flex justify-content-end mt-12">
-                <input id="hidden_start_datetime" name="expiration_date" type="hidden" value="">
-                <input name="_form_token" type="hidden" value="{{.CSRFToken}}">
-                <button class="btn btn-primary px-10" id="form_submit" type="submit">
-                    <span class="indicator-label" data-i18n="general.submit">
+                <input type="hidden" name="expiration_date" id="hidden_start_datetime" value="">
+                <input type="hidden" name="_form_token" value="{{.CSRFToken}}">
+                <button type="submit" id="form_submit" class="btn btn-primary px-10">
+                    <span data-i18n="general.submit" class="indicator-label">
                         Submit
                     </span>
-                    <span class="indicator-progress" data-i18n="general.wait">
+                    <span data-i18n="general.wait" class="indicator-progress">
                         Please wait...
                         <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                     </span>
@@ -198,61 +180,59 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
-        {{-></script>
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/flatpickr/l10n/it.js" {{-
-        {{-></script>
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
-    $(document).on("i18nshow", function () {
-        initRepeater('#paths');
-        initRepeaterItems();
+<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js"></script>
+<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/custom/flatpickr/l10n/it.js"></script>
+<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
+    $(document).on("i18nshow", function(){
+            initRepeater('#paths');
+            initRepeaterItems();
 
-        const picker = $('#id_expiration').flatpickr({
-            enableTime: false,
-            time_24hr: true,
-            formatDate: (date, format, locale) => {
-                return $.t('general.datetime', {
-                    val: new Date(date),
-                    formatParams: {
-                        val: {year: 'numeric', month: 'numeric', day: 'numeric'},
+            const picker = $('#id_expiration').flatpickr({
+                enableTime: false,
+                time_24hr: true,
+                formatDate: (date, format, locale) => {
+                    return $.t('general.datetime', {
+                                val: new Date(date),
+                                formatParams: {
+                                    val: { year: 'numeric', month: 'numeric', day: 'numeric' },
+                                }
+                            });
+                },
+                defaultHour: 23,
+                defaultMinute: 59,
+                locale: i18next.resolvedLanguage,
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length > 0){
+                        $('#id_expiration_clear').removeClass("d-none");
+                    } else {
+                        $('#id_expiration_clear').addClass("d-none");
                     }
-                });
-            },
-            defaultHour: 23,
-            defaultMinute: 59,
-            locale: i18next.resolvedLanguage,
-            onChange: function (selectedDates, dateStr, instance) {
-                if (selectedDates.length > 0) {
-                    $('#id_expiration_clear').removeClass("d-none");
-                } else {
-                    $('#id_expiration_clear').addClass("d-none");
                 }
-            }
-        });
-        //{{ if gt .Share.ExpiresAt 0 }}
-        let input_dt = moment('{{.Share.ExpiresAt }}', 'x').format('YYYY-MM-DD');
-        picker.setDate(input_dt, true);
-        //{{ end }}
+            });
+            //{{ if gt .Share.ExpiresAt 0 }}
+            let input_dt = moment('{{.Share.ExpiresAt }}', 'x').format('YYYY-MM-DD');
+            picker.setDate(input_dt, true);
+            //{{ end }}
 
-        $('#id_expiration_clear').on("click", function (e) {
-            e.preventDefault();
-            picker.clear();
-        });
+            $('#id_expiration_clear').on("click", function(e){
+                e.preventDefault();
+                picker.clear();
+            });
 
-        $("#share_form").submit(function (event) {
-            $('#hidden_start_datetime').val("");
-            let dt = picker.selectedDates;
-            if (dt.length > 0) {
-                let d = dt[0];
-                if (d) {
-                    let dateString = moment.utc(d).format('YYYY-MM-DD HH:mm:ss');
-                    $('#hidden_start_datetime').val(dateString);
+            $("#share_form").submit(function (event) {
+                $('#hidden_start_datetime').val("");
+                let dt = picker.selectedDates;
+                if (dt.length > 0) {
+                    let d = dt[0];
+                    if (d) {
+                        let dateString = moment.utc(d).format('YYYY-MM-DD HH:mm:ss');
+                        $('#hidden_start_datetime').val(dateString);
+                    }
                 }
-            }
-            let submitButton = document.querySelector('#form_submit');
-            submitButton.setAttribute('data-kt-indicator', 'on');
-            submitButton.disabled = true;
+                let submitButton = document.querySelector('#form_submit');
+                submitButton.setAttribute('data-kt-indicator', 'on');
+                submitButton.disabled = true;
+            });
         });
-    });
 </script>
 {{- end}}

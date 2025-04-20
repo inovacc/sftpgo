@@ -18,43 +18,36 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 class="card-title section-title" data-i18n="{{.Title}}"></h3>
+        <h3 data-i18n="{{.Title}}" class="card-title section-title"></h3>
     </div>
     <div class="card-body">
         {{- template "errmsg" .Error}}
-        <form action="{{.CurrentURL}}" autocomplete="off" id="admin_form" method="POST">
+        <form id="admin_form" action="{{.CurrentURL}}" method="POST" autocomplete="off">
             <div class="form-group row">
-                <label class="col-md-3 col-form-label" data-i18n="login.username" for="idUsername">Username</label>
+                <label for="idUsername" data-i18n="login.username" class="col-md-3 col-form-label">Username</label>
                 <div class="col-md-9">
-                    <input .IsAdd}}class="form-control" autocomplete="off" id="idUsername" maxlength="255" name="username"
-                           placeholder="" readonly{{end}}
-                           required spellcheck="false" type="text" value="{{.Admin.Username}}"
-                           {{else}}class="form-control-plaintext readonly-input" {{if/>
+                    <input id="idUsername" type="text" placeholder="" name="username" value="{{.Admin.Username}}" maxlength="255" autocomplete="off"
+                        spellcheck="false" required {{if .IsAdd}}class="form-control"{{else}}class="form-control-plaintext readonly-input" readonly{{end}} />
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="login.password" for="idPassword">Password</label>
+                <label for="idPassword" data-i18n="login.password" class="col-md-3 col-form-label">Password</label>
                 <div class="col-md-9">
-                    <input .IsAdd}}aria-describedby="idPasswordHelp" autocomplete="new-password" class="form-control" id="idPassword"
-                           name="password"
-                           not spellcheck="false" type="password" value="" {{end}} {{if/>
+                    <input id="idPassword" type="password" class="form-control" name="password" autocomplete="new-password"
+                        spellcheck="false" value="" {{if not .IsAdd}}aria-describedby="idPasswordHelp"{{end}} />
                     {{- if not .IsAdd}}
-                    <div class="form-text" data-i18n="admin.password_help" id="idPasswordHelp"></div>
+                    <div id="idPasswordHelp" class="form-text" data-i18n="admin.password_help"></div>
                     {{- end}}
                 </div>
             </div>
 
             <div class="form-group row align-items-center mt-10 {{if eq .LoggedUser.Username .Admin.Username}}d-none{{end}}">
-                <label class="col-md-3 col-form-label" data-i18n="user.require_pwd_change"
-                       for="idRequirePasswordChange">Require password change</label>
+                <label data-i18n="user.require_pwd_change" class="col-md-3 col-form-label" for="idRequirePasswordChange">Require password change</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .Admin.Filters.RequirePasswordChange}}checked="checked" class="form-check-input" id="idRequirePasswordChange"
-                               name="require_password_change" type="checkbox"
-                               {{end}} {{if/>
-                        <label class="form-check-label fw-semibold text-gray-800"
-                               data-i18n="admin.require_pwd_change_help" for="idRequirePasswordChange">
+                        <input class="form-check-input" type="checkbox" id="idRequirePasswordChange" name="require_password_change" {{if .Admin.Filters.RequirePasswordChange}}checked="checked"{{end}}/>
+                        <label data-i18n="admin.require_pwd_change_help" class="form-check-label fw-semibold text-gray-800" for="idRequirePasswordChange">
                             A password change is required at the next login
                         </label>
                     </div>
@@ -62,30 +55,21 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.status" for="idStatus">Status</label>
+                <label for="idStatus" data-i18n="general.status" class="col-md-3 col-form-label">Status</label>
                 <div class="col-md-9">
-                    <select class="form-select" data-control="i18n-select2" data-hide-search="true" id="idStatus"
-                            name="status">
-                        <option .Admin.Status 1 data-i18n="general.active" end}} eq if selected{{- value="1" {{- }}>
-                            Active
-                        </option>
-                        <option .Admin.Status 0 data-i18n="general.inactive" end}} eq if selected{{- value="0" {{- }}>
-                            Inactive
-                        </option>
+                    <select id="idStatus" name="status" class="form-select" data-control="i18n-select2" data-hide-search="true">
+                        <option data-i18n="general.active" value="1" {{- if eq .Admin.Status 1 }} selected{{- end}}>Active</option>
+                        <option data-i18n="general.inactive" value="0" {{- if eq .Admin.Status 0 }} selected{{- end}}>Inactive</option>
                     </select>
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.permissions"
-                       for="idPermissions">Permissions</label>
+                <label for="idPermissions" data-i18n="general.permissions" class="col-md-3 col-form-label">Permissions</label>
                 <div class="col-md-9">
-                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2" data-hide-search="true"
-                            id="idPermissions" multiple name="permissions">
+                    <select id="idPermissions" name="permissions" class="form-select" data-control="i18n-select2" data-hide-search="true" data-close-on-select="false" multiple>
                         {{- range $validPerm := .Admin.GetValidPerms}}
-                        <option $perm $perm $validPerm}} :=$.Admin.Permissions end}} end}}{{- eq if range
-                                selected{{- value="{{$validPerm}}" {{- }}{{->{{$validPerm}}
-                        </option>
+                        <option value="{{$validPerm}}" {{- range $perm :=$.Admin.Permissions }}{{- if eq $perm $validPerm}} selected{{- end}}{{- end}}>{{$validPerm}}</option>
                         {{- end}}
                     </select>
                 </div>
@@ -94,19 +78,17 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             {{- if .Roles}}
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 class="card-title section-title-inner" data-i18n="general.role">Role</h3>
+                    <h3 data-i18n="general.role" class="card-title section-title-inner">Role</h3>
                 </div>
                 <div class="card-body">
                     {{- template "infomsg" "admin.role_help"}}
                     <div class="form-group row">
-                        <label class="col-md-3 col-form-label" data-i18n="general.role" for="idRole">Role</label>
+                        <label for="idRole" data-i18n="general.role" class="col-md-3 col-form-label">Role</label>
                         <div class="col-md-9">
-                            <select class="form-select" data-allow-clear="true" data-control="i18n-select2"
-                                    data-i18n="[data-placeholder]general.role_placeholder" data-placeholder="Select a role" id="idRole"
-                                    name="role">
+                            <select id="idRole" name="role" data-i18n="[data-placeholder]general.role_placeholder" class="form-select" data-control="i18n-select2" data-placeholder="Select a role" data-allow-clear="true">
                                 <option value=""></option>
                                 {{- range .Roles}}
-                                <option $.Admin.Role .Name}}selected{{end}} eq value="{{.Name}}" {{if>{{.Name}}</option>
+                                <option value="{{.Name}}" {{if eq $.Admin.Role .Name}}selected{{end}}>{{.Name}}</option>
                                 {{- end}}
                             </select>
                         </div>
@@ -118,7 +100,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             {{- if .Groups}}
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 class="card-title section-title-inner" data-i18n="admin.users_groups">Groups for users</h3>
+                    <h3 data-i18n="admin.users_groups" class="card-title section-title-inner">Groups for users</h3>
                 </div>
                 <div class="card-body">
                     <div id="groups">
@@ -130,35 +112,23 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                     <div data-repeater-item>
                                         <div class="form-group row">
                                             <div class="col-md-6 mt-3 mt-md-8">
-                                                <select class="form-select select-repetear"
-                                                        data-allow-clear="true"
-                                                        data-i18n="[data-placeholder]general.group_placeholder" name="group">
+                                                <select name="group" data-i18n="[data-placeholder]general.group_placeholder" class="form-select select-repetear" data-allow-clear="true">
                                                     <option value=""></option>
                                                     {{- range $.Groups}}
-                                                    <option $val.Name .Name}} end}} eq if selected{{- value="{{.Name}}"
-                                                            {{->{{.Name}}
-                                                    </option>
+                                                    <option value="{{.Name}}" {{- if eq $val.Name .Name}} selected{{- end}}>{{.Name}}</option>
                                                     {{- end}}
                                                 </select>
                                             </div>
                                             <div class="col-md-5 mt-3 mt-md-8">
-                                                <select class="form-select select-repetear" name="group_type">
-                                                    <option $val.Options.AddToUsersAs 0}}selected{{end}} data-i18n="admin.group_membership" eq
-                                                            value="0" {{if>Add as
-                                                        membership
-                                                    </option>
-                                                    <option $val.Options.AddToUsersAs 1}}selected{{end}} data-i18n="admin.group_primary" eq
-                                                            value="1" {{if>Add as primary
-                                                    </option>
-                                                    <option $val.Options.AddToUsersAs 2}}selected{{end}} data-i18n="admin.group_secondary" eq
-                                                            value="2" {{if>Add as
-                                                        secondary
-                                                    </option>
+                                                <select name="group_type" class="form-select select-repetear">
+                                                    <option value="0" data-i18n="admin.group_membership" {{if eq $val.Options.AddToUsersAs 0}}selected{{end}}>Add as membership</option>
+                                                    <option value="1" data-i18n="admin.group_primary" {{if eq $val.Options.AddToUsersAs 1}}selected{{end}}>Add as primary</option>
+                                                    <option value="2" data-i18n="admin.group_secondary" {{if eq $val.Options.AddToUsersAs 2}}selected{{end}}>Add as secondary</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-1 mt-3 mt-md-8">
-                                                <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
-                                                   href="#">
+                                                <a href="#" data-repeater-delete
+                                                    class="btn btn-light-danger ps-5 pe-4">
                                                     <i class="ki-duotone ki-trash fs-2">
                                                         <span class="path1"></span>
                                                         <span class="path2"></span>
@@ -175,8 +145,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-6 mt-3 mt-md-8">
-                                            <select class="form-select select-repetear" data-allow-clear="true"
-                                                    data-i18n="[data-placeholder]general.group_placeholder" name="group">
+                                            <select name="group" data-i18n="[data-placeholder]general.group_placeholder" class="form-select select-repetear" data-allow-clear="true">
                                                 <option value=""></option>
                                                 {{- range $.Groups}}
                                                 <option value="{{.Name}}">{{.Name}}</option>
@@ -184,18 +153,15 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                             </select>
                                         </div>
                                         <div class="col-md-5 mt-3 mt-md-8">
-                                            <select class="form-select select-repetear select-first" name="group_type">
-                                                <option data-i18n="admin.group_membership" value="0">Add as membership
-                                                </option>
-                                                <option data-i18n="admin.group_primary" value="1">Add as primary
-                                                </option>
-                                                <option data-i18n="admin.group_secondary" value="2">Add as secondary
-                                                </option>
+                                            <select name="group_type" class="form-select select-repetear select-first">
+                                                <option value="0" data-i18n="admin.group_membership">Add as membership</option>
+                                                <option value="1" data-i18n="admin.group_primary">Add as primary</option>
+                                                <option value="2" data-i18n="admin.group_secondary">Add as secondary</option>
                                             </select>
                                         </div>
                                         <div class="col-md-1 mt-3 mt-md-8">
-                                            <a class="btn btn-light-danger ps-5 pe-4" data-repeater-delete
-                                               href="#">
+                                            <a href="#" data-repeater-delete
+                                                class="btn btn-light-danger ps-5 pe-4">
                                                 <i class="ki-duotone ki-trash fs-2">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -212,7 +178,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a class="btn btn-light-primary" data-repeater-create href="#">
+                            <a href="#" data-repeater-create class="btn btn-light-primary">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -224,56 +190,31 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 class="card-title section-title-inner" data-i18n="admin.user_page_pref">User page
-                        preferences</h3>
+                    <h3 data-i18n="admin.user_page_pref" class="card-title section-title-inner">User page preferences</h3>
                 </div>
                 <div class="card-body">
                     {{- template "infomsg" "admin.user_page_pref_help"}}
 
                     <div class="form-group row">
-                        <label class="col-md-3 col-form-label" data-i18n="admin.hide_sections"
-                               for="idUserPageHiddenSections">Hide sections</label>
+                        <label for="idUserPageHiddenSections" data-i18n="admin.hide_sections" class="col-md-3 col-form-label">Hide sections</label>
                         <div class="col-md-9">
-                            <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
-                                    data-hide-search="true" id="idUserPageHiddenSections" multiple
-                                    name="user_page_hidden_sections">
-                                <option .Admin.Filters.Preferences.HideGroups}}selected{{end}} data-i18n="title.groups" value="1"
-                                        {{if>Groups
-                                </option>
-                                <option .Admin.Filters.Preferences.HideFilesystem}}selected{{end}} data-i18n="storage.title" value="2"
-                                        {{if>Filesystem
-                                </option>
-                                <option .Admin.Filters.Preferences.HideVirtualFolders}}selected{{end}} data-i18n="title.folders" value="3"
-                                        {{if>Virtual Folders
-                                </option>
-                                <option .Admin.Filters.Preferences.HideProfile}}selected{{end}} data-i18n="title.profile" value="4"
-                                        {{if>Profile
-                                </option>
-                                <option .Admin.Filters.Preferences.HideACLs}}selected{{end}} data-i18n="general.acls" value="5"
-                                        {{if>ACLs
-                                </option>
-                                <option .Admin.Filters.Preferences.HideDiskQuotaAndBandwidthLimits}}selected{{end}} data-i18n="general.quota_limits" value="6"
-                                        {{if>Disk
-                                    quota and bandwidth limits
-                                </option>
-                                <option .Admin.Filters.Preferences.HideAdvancedSettings}}selected{{end}} data-i18n="general.advanced_settings" value="7"
-                                        {{if>Advanced
-                                    settings
-                                </option>
+                            <select id="idUserPageHiddenSections" name="user_page_hidden_sections" class="form-select" data-control="i18n-select2" data-hide-search="true" data-close-on-select="false" multiple>
+                                <option value="1" data-i18n="title.groups" {{if .Admin.Filters.Preferences.HideGroups}}selected{{end}}>Groups</option>
+                                <option value="2" data-i18n="storage.title" {{if .Admin.Filters.Preferences.HideFilesystem}}selected{{end}}>Filesystem</option>
+                                <option value="3" data-i18n="title.folders" {{if .Admin.Filters.Preferences.HideVirtualFolders}}selected{{end}}>Virtual Folders</option>
+                                <option value="4" data-i18n="title.profile" {{if .Admin.Filters.Preferences.HideProfile}}selected{{end}}>Profile</option>
+                                <option value="5" data-i18n="general.acls" {{if .Admin.Filters.Preferences.HideACLs}}selected{{end}}>ACLs</option>
+                                <option value="6" data-i18n="general.quota_limits" {{if .Admin.Filters.Preferences.HideDiskQuotaAndBandwidthLimits}}selected{{end}}>Disk quota and bandwidth limits</option>
+                                <option value="7" data-i18n="general.advanced_settings" {{if .Admin.Filters.Preferences.HideAdvancedSettings}}selected{{end}}>Advanced settings</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="form-group row mt-10">
-                        <label class="col-md-3 col-form-label" data-i18n="admin.default_users_expiration"
-                               for="idDefaultUsersExpiration">Default users expiration</label>
+                        <label for="idDefaultUsersExpiration" data-i18n="admin.default_users_expiration" class="col-md-3 col-form-label">Default users expiration</label>
                         <div class="col-md-9">
-                            <input aria-describedby="idDefaultUsersExpirationHelp" class="form-control" id="idDefaultUsersExpiration" min="0"
-                                   name="default_users_expiration"
-                                   type="number"
-                                   value="{{.Admin.Filters.Preferences.DefaultUsersExpiration}}"/>
-                            <div class="form-text" data-i18n="admin.default_users_expiration_help"
-                                 id="idDefaultUsersExpirationHelp"></div>
+                            <input id="idDefaultUsersExpiration" type="number" min="0" class="form-control" name="default_users_expiration" value="{{.Admin.Filters.Preferences.DefaultUsersExpiration}}" aria-describedby="idDefaultUsersExpirationHelp"/>
+                            <div id="idDefaultUsersExpirationHelp" class="form-text" data-i18n="admin.default_users_expiration_help"></div>
                         </div>
                     </div>
 
@@ -281,42 +222,35 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.email" for="idEmail">Email</label>
+                <label for="idEmail" data-i18n="general.email" class="col-md-3 col-form-label">Email</label>
                 <div class="col-md-9">
-                    <input autocomplete="off" class="form-control" id="idEmail" maxlength="255" name="email"
-                           placeholder=""
-                           spellcheck="false" type="email" value="{{.Admin.Email}}"/>
+                    <input id="idEmail" type="email" class="form-control" placeholder="" name="email" value="{{.Admin.Email}}"
+                        maxlength="255" autocomplete="off" spellcheck="false" />
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.description"
-                       for="idDescription">Description</label>
+                <label for="idDescription" data-i18n="general.description" class="col-md-3 col-form-label">Description</label>
                 <div class="col-md-9">
-                    <input class="form-control" id="idDescription" maxlength="255" name="description"
-                           type="text" value="{{.Admin.Description}}">
+                    <input id="idDescription" type="text" class="form-control" name="description" value="{{.Admin.Description}}" maxlength="255">
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.allowed_ip_mask" for="idAllowedIP">Allowed
-                    IP/Mask</label>
+                <label for="idAllowedIP" data-i18n="general.allowed_ip_mask" class="col-md-3 col-form-label">Allowed IP/Mask</label>
                 <div class="col-md-9">
-                    <textarea aria-describedby="idAllowedIPHelp" class="form-control" id="idAllowedIP" name="allowed_ip"
-                              rows="3">{{.Admin.GetAllowedIPAsString}}</textarea>
-                    <div class="form-text" data-i18n="general.ip_mask_help" id="idAllowedIPHelp"></div>
+                    <textarea class="form-control" id="idAllowedIP" name="allowed_ip" aria-describedby="idAllowedIPHelp"
+                        rows="3">{{.Admin.GetAllowedIPAsString}}</textarea>
+                    <div id="idAllowedIPHelp" class="form-text" data-i18n="general.ip_mask_help"></div>
                 </div>
             </div>
 
             <div class="form-group row align-items-center mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.api_key_auth" for="idAllowAPIKeyAuth">API key
-                    authentication</label>
+                <label data-i18n="general.api_key_auth" class="col-md-3 col-form-label" for="idAllowAPIKeyAuth">API key authentication</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .Admin.Filters.AllowAPIKeyAuth}}checked{{end}} class="form-check-input" id="idAllowAPIKeyAuth" name="allow_api_key_auth"
-                               type="checkbox" {{if/>
-                        <label class="form-check-label fw-semibold text-gray-800" data-i18n="filters.api_key_auth_help"
-                               for="idAllowAPIKeyAuth">
+                        <input class="form-check-input" type="checkbox" id="idAllowAPIKeyAuth" name="allow_api_key_auth" {{if .Admin.Filters.AllowAPIKeyAuth}}checked{{end}}/>
+                        <label data-i18n="filters.api_key_auth_help" class="form-check-label fw-semibold text-gray-800" for="idAllowAPIKeyAuth">
                             Allow to impersonate yourself, in REST API, with an API key
                         </label>
                     </div>
@@ -324,14 +258,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
 
             <div class="form-group row align-items-center mt-10 {{if eq .LoggedUser.Username .Admin.Username}}d-none{{end}}">
-                <label class="col-md-3 col-form-label" data-i18n="title.two_factor_auth_short"
-                       for="idRequire2FA">2FA</label>
+                <label data-i18n="title.two_factor_auth_short" class="col-md-3 col-form-label" for="idRequire2FA">2FA</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .Admin.Filters.RequireTwoFactor}}checked{{end}} class="form-check-input" id="idRequire2FA" name="require_two_factor" type="checkbox"
-                               {{if/>
-                        <label class="form-check-label fw-semibold text-gray-800" data-i18n="2fa.require"
-                               for="idRequire2FA">
+                        <input class="form-check-input" type="checkbox" id="idRequire2FA" name="require_two_factor" {{if .Admin.Filters.RequireTwoFactor}}checked{{end}}/>
+                        <label data-i18n="2fa.require" class="form-check-label fw-semibold text-gray-800" for="idRequire2FA">
                             Two-factor authentication is required
                         </label>
                     </div>
@@ -339,20 +270,19 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.additional_info" for="idAdditionalInfo">Additional
-                    info</label>
+                <label for="idAdditionalInfo" data-i18n="general.additional_info" class="col-md-3 col-form-label">Additional info</label>
                 <div class="col-md-9">
-                    <textarea class="form-control" id="idAdditionalInfo" name="additional_info" rows="3">{{.Admin.AdditionalInfo}}</textarea>
+                    <textarea id="idAdditionalInfo" class="form-control" name="additional_info" rows="3">{{.Admin.AdditionalInfo}}</textarea>
                 </div>
             </div>
 
             <div class="d-flex justify-content-end mt-12">
-                <input name="_form_token" type="hidden" value="{{.CSRFToken}}">
-                <button class="btn btn-primary px-10" id="form_submit" name="form_action" type="submit" value="submit">
-                    <span class="indicator-label" data-i18n="general.submit">
+                <input type="hidden" name="_form_token" value="{{.CSRFToken}}">
+                <button type="submit" id="form_submit" class="btn btn-primary px-10" name="form_action" value="submit">
+                    <span data-i18n="general.submit" class="indicator-label">
                         Submit
                     </span>
-                    <span class="indicator-progress" data-i18n="general.wait">
+                    <span data-i18n="general.wait" class="indicator-progress">
                         Please wait...
                         <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                     </span>
@@ -364,20 +294,19 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
-        {{-></script>
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
+<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js"></script>
+<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
 
-    $(document).on("i18nload", function () {
+    $(document).on("i18nload", function(){
         initRepeater('#groups');
         initRepeaterItems();
     });
 
-    $(document).on("i18nshow", function () {
+    $(document).on("i18nshow", function(){
         $('#admin_form').submit(function (event) {
-            let submitButton = document.querySelector('#form_submit');
-            submitButton.setAttribute('data-kt-indicator', 'on');
-            submitButton.disabled = true;
+			let submitButton = document.querySelector('#form_submit');
+			submitButton.setAttribute('data-kt-indicator', 'on');
+			submitButton.disabled = true;
         });
     });
 </script>

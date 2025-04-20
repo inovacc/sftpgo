@@ -18,27 +18,24 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 class="card-title section-title" data-i18n="maintenance.restore">Restore</h3>
+        <h3 data-i18n="maintenance.restore" class="card-title section-title">Restore</h3>
     </div>
     <div class="card-body">
         {{- template "errmsg" .Error}}
-        <form action="{{.RestorePath}}" enctype="multipart/form-data" id="restore_form" method="POST">
+        <form id="restore_form" enctype="multipart/form-data" action="{{.RestorePath}}" method="POST">
 
             <div class="form-group row">
-                <label class="col-md-3 col-form-label" data-i18n="maintenance.backup_file" for="idBackupFile">Backup
-                    file</label>
+                <label for="idBackupFile" data-i18n="maintenance.backup_file" class="col-md-3 col-form-label">Backup file</label>
                 <div class="col-md-9">
-                    <input accept="application/json" aria-describedby="idBackupFileHelp" class="form-control" id="idBackupFile" name="backup_file"
-                           required type="file"/>
-                    <div class="form-text" data-i18n="maintenance.backup_file_help" id="idBackupFileHelp"></div>
+                    <input id="idBackupFile" type="file" accept="application/json" required class="form-control" name="backup_file" aria-describedby="idBackupFileHelp" />
+                    <div id="idBackupFileHelp" class="form-text" data-i18n="maintenance.backup_file_help"></div>
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.mode" for="idMode">Mode</label>
+                <label for="idMode" data-i18n="general.mode" class="col-md-3 col-form-label">Mode</label>
                 <div class="col-md-9">
-                    <select class="form-select" data-control="i18n-select2" data-hide-search="true" id="idMode"
-                            name="mode">
+                    <select id="idMode" name="mode" class="form-select" data-control="i18n-select2" data-hide-search="true">
                         <option data-i18n="maintenance.restore_mode1" value="1">add only</option>
                         <option data-i18n="maintenance.restore_mode0" value="0">add and update</option>
                         <option data-i18n="maintenance.restore_mode2" value="2">add, update and disconnect</option>
@@ -47,27 +44,23 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="maintenance.after_restore" for="idQuota">After
-                    restore</label>
+                <label for="idQuota" data-i18n="maintenance.after_restore" class="col-md-3 col-form-label">After restore</label>
                 <div class="col-md-9">
-                    <select class="form-select" data-control="i18n-select2" data-hide-search="true" id="idQuota"
-                            name="quota">
+                    <select id="idQuota" name="quota" class="form-select" data-control="i18n-select2" data-hide-search="true">
                         <option data-i18n="maintenance.quota_mode0" value="0">no quota update</option>
                         <option data-i18n="maintenance.quota_mode1" value="1">update quota</option>
-                        <option data-i18n="maintenance.quota_mode2" value="2">update quota if the user has quota
-                            restrictions
-                        </option>
+                        <option data-i18n="maintenance.quota_mode2" value="2">update quota if the user has quota restrictions</option>
                     </select>
                 </div>
             </div>
 
             <div class="d-flex justify-content-end mt-12">
-                <input name="_form_token" type="hidden" value="{{.CSRFToken}}">
-                <button class="btn btn-primary px-10" id="form_submit" name="form_action" type="submit" value="submit">
-                    <span class="indicator-label" data-i18n="maintenance.restore">
+                <input type="hidden" name="_form_token" value="{{.CSRFToken}}">
+                <button type="submit" id="form_submit" class="btn btn-primary px-10" name="form_action" value="submit">
+                    <span data-i18n="maintenance.restore" class="indicator-label">
                         Restore
                     </span>
-                    <span class="indicator-progress" data-i18n="general.wait">
+                    <span data-i18n="general.wait" class="indicator-progress">
                         Please wait...
                         <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                     </span>
@@ -79,12 +72,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
 <div class="card shadow-sm mt-10">
     <div class="card-header bg-light">
-        <h3 class="card-title section-title" data-i18n="maintenance.backup">Backup</h3>
+        <h3 data-i18n="maintenance.backup" class="card-title section-title">Backup</h3>
     </div>
     <div class="card-body">
         <div>
-            <a class="btn btn-primary btn-block" href="{{.BackupPath}}?output-data=1" rel="noopener noreferrer"
-               target="_blank">
+            <a href="{{.BackupPath}}?output-data=1" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block">
                 <span data-i18n="maintenance.backup_do">Backup your data</span>
             </a>
         </div>
@@ -94,12 +86,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
-    $(document).on("i18nshow", function () {
+<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
+    $(document).on("i18nshow", function(){
         $('#restore_form').submit(function (event) {
-            let submitButton = document.querySelector('#form_submit');
-            submitButton.setAttribute('data-kt-indicator', 'on');
-            submitButton.disabled = true;
+			let submitButton = document.querySelector('#form_submit');
+			submitButton.setAttribute('data-kt-indicator', 'on');
+			submitButton.disabled = true;
         });
     });
 </script>

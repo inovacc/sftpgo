@@ -18,38 +18,34 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 class="card-title section-title" data-i18n="{{.Title}}"></h3>
+        <h3 data-i18n="{{.Title}}" class="card-title section-title"></h3>
     </div>
     <div class="card-body">
         {{- template "errmsg" .Error}}
-        <form action="{{.CurrentURL}}" autocomplete="off" id="role_form" method="POST">
+        <form id="role_form" action="{{.CurrentURL}}" method="POST" autocomplete="off">
 
             <div class="form-group row">
-                <label class="col-md-3 col-form-label" data-i18n="general.name" for="idRoleName">Name</label>
+                <label for="idRoleName" data-i18n="general.name" class="col-md-3 col-form-label">Name</label>
                 <div class="col-md-9">
-                    <input .Mode 2}}class="form-control-plaintext readonly-input" autocomplete="off" eq id="idRoleName" maxlength="255"
-                           name="name"
-                           placeholder="" readonly{{else}}class="form-control" required spellcheck="false" type="text" value="{{.Role.Name}}"
-                           {{end}} {{if/>
+                    <input id="idRoleName" type="text" placeholder="" name="name" value="{{.Role.Name}}" maxlength="255" autocomplete="off"
+                        spellcheck="false" required {{if eq .Mode 2}}class="form-control-plaintext readonly-input" readonly{{else}}class="form-control"{{end}} />
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.description"
-                       for="idDescription">Description</label>
+                <label for="idDescription" data-i18n="general.description" class="col-md-3 col-form-label">Description</label>
                 <div class="col-md-9">
-                    <input class="form-control" id="idDescription" maxlength="255" name="description"
-                           type="text" value="{{.Role.Description}}">
+                    <input id="idDescription" type="text" class="form-control" name="description" value="{{.Role.Description}}" maxlength="255">
                 </div>
             </div>
 
             <div class="d-flex justify-content-end mt-12">
-                <input name="_form_token" type="hidden" value="{{.CSRFToken}}">
-                <button class="btn btn-primary px-10" id="form_submit" name="form_action" type="submit" value="submit">
-                    <span class="indicator-label" data-i18n="general.submit">
+                <input type="hidden" name="_form_token" value="{{.CSRFToken}}">
+                <button type="submit" id="form_submit" class="btn btn-primary px-10" name="form_action" value="submit">
+                    <span data-i18n="general.submit" class="indicator-label">
                         Submit
                     </span>
-                    <span class="indicator-progress" data-i18n="general.wait">
+                    <span data-i18n="general.wait" class="indicator-progress">
                         Please wait...
                         <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                     </span>
@@ -61,12 +57,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
-    $(document).on("i18nshow", function () {
+<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
+    $(document).on("i18nshow", function(){
         $('#role_form').submit(function (event) {
-            let submitButton = document.querySelector('#form_submit');
-            submitButton.setAttribute('data-kt-indicator', 'on');
-            submitButton.disabled = true;
+			let submitButton = document.querySelector('#form_submit');
+			submitButton.setAttribute('data-kt-indicator', 'on');
+			submitButton.disabled = true;
         });
     });
 </script>

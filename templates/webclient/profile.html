@@ -18,26 +18,23 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 class="card-title section-title" data-i18n="general.my_profile">My profile</h3>
+        <h3 data-i18n="general.my_profile" class="card-title section-title">My profile</h3>
     </div>
     <div class="card-body">
         {{- template "errmsg" .Error}}
-        <form action="{{.CurrentURL}}" id="page_form" method="POST">
+        <form id="page_form" action="{{.CurrentURL}}" method="POST">
             <div class="form-group row">
-                <label class="col-md-3 col-form-label" data-i18n="general.email" for="idEmail">Email</label>
+                <label for="idEmail" data-i18n="general.email" class="col-md-3 col-form-label">Email</label>
                 <div class="col-md-9">
-                    <input .Email}}class="form-control-plaintext readonly-input" .LoggedUser.CanChangeInfo}}{{if autocomplete="off" id="idEmail" maxlength="255" name="email"
-                           not
-                           placeholder="" readonly{{else}}class="form-control" spellcheck="false" type="email"
-                           value="{{.Email}}" {{else}}class="form-control" {{end}}
-                           {{end}} {{if>
+                    <input type="email" id="idEmail" name="email" placeholder="" spellcheck="false" value="{{.Email}}" maxlength="255"
+                        autocomplete="off" {{if not .LoggedUser.CanChangeInfo}}{{if .Email}}class="form-control-plaintext readonly-input"{{else}}class="form-control"{{end}} readonly{{else}}class="form-control"{{end}}>
                 </div>
             </div>
 
             {{- if .LoggedUser.CanChangeInfo}}
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 class="card-title section-title-inner" data-i18n="user.additional_emails">Additional emails</h3>
+                    <h3 data-i18n="user.additional_emails" class="card-title section-title-inner">Additional emails</h3>
                 </div>
                 <div class="card-body">
                     <div id="additional_emails">
@@ -47,13 +44,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-10 mt-3 mt-md-8">
-                                            <input autocomplete="off" class="form-control" maxlength="255"
-                                                   name="additional_email" placeholder="" spellcheck="false"
-                                                   type="email" value="{{$val}}"/>
+                                            <input type="email" class="form-control" placeholder="" name="additional_email" value="{{$val}}" maxlength="255" autocomplete="off" spellcheck="false" />
                                         </div>
                                         <div class="col-md-2 mt-3 mt-md-8">
-                                            <a class="btn btn-light-danger" data-repeater-delete
-                                               href="#">
+                                            <a href="#" data-repeater-delete
+                                                class="btn btn-light-danger">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -70,13 +65,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-10 mt-3 mt-md-8">
-                                            <input autocomplete="off" class="form-control" maxlength="255"
-                                                   name="additional_email" placeholder="" spellcheck="false" type="email"
-                                                   value=""/>
+                                            <input type="email" class="form-control" placeholder="" name="additional_email" value="" maxlength="255" autocomplete="off" spellcheck="false" />
                                         </div>
                                         <div class="col-md-2 mt-3 mt-md-8">
-                                            <a class="btn btn-light-danger" data-repeater-delete
-                                               href="#">
+                                            <a href="#" data-repeater-delete
+                                                class="btn btn-light-danger">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -94,7 +87,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a class="btn btn-light-primary" data-repeater-create href="#">
+                            <a href="#" data-repeater-create class="btn btn-light-primary">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -104,38 +97,28 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
             {{- else}}
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="user.additional_emails" for="idAdditionalEmails">Additional
-                    emails</label>
+                <label for="idAdditionalEmails" data-i18n="user.additional_emails" class="col-md-3 col-form-label">Additional emails</label>
                 <div class="col-md-9">
-                    <input class="form-control-plaintext readonly-input" id="idAdditionalEmails" name="description" placeholder=""
-                           readonly
-                           type="text" value="{{.AdditionalEmailsString}}">
+                    <input type="text" id="idAdditionalEmails" name="description" placeholder="" value="{{.AdditionalEmailsString}}"
+                        class="form-control-plaintext readonly-input" readonly>
                 </div>
             </div>
             {{- end}}
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.description"
-                       for="idDescription">Description</label>
+                <label for="idDescription" data-i18n="general.description" class="col-md-3 col-form-label">Description</label>
                 <div class="col-md-9">
-                    <input .Description}}class="form-control-plaintext readonly-input" .LoggedUser.CanChangeInfo}}{{if id="idDescription" maxlength="255" name="description"
-                           not
-                           placeholder="" readonly{{else}}class="form-control" type="text"
-                           value="{{.Description}}" {{else}}class="form-control"
-                           {{end}} {{end}} {{if>
+                    <input type="text" id="idDescription" name="description" placeholder="" value="{{.Description}}" maxlength="255"
+                        {{if not .LoggedUser.CanChangeInfo}}{{if .Description}}class="form-control-plaintext readonly-input"{{else}}class="form-control"{{end}} readonly{{else}}class="form-control"{{end}}>
                 </div>
             </div>
 
             <div class="form-group row align-items-center mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.api_key_auth" for="idAllowAPIKeyAuth">API key
-                    authentication</label>
+                <label data-i18n="general.api_key_auth" class="col-md-3 col-form-label" for="idAllowAPIKeyAuth">API key authentication</label>
                 <div class="col-md-9">
                     <div class="form-check form-switch form-check-custom form-check-solid">
-                        <input .AllowAPIKeyAuth}}checked="checked" .LoggedUser.CanChangeAPIKeyAuth}}disabled="disabled" class="form-check-input" id="idAllowAPIKeyAuth"
-                               name="allow_api_key_auth" not type="checkbox" {{end}} {{end}}
-                               {{if {{if/>
-                        <label class="form-check-label fw-semibold text-gray-800" data-i18n="general.api_key_auth_help"
-                               for="idAllowAPIKeyAuth">
+                        <input class="form-check-input" type="checkbox" id="idAllowAPIKeyAuth" name="allow_api_key_auth" {{if not .LoggedUser.CanChangeAPIKeyAuth}}disabled="disabled"{{end}} {{if .AllowAPIKeyAuth}}checked="checked"{{end}}/>
+                        <label data-i18n="general.api_key_auth_help" class="form-check-label fw-semibold text-gray-800" for="idAllowAPIKeyAuth">
                             Allow to impersonate yourself, in REST API, using an API key
                         </label>
                     </div>
@@ -145,7 +128,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             {{- if .LoggedUser.CanManagePublicKeys}}
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 class="card-title section-title-inner" data-i18n="general.pub_keys">Public keys</h3>
+                    <h3 data-i18n="general.pub_keys" class="card-title section-title-inner">Public keys</h3>
                 </div>
                 <div class="card-body">
                     <div id="public_keys">
@@ -156,13 +139,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <textarea class="form-control"
-                                                      data-i18n="[placeholder]general.pub_key_placeholder" name="public_key" placeholder="Paste your public key here"
-                                                      rows="4">{{$val}}</textarea>
+                                            <textarea data-i18n="[placeholder]general.pub_key_placeholder" class="form-control" name="public_key" rows="4"
+                                                placeholder="Paste your public key here">{{$val}}</textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a class="btn btn-light-danger" data-repeater-delete
-                                               href="#">
+                                            <a href="#" data-repeater-delete
+                                                class="btn btn-light-danger">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -179,13 +161,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <textarea class="form-control"
-                                                      data-i18n="[placeholder]general.pub_key_placeholder" name="public_key" placeholder="Paste your public key here"
-                                                      rows="4"></textarea>
+                                            <textarea data-i18n="[placeholder]general.pub_key_placeholder" class="form-control" name="public_key" rows="4"
+                                                placeholder="Paste your public key here"></textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a class="btn btn-light-danger" data-repeater-delete
-                                               href="#">
+                                            <a href="#" data-repeater-delete
+                                                class="btn btn-light-danger">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -203,7 +184,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a class="btn btn-light-primary" data-repeater-create href="#">
+                            <a href="#" data-repeater-create class="btn btn-light-primary">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -215,7 +196,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             {{- if .LoggedUser.CanManageTLSCerts}}
             <div class="card mt-10">
                 <div class="card-header bg-light">
-                    <h3 class="card-title section-title-inner" data-i18n="user.tls_certs">TLS certificates</h3>
+                    <h3 data-i18n="user.tls_certs" class="card-title section-title-inner">TLS certificates</h3>
                 </div>
                 <div class="card-body">
                     <div id="tls_certs">
@@ -226,12 +207,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <textarea class="form-control" data-i18n="[placeholder]user.tls_cert_help"
-                                                      name="tls_cert" rows="4">{{$val}}</textarea>
+                                            <textarea data-i18n="[placeholder]user.tls_cert_help" class="form-control" name="tls_cert" rows="4">{{$val}}</textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a class="btn btn-light-danger" data-repeater-delete
-                                               href="#">
+                                            <a href="#" data-repeater-delete
+                                                class="btn btn-light-danger">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -248,12 +228,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 <div data-repeater-item>
                                     <div class="form-group row">
                                         <div class="col-md-9 mt-3 mt-md-8">
-                                            <textarea class="form-control" data-i18n="[placeholder]user.tls_cert_help"
-                                                      name="tls_cert" rows="4"></textarea>
+                                            <textarea data-i18n="[placeholder]user.tls_cert_help" class="form-control" name="tls_cert" rows="4"></textarea>
                                         </div>
                                         <div class="col-md-3 mt-3 mt-md-8">
-                                            <a class="btn btn-light-danger" data-repeater-delete
-                                               href="#">
+                                            <a href="#" data-repeater-delete
+                                                class="btn btn-light-danger">
                                                 <i class="ki-duotone ki-trash fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -271,7 +250,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         </div>
 
                         <div class="form-group mt-5">
-                            <a class="btn btn-light-primary" data-repeater-create href="#">
+                            <a href="#" data-repeater-create class="btn btn-light-primary">
                                 <i class="ki-duotone ki-plus fs-3"></i>
                                 <span data-i18n="general.add">Add</span>
                             </a>
@@ -282,12 +261,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             {{- end}}
             {{if .CanSubmit}}
             <div class="d-flex justify-content-end mt-12">
-                <input name="_form_token" type="hidden" value="{{.CSRFToken}}">
-                <button class="btn btn-primary px-10" id="form_submit" type="submit">
-                    <span class="indicator-label" data-i18n="general.submit">
+                <input type="hidden" name="_form_token" value="{{.CSRFToken}}">
+                <button type="submit" id="form_submit" class="btn btn-primary px-10">
+                    <span data-i18n="general.submit" class="indicator-label">
                         Submit
                     </span>
-                    <span class="indicator-progress" data-i18n="general.wait">
+                    <span data-i18n="general.wait" class="indicator-progress">
                         Please wait...
                         <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                     </span>
@@ -301,10 +280,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
 {{- define "extra_js"}}
 {{- if or .LoggedUser.CanManagePublicKeys .LoggedUser.CanManageTLSCerts}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js" {{-
-        {{-></script>
+<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/custom/formrepeater/formrepeater.bundle.js"></script>
 {{- end}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
+<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
     KTUtil.onDOMContentLoaded(function () {
         //{{- if or .LoggedUser.CanManagePublicKeys .LoggedUser.CanManageTLSCerts}}
         //{{- if .LoggedUser.CanManagePublicKeys}}

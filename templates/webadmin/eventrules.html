@@ -23,23 +23,23 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- template "errmsg" ""}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 class="card-title section-title" data-i18n="rules.view_manage">View and manage event rules</h3>
+        <h3 data-i18n="rules.view_manage" class="card-title section-title">View and manage event rules</h3>
     </div>
-    <div class="card-body" id="card_body">
-        <div class="align-items-center text-center my-10" id="loader">
+    <div id="card_body" class="card-body">
+        <div id="loader" class="align-items-center text-center my-10">
             <span class="spinner-border w-15px h-15px text-muted align-middle me-2"></span>
-            <span class="text-gray-700" data-i18n="general.loading">Loading...</span>
+            <span data-i18n="general.loading" class="text-gray-700">Loading...</span>
         </div>
-        <div class="d-none" id="card_content">
+        <div id="card_content" class="d-none">
             <div class="d-flex flex-stack flex-wrap mb-5">
                 <div class="d-flex align-items-center position-relative my-2">
                     <i class="ki-solid ki-magnifier fs-1 position-absolute ms-6"></i>
-                    <input class="form-control rounded-1 w-250px ps-15 me-5" data-i18n="[placeholder]general.search" data-table-filter="search" name="search"
-                           placeholder="Search" type="text"/>
+                    <input name="search" data-i18n="[placeholder]general.search" type="text" data-table-filter="search"
+                        class="form-control rounded-1 w-250px ps-15 me-5" placeholder="Search" />
                 </div>
                 <div class="d-flex justify-content-end my-2" data-table-toolbar="base">
                     {{- if .LoggedUser.HasPermission "*"}}
-                    <a class="btn btn-primary ms-5" href="{{.EventRuleURL}}">
+                    <a href="{{.EventRuleURL}}" class="btn btn-primary ms-5">
                         <i class="ki-duotone ki-plus fs-2"></i>
                         <span data-i18n="general.add">Add</span>
                     </a>
@@ -47,17 +47,17 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 </div>
             </div>
 
-            <table class="table align-middle table-row-dashed fs-6 gy-5" id="dataTable">
+            <table id="dataTable" class="table align-middle table-row-dashed fs-6 gy-5">
                 <thead>
-                <tr class="text-start text-muted fw-bold fs-6 gs-0">
-                    <th data-i18n="general.name">Name</th>
-                    <th data-i18n="general.status">Status</th>
-                    <th data-i18n="rules.trigger">Trigger</th>
-                    <th data-i18n="title.event_actions">Actions</th>
-                    <th class="min-w-100px"></th>
-                </tr>
+                    <tr class="text-start text-muted fw-bold fs-6 gs-0">
+                        <th data-i18n="general.name">Name</th>
+                        <th data-i18n="general.status">Status</th>
+                        <th data-i18n="rules.trigger">Trigger</th>
+                        <th data-i18n="title.event_actions">Actions</th>
+                        <th class="min-w-100px"></th>
+                    </tr>
                 </thead>
-                <tbody class="text-gray-800 fw-semibold" id="table_body"></tbody>
+                <tbody id="table_body" class="text-gray-800 fw-semibold"></tbody>
             </table>
 
         </div>
@@ -66,9 +66,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js" {{-
-        {{-></script>
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
+<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/assets/plugins/custom/datatables/datatables.bundle.js"></script>
+<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
     function deleteAction(name) {
         ModalAlert.fire({
             text: $.t('general.delete_confirm_generic'),
@@ -80,7 +79,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 cancelButton: 'btn btn-secondary'
             }
         }).then((result) => {
-            if (result.isConfirmed) {
+            if (result.isConfirmed){
                 clearLoading();
                 KTApp.showPageLoading();
                 let path = '{{.EventRuleURL}}' + "/" + encodeURIComponent(name);
@@ -93,9 +92,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     validateStatus: function (status) {
                         return status == 200;
                     }
-                }).then(function (response) {
+                }).then(function(response){
                     location.reload();
-                }).catch(function (error) {
+                }).catch(function(error){
                     KTApp.hidePageLoading();
                     let errorMessage;
                     if (error && error.response) {
@@ -108,7 +107,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                 break;
                         }
                     }
-                    if (!errorMessage) {
+                    if (!errorMessage){
                         errorMessage = "general.delete_error_generic";
                     }
                     ModalAlert.fire({
@@ -135,7 +134,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 cancelButton: 'btn btn-secondary'
             }
         }).then((result) => {
-            if (result.isConfirmed) {
+            if (result.isConfirmed){
                 clearLoading();
                 KTApp.showPageLoading();
                 let path = '{{.EventRuleURL}}' + "/run/" + encodeURIComponent(name);
@@ -148,7 +147,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     validateStatus: function (status) {
                         return status == 202;
                     }
-                }).then(function (response) {
+                }).then(function(response){
                     KTApp.hidePageLoading();
                     ModalAlert.fire({
                         text: $.t("rules.run_ok"),
@@ -158,7 +157,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             confirmButton: "btn btn-primary"
                         }
                     });
-                }).catch(function (error) {
+                }).catch(function(error){
                     KTApp.hidePageLoading();
                     ModalAlert.fire({
                         text: $.t("rules.run_error_generic"),
@@ -173,7 +172,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         });
     }
 
-    var datatable = function () {
+    var datatable = function(){
         var dt;
 
         var initDatatable = function () {
@@ -189,12 +188,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         if ($xhr) {
                             let json = $xhr.responseJSON;
                             if (json) {
-                                if (json.message) {
+                                if (json.message){
                                     txt = json.message;
                                 }
                             }
                         }
-                        if (!txt) {
+                        if (!txt){
                             txt = "general.error500";
                         }
                         setI18NData($('#errorTxt'), txt);
@@ -204,7 +203,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 columns: [
                     {
                         data: "name",
-                        render: function (data, type, row) {
+                        render: function(data, type, row) {
                             if (type === 'display') {
                                 return escapeHTML(data);
                             }
@@ -213,9 +212,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     },
                     {
                         data: "status",
-                        render: function (data, type, row) {
+                        render: function(data, type, row) {
                             if (type === 'display') {
-                                switch (data) {
+                                switch (data){
                                     case 1:
                                         return $.t('general.active');
                                     default:
@@ -227,9 +226,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     },
                     {
                         data: "trigger",
-                        render: function (data, type, row) {
+                        render: function(data, type, row) {
                             if (type === 'display') {
-                                switch (data) {
+                                switch (data){
                                     case 1:
                                         return $.t('rules.triggers.fs_event');
                                     case 2:
@@ -254,13 +253,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     {
                         data: "actions",
                         defaultContent: [],
-                        render: function (data, type, row) {
-                            if (!data) {
+                        render: function(data, type, row) {
+                            if (!data){
                                 return "";
                             }
                             let actions = [];
                             let result = "";
-                            for (i = 0; i < data.length; i++) {
+                            for (i = 0; i < data.length; i++){
                                 actions.push(data[i].name);
                             }
                             result = actions.join(", ");
@@ -286,22 +285,22 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
                                 //{{- if .LoggedUser.HasPermission "*"}}
                                 numActions++;
-                                actions += `<div class="menu-item px-3">
+                                actions+=`<div class="menu-item px-3">
 										      <a data-i18n="general.edit" href="#" class="menu-link px-3" data-table-action="edit_row">Edit</a>
 										  </div>`;
                                 numActions++;
-                                if (row.trigger === 6) {
-                                    actions += `<div class="menu-item px-3">
+                                if (row.trigger === 6){
+                                    actions+=`<div class="menu-item px-3">
 										      <a data-i18n="rules.run" href="#" class="menu-link px-3" data-table-action="run_row">Run</a>
 										  </div>`;
-                                    numActions++;
+                                numActions++;
                                 }
-                                actions += `<div class="menu-item px-3">
+                                actions+=`<div class="menu-item px-3">
                                              <a data-i18n="general.delete" href="#" class="menu-link text-danger px-3" data-table-action="delete_row">Delete</a>
 										  </div>`;
                                 //{{- end}}
-                                if (numActions > 0) {
-                                    actions += `</div>`;
+                                if (numActions > 0){
+                                    actions+=`</div>`;
                                     return actions;
                                 }
                             }
@@ -313,11 +312,11 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 stateSave: true,
                 stateDuration: 0,
                 stateLoadParams: function (settings, data) {
-                    if (data.search.search) {
-                        const filterSearch = document.querySelector('[data-table-filter="search"]');
-                        filterSearch.value = data.search.search;
-                    }
-                },
+                        if (data.search.search){
+                            const filterSearch = document.querySelector('[data-table-filter="search"]');
+                            filterSearch.value = data.search.search;
+                        }
+                    },
                 language: {
                     info: $.t('datatable.info'),
                     infoEmpty: $.t('datatable.info_empty'),
@@ -328,7 +327,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     emptyTable: $.t('datatable.no_records')
                 },
                 order: [[0, 'asc']],
-                initComplete: function (settings, json) {
+                initComplete: function(settings, json) {
                     $('#loader').addClass("d-none");
                     $('#card_content').removeClass("d-none");
                     let api = $.fn.dataTable.Api(settings);
@@ -337,7 +336,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             });
 
             dt.on('draw.dt', drawAction);
-            dt.on('columns-reordered', function (e, settings, details) {
+            dt.on('columns-reordered', function(e, settings, details){
                 drawAction();
             });
         }
@@ -362,7 +361,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             editButtons.forEach(d => {
                 let el = $(d);
                 el.off("click");
-                el.on("click", function (e) {
+                el.on("click", function(e){
                     e.preventDefault();
                     let rowData = dt.row(e.target.closest('tr')).data();
                     window.location.replace('{{.EventRuleURL}}' + "/" + encodeURIComponent(rowData['name']));
@@ -373,7 +372,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             deleteButtons.forEach(d => {
                 let el = $(d);
                 el.off("click");
-                el.on("click", function (e) {
+                el.on("click", function(e){
                     e.preventDefault();
                     const parent = e.target.closest('tr');
                     deleteAction(dt.row(parent).data()['name']);
@@ -384,7 +383,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             runButtons.forEach(d => {
                 let el = $(d);
                 el.off("click");
-                el.on("click", function (e) {
+                el.on("click", function(e){
                     e.preventDefault();
                     const parent = e.target.closest('tr');
                     runAction(dt.row(parent).data()['name']);
@@ -400,7 +399,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         }
     }();
 
-    $(document).on("i18nshow", function () {
+    $(document).on("i18nshow", function(){
         datatable.init();
     });
 </script>

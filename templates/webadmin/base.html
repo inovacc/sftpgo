@@ -17,16 +17,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- block "additionalnavitems" .}}{{- end}}
 {{- template "theme-switcher"}}
 <div class="d-flex align-items-center ms-2 ms-lg-3">
-    <div class="btn btn-icon btn-active-light-primary w-35px h-35px w-md-40px h-md-40px"
-         data-kt-menu-attach="parent" data-kt-menu-placement="bottom-end"
-         data-kt-menu-trigger="{default:'click', lg: 'hover'}">
+    <div class="btn btn-icon btn-active-light-primary w-35px h-35px w-md-40px h-md-40px" data-kt-menu-trigger="{default:'click', lg: 'hover'}" data-kt-menu-attach="parent" data-kt-menu-placement="bottom-end">
         <i class="ki-duotone ki-user fs-2">
             <i class="path1"></i>
             <i class="path2"></i>
         </i>
     </div>
-    <div class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-title-gray-700 menu-icon-gray-500 menu-active-bg menu-state-color fw-semibold py-4 w-250px"
-         data-kt-menu="true">
+    <div class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-title-gray-700 menu-icon-gray-500 menu-active-bg menu-state-color fw-semibold py-4 w-250px" data-kt-menu="true">
         <div class="menu-item px-3 my-0">
             <div class="menu-content d-flex align-items-center px-3 py-2">
                 <div class="me-5">
@@ -45,26 +42,26 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         <div class="separator my-2"></div>
         {{if not .HasExternalLogin}}
         <div class="menu-item px-3 my-0">
-            <a class="menu-link px-3 py-2" href="{{.ProfileURL}}">
-                <span class="menu-title" data-i18n="title.profile">Profile</span>
+            <a href="{{.ProfileURL}}" class="menu-link px-3 py-2">
+                <span data-i18n="title.profile" class="menu-title">Profile</span>
             </a>
         </div>
         <div class="menu-item px-3 my-0">
-            <a class="menu-link px-3 py-2" href="{{.ChangePwdURL}}">
-                <span class="menu-title" data-i18n="title.change_password">Change password</span>
+            <a href="{{.ChangePwdURL}}" class="menu-link px-3 py-2">
+                <span data-i18n="title.change_password" class="menu-title">Change password</span>
             </a>
         </div>
         {{if .LoggedUser.CanManageMFA}}
         <div class="menu-item px-3 my-0">
-            <a class="menu-link px-3 py-2" href="{{.MFAURL}}">
-                <span class="menu-title" data-i18n="title.two_factor_auth">Two-factor authentication</span>
+            <a href="{{.MFAURL}}" class="menu-link px-3 py-2">
+                <span data-i18n="title.two_factor_auth" class="menu-title">Two-factor authentication</span>
             </a>
         </div>
         {{- end}}
         {{- end}}
         <div class="menu-item px-3 my-0">
-            <a class="menu-link px-3 py-2" href="#" id="id_logout_link">
-                <span class="menu-title" data-i18n="login.signout">Sign out</span>
+            <a id="id_logout_link" href="#" class="menu-link px-3 py-2">
+                <span data-i18n="login.signout" class="menu-title">Sign out</span>
             </a>
         </div>
     </div>
@@ -84,7 +81,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="path5"></span>
             </i>
         </span>
-        <span class="menu-title" data-i18n="title.users">Users</span>
+        <span data-i18n="title.users" class="menu-title">Users</span>
     </a>
 </div>
 {{- end}}
@@ -99,7 +96,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="path4"></span>
             </i>
         </span>
-        <span class="menu-title" data-i18n="title.groups">Groups</span>
+        <span data-i18n="title.groups" class="menu-title">Groups</span>
     </a>
 </div>
 {{- end}}
@@ -112,7 +109,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="path2"></span>
             </i>
         </span>
-        <span class="menu-title" data-i18n="title.folders">Folders</span>
+        <span data-i18n="title.folders" class="menu-title">Folders</span>
     </a>
 </div>
 {{- end}}
@@ -125,12 +122,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="path2"></span>
             </i>
         </span>
-        <span class="menu-title" data-i18n="title.connections">Connections</span>
+        <span data-i18n="title.connections" class="menu-title">Connections</span>
     </a>
 </div>
 {{- end}}
 {{ if .LoggedUser.HasPermission "*"}}
-<div class="menu-item menu-accordion {{- if .IsEventManagerPage}} here show{{- end}}" data-kt-menu-trigger="click">
+<div data-kt-menu-trigger="click" class="menu-item menu-accordion {{- if .IsEventManagerPage}} here show{{- end}}">
     <span class="menu-link">
         <span class="menu-icon">
             <i class="ki-duotone ki-calendar fs-1">
@@ -138,7 +135,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="path2"></span>
             </i>
         </span>
-        <span class="menu-title" data-i18n="title.event_manager">Event Manager</span>
+        <span data-i18n="title.event_manager" class="menu-title">Event Manager</span>
         <span class="menu-arrow"></span>
     </span>
     <div class="menu-sub menu-sub-accordion">
@@ -147,7 +144,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="menu-bullet">
                     <span class="bullet bullet-dot"></span>
                 </span>
-                <span class="menu-title fs-5 fw-semibold" data-i18n="title.event_rules">Rules</span>
+                <span data-i18n="title.event_rules" class="menu-title fs-5 fw-semibold">Rules</span>
             </a>
         </div>
         <div class="menu-item">
@@ -155,19 +152,19 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="menu-bullet">
                     <span class="bullet bullet-dot"></span>
                 </span>
-                <span class="menu-title fs-5 fw-semibold" data-i18n="title.event_actions">Actions</span>
+                <span data-i18n="title.event_actions" class="menu-title fs-5 fw-semibold">Actions</span>
             </a>
         </div>
     </div>
 </div>
 {{- end}}
 {{- if or (.LoggedUser.HasPermission "*") (and .HasDefender (.LoggedUser.HasPermission "view_defender"))}}
-<div class="menu-item menu-accordion {{- if .IsIPManagerPage}} here show{{- end}}" data-kt-menu-trigger="click">
+<div data-kt-menu-trigger="click" class="menu-item menu-accordion {{- if .IsIPManagerPage}} here show{{- end}}">
     <span class="menu-link">
         <span class="menu-icon">
             <i class="ki-solid ki-shield fs-1"></i>
         </span>
-        <span class="menu-title" data-i18n="title.ip_manager">IP Manager</span>
+        <span data-i18n="title.ip_manager" class="menu-title">IP Manager</span>
         <span class="menu-arrow"></span>
     </span>
     <div class="menu-sub menu-sub-accordion">
@@ -177,7 +174,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="menu-bullet">
                     <span class="bullet bullet-dot"></span>
                 </span>
-                <span class="menu-title fs-5 fw-semibold" data-i18n="title.ip_lists">IP lists</span>
+                <span data-i18n="title.ip_lists" class="menu-title fs-5 fw-semibold">IP lists</span>
             </a>
         </div>
         {{- end}}
@@ -187,7 +184,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="menu-bullet">
                     <span class="bullet bullet-dot"></span>
                 </span>
-                <span class="menu-title fs-5 fw-semibold" data-i18n="title.defender">Auto Blocklist</span>
+                <span data-i18n="title.defender" class="menu-title fs-5 fw-semibold">Auto Blocklist</span>
             </a>
         </div>
         {{- end}}
@@ -195,7 +192,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 </div>
 {{- end}}
 {{- if or (.LoggedUser.HasPermission "*") (.LoggedUser.HasPermission "view_status") (and .HasSearcher (.LoggedUser.HasPermission "view_events"))}}
-<div class="menu-item menu-accordion {{- if .IsServerManagerPage}} here show{{- end}}" data-kt-menu-trigger="click">
+<div data-kt-menu-trigger="click" class="menu-item menu-accordion {{- if .IsServerManagerPage}} here show{{- end}}">
     <span class="menu-link">
         <span class="menu-icon">
             <i class="ki-duotone ki-setting-3 fs-1">
@@ -206,7 +203,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="path5"></span>
             </i>
         </span>
-        <span class="menu-title" data-i18n="title.server_manager">Server Manager</span>
+        <span data-i18n="title.server_manager" class="menu-title">Server Manager</span>
         <span class="menu-arrow"></span>
     </span>
     <div class="menu-sub menu-sub-accordion">
@@ -216,7 +213,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="menu-bullet">
                     <span class="bullet bullet-dot"></span>
                 </span>
-                <span class="menu-title fs-5 fw-semibold" data-i18n="title.configs">Configurations</span>
+                <span data-i18n="title.configs" class="menu-title fs-5 fw-semibold">Configurations</span>
             </a>
         </div>
         {{- end}}
@@ -226,7 +223,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="menu-bullet">
                     <span class="bullet bullet-dot"></span>
                 </span>
-                <span class="menu-title fs-5 fw-semibold" data-i18n="title.logs">Logs</span>
+                <span data-i18n="title.logs" class="menu-title fs-5 fw-semibold">Logs</span>
             </a>
         </div>
         {{- end}}
@@ -236,7 +233,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="menu-bullet">
                     <span class="bullet bullet-dot"></span>
                 </span>
-                <span class="menu-title fs-5 fw-semibold" data-i18n="title.maintenance">Maintenance</span>
+                <span data-i18n="title.maintenance" class="menu-title fs-5 fw-semibold">Maintenance</span>
             </a>
         </div>
         {{- end}}
@@ -246,7 +243,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="menu-bullet">
                     <span class="bullet bullet-dot"></span>
                 </span>
-                <span class="menu-title fs-5 fw-semibold" data-i18n="title.status">Status</span>
+                <span data-i18n="title.status" class="menu-title fs-5 fw-semibold">Status</span>
             </a>
         </div>
         {{- end}}
@@ -259,7 +256,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         <span class="menu-icon">
             <i class="ki-solid ki-security-user fs-1"></i>
         </span>
-        <span class="menu-title" data-i18n="title.admins">Admins</span>
+        <span data-i18n="title.admins" class="menu-title">Admins</span>
     </a>
 </div>
 <div class="menu-item">
@@ -271,7 +268,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 <span class="path3"></span>
             </i>
         </span>
-        <span class="menu-title" data-i18n="title.roles">Roles</span>
+        <span data-i18n="title.roles" class="menu-title">Roles</span>
     </a>
 </div>
 {{- end}}

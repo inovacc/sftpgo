@@ -18,85 +18,71 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- define "page_body"}}
 <div class="card shadow-sm">
     <div class="card-header bg-light">
-        <h3 class="card-title section-title" data-i18n="{{.Title}}"></h3>
+        <h3 data-i18n="{{.Title}}" class="card-title section-title"></h3>
     </div>
     <div class="card-body">
         {{- template "errmsg" .Error}}
-        <form action="{{.CurrentURL}}" autocomplete="off" id="iplist_form" method="POST">
+        <form id="iplist_form" action="{{.CurrentURL}}" method="POST" autocomplete="off">
 
             <div class="form-group row">
-                <label class="col-md-3 col-form-label" data-i18n="general.type" for="idType">Type</label>
+                <label for="idType" data-i18n="general.type" class="col-md-3 col-form-label">Type</label>
                 <div class="col-md-9">
-                    <input .Entry.Type .Entry.Type .Entry.Type 1}}data-i18n="[value]ip_list.allow_list" 2}}data-i18n="[value]ip_list.defender_list" 3}}data-i18n="[value]ip_list.ratelimiters_safe_list"
-                           class="form-control-plaintext readonly-input" eq eq eq id="idType" maxlength="50"
-                           name="type" readonly type="text" {{end}}
-                           {{end}}{{if
-                           {{end}}{{if {{if/>
+                    <input id="idType" type="text" {{if eq .Entry.Type 1}}data-i18n="[value]ip_list.allow_list"{{end}}{{if eq .Entry.Type 2}}data-i18n="[value]ip_list.defender_list"{{end}}{{if eq .Entry.Type 3}}data-i18n="[value]ip_list.ratelimiters_safe_list"{{end}} name="type" maxlength="50"
+                        class="form-control-plaintext readonly-input" readonly />
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="ip_list.ip_net" for="idIPOrNet">IP/Network</label>
+                <label for="idIPOrNet" data-i18n="ip_list.ip_net" class="col-md-3 col-form-label">IP/Network</label>
                 <div class="col-md-9">
-                    <input .Mode 2}}class="form-control-plaintext readonly-input" aria-describedby="idIPOrNetHelp" autocomplete="off" eq
-                           id="idIPOrNet"
-                           maxlength="50" name="ipornet" readonly{{else}}class="form-control" required type="text"
-                           value="{{.Entry.IPOrNet}}" {{end}} {{if/>
+                    <input id="idIPOrNet" type="text" name="ipornet" value="{{.Entry.IPOrNet}}" maxlength="50" autocomplete="off"
+                        required {{if eq .Mode 2}}class="form-control-plaintext readonly-input" readonly{{else}}class="form-control" aria-describedby="idIPOrNetHelp"{{end}} />
                     {{- if ne .Mode 2}}
-                    <div class="form-text" data-i18n="ip_list.ip_net_help" id="idIPOrNetHelp"></div>
+                    <div id="idIPOrNetHelp" class="form-text" data-i18n="ip_list.ip_net_help"></div>
                     {{- end}}
                 </div>
             </div>
 
             {{- if eq .Entry.Type 2}}
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.mode" for="idMode">Mode</label>
+                <label for="idMode" data-i18n="general.mode" class="col-md-3 col-form-label">Mode</label>
                 <div class="col-md-9">
-                    <select class="form-select" data-control="i18n-select2" data-hide-search="true" id="idMode"
-                            name="mode">
-                        <option .Entry.Mode 2 data-i18n="ip_list.deny" eq value="2" {{if }}selected{{end}}>Deny</option>
-                        <option .Entry.Mode 1 data-i18n="ip_list.allow" eq value="1" {{if }}selected{{end}}>Allow
-                        </option>
+                    <select id="idMode" name="mode" class="form-select" data-control="i18n-select2" data-hide-search="true">
+                        <option value="2" data-i18n="ip_list.deny" {{if eq .Entry.Mode 2 }}selected{{end}}>Deny</option>
+                        <option value="1" data-i18n="ip_list.allow" {{if eq .Entry.Mode 1 }}selected{{end}}>Allow</option>
                     </select>
                 </div>
             </div>
             {{- end}}
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="ip_list.protocols" for="idProtocols">
+                <label for="idProtocols" data-i18n="ip_list.protocols" class="col-md-3 col-form-label">
                     Protocols
                 </label>
                 <div class="col-md-9">
-                    <select class="form-select" data-close-on-select="false" data-control="i18n-select2"
-                            data-i18n="[data-placeholder]ip_list.any" id="idProtocols" multiple name="protocols">
-                        <option .Entry.HasProtocol value="1" {{if
-                        "SSH" }}selected{{end}}>SSH</option>
-                        <option .Entry.HasProtocol value="2" {{if
-                        "FTP" }}selected{{end}}>FTP</option>
-                        <option .Entry.HasProtocol value="4" {{if
-                        "DAV" }}selected{{end}}>DAV</option>
-                        <option .Entry.HasProtocol value="8" {{if
-                        "HTTP" }}selected{{end}}>HTTP</option>
+                    <select id="idProtocols" name="protocols" data-i18n="[data-placeholder]ip_list.any" class="form-select" data-control="i18n-select2" data-close-on-select="false" multiple>
+                        <option value="1" {{if .Entry.HasProtocol "SSH" }}selected{{end}}>SSH</option>
+                        <option value="2" {{if .Entry.HasProtocol "FTP" }}selected{{end}}>FTP</option>
+                        <option value="4" {{if .Entry.HasProtocol "DAV" }}selected{{end}}>DAV</option>
+                        <option value="8" {{if .Entry.HasProtocol "HTTP" }}selected{{end}}>HTTP</option>
                     </select>
                 </div>
             </div>
 
             <div class="form-group row mt-10">
-                <label class="col-md-3 col-form-label" data-i18n="general.description"
-                       for="idDescription">Description</label>
+                <label for="idDescription" data-i18n="general.description" class="col-md-3 col-form-label">Description</label>
                 <div class="col-md-9">
-                    <input class="form-control" id="idDescription" maxlength="512" name="description"
-                           type="text" value="{{.Entry.Description}}">
+                    <input id="idDescription" type="text" class="form-control" name="description" value="{{.Entry.Description}}" maxlength="512">
                 </div>
             </div>
 
             <div class="d-flex justify-content-end mt-12">
-                <input name="_form_token" type="hidden" value="{{.CSRFToken}}">
-                <button class="btn btn-primary px-10" id="form_submit" name="form_action" type="submit" value="submit">
-                    <span class="indicator-label" data-i18n="general.submit">
+                <input type="hidden" name="_form_token" value="{{.CSRFToken}}">
+                <button type="submit" id="form_submit" class="btn btn-primary px-10" name="form_action" value="submit">
+                    <span data-i18n="general.submit" class="indicator-label">
                         Submit
                     </span>
-                    <span class="indicator-progress" data-i18n="general.wait">
+                    <span data-i18n="general.wait" class="indicator-progress">
                         Please wait...
                         <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
                     </span>
@@ -108,12 +94,12 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 </div>
 {{- end}}
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
-    $(document).on("i18nshow", function () {
+<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
+    $(document).on("i18nshow", function(){
         $('#iplist_form').submit(function (event) {
-            let submitButton = document.querySelector('#form_submit');
-            submitButton.setAttribute('data-kt-indicator', 'on');
-            submitButton.disabled = true;
+			let submitButton = document.querySelector('#form_submit');
+			submitButton.setAttribute('data-kt-indicator', 'on');
+			submitButton.disabled = true;
         });
     });
 </script>

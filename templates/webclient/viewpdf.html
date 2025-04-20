@@ -15,23 +15,22 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 -->
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <title></title>
-    <meta charset="UTF-8"/>
-    <meta content="width=device-width, initial-scale=1" name="viewport"/>
-    <meta content="noindex" name="robots">
-    <link href="{{.StaticURL}}{{.Branding.FaviconPath}}" rel="icon" type="image/png"/>
+    <head>
+        <title></title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex">
+        <link rel="icon" type="image/png" href="{{.StaticURL}}{{.Branding.FaviconPath}}" />
 
-    {{range .Branding.ExtraCSS}}
-    <link href="{{$.StaticURL}}{{.}}" rel="stylesheet" type="text/css">
-    {{end}}
-</head>
+        {{range .Branding.ExtraCSS}}
+        <link href="{{$.StaticURL}}{{.}}" rel="stylesheet" type="text/css">
+        {{end}}
+    </head>
 
 <body>
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/pdfobject/pdfobject.min.js" {{-
-        {{-></script>
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
-    PDFObject.embed("{{.URL}}", document.body);
-</script>
+    <script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/vendor/pdfobject/pdfobject.min.js"></script>
+    <script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
+        PDFObject.embed("{{.URL}}", document.body);
+    </script>
 </body>
 </html>

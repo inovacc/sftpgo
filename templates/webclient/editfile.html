@@ -16,7 +16,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{template "base" .}}
 
 {{- define "extra_css"}}
-<style .CSPNonce}} end}} if nonce="{{.CSPNonce}}" {{- {{->
+<style {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
     .cm-editor {
         height: 100%;
         width: 100%;
@@ -27,8 +27,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 
 {{- define "additionalnavitems"}}
 <div class="d-flex align-items-center ms-2 ms-lg-3" id="kt_header_user_menu_toggle">
-    <div class="btn btn-icon btn-active-light-primary w-35px h-35px w-md-40px h-md-40px" data-bs-target="#info_modal"
-         data-bs-toggle="modal">
+    <div class="btn btn-icon btn-active-light-primary w-35px h-35px w-md-40px h-md-40px" data-bs-toggle="modal" data-bs-target="#info_modal">
         <i class="ki-duotone ki-information-2 fs-2">
             <i class="path1"></i>
             <i class="path2"></i>
@@ -42,14 +41,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- template "errmsg" ""}}
 <div class="card shadow-sm">
     <div class="card-header">
-        <h6 class="card-title section-title" id="card_title"></h6>
+        <h6 id="card_title" class="card-title section-title"></h6>
         <div class="card-toolbar">
-            <a class="btn btn-light-primary px-10 me-5" data-i18n="general.back"
-               href='{{.FilesURL}}?path={{.CurrentDir}}' role="button">Back</a>
+            <a data-i18n="general.back" class="btn btn-light-primary px-10 me-5" href='{{.FilesURL}}?path={{.CurrentDir}}' role="button">Back</a>
             {{- if not .ReadOnly}}
-            <a class="btn btn-primary px-10" href="#" id="save_button" role="button" type="button">
-                <span class="indicator-label" data-i18n="general.submit">Save</span>
-                <span class="indicator-progress" data-i18n="general.wait">
+            <a id="save_button" type="button" class="btn btn-primary px-10" href="#" role="button">
+                <span data-i18n="general.submit" class="indicator-label">Save</span>
+			    <span data-i18n="general.wait" class="indicator-progress">
                     Please wait...
 					<span class="spinner-border spinner-border-sm align-middle ms-2"></span>
 				</span>
@@ -58,7 +56,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         </div>
     </div>
     <div class="card-body">
-        <div class="col-sm-12 border border-light-primary" id="editor"></div>
+        <div id="editor" class="col-sm-12 border border-light-primary"></div>
     </div>
 </div>
 {{- end}}
@@ -68,16 +66,14 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title" data-i18n="editor.keybinding">Editor keybindings</h3>
-                <div aria-label="Close" class="btn btn-icon btn-sm btn-active-light-primary"
-                     data-bs-dismiss="modal" data-i18n="[aria-label]general.close">
+                <h3 data-i18n="editor.keybinding" class="modal-title">Editor keybindings</h3>
+                <div data-i18n="[aria-label]general.close" class="btn btn-icon btn-sm btn-active-light-primary" data-bs-dismiss="modal" aria-label="Close">
                     <i class="ki-solid ki-cross fs-2x text-gray-700"></i>
                 </div>
             </div>
             <div class="modal-body fs-5 fw-semibold">
                 <p>
-                    <span class="shortcut">Ctrl-F / Cmd-F</span> => <span
-                        data-i18n="editor.search">Open search panel</span>
+                    <span class="shortcut">Ctrl-F / Cmd-F</span> => <span data-i18n="editor.search">Open search panel</span>
                 </p>
                 <p>
                     <span class="shortcut">Alt-G</span> => <span data-i18n="editor.goto">Jump to line</span>
@@ -90,7 +86,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 </p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary" data-bs-dismiss="modal" data-i18n="general.ok" type="button">OK</button>
+                <button data-i18n="general.ok" class="btn btn-primary" type="button" data-bs-dismiss="modal">OK</button>
             </div>
         </div>
     </div>
@@ -98,27 +94,25 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
 {{- end}}
 
 {{- define "extra_js"}}
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" src="{{.StaticURL}}/vendor/codemirror/cm6.bundle.min.js" {{-
-        {{-></script>
-<script .CSPNonce}} end}} if nonce="{{.CSPNonce}}" type="text/javascript" {{- {{->
+<script {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}} src="{{.StaticURL}}/vendor/codemirror/cm6.bundle.min.js"></script>
+<script type="text/javascript" {{- if .CSPNonce}} nonce="{{.CSPNonce}}"{{- end}}>
     var cmView;
 
     function keepAlive() {
-        axios.get('{{.PingURL}}', {
+        axios.get('{{.PingURL}}',{
             timeout: 15000,
             responseType: 'text'
-        }).catch(function (error) {
-        });
+       	}).catch(function (error){});
     }
 
     //{{- if not .ReadOnly}}
     function saveFile() {
         $('#errorMsg').addClass("d-none");
         let saveButton = document.querySelector('#save_button');
-        saveButton.setAttribute('data-kt-indicator', 'on');
-        saveButton.disabled = true;
+	    saveButton.setAttribute('data-kt-indicator', 'on');
+		saveButton.disabled = true;
 
-        let uploadPath = '{{.FileURL}}?path=' + encodeURIComponent('{{.CurrentDir}}/{{.Name}}');
+        let uploadPath = '{{.FileURL}}?path='+encodeURIComponent('{{.CurrentDir}}/{{.Name}}');
         let blob = new Blob([cmView.state.doc.toString()]);
 
         axios.post(uploadPath, blob, {
@@ -127,13 +121,13 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             },
             timeout: 600000,
             validateStatus: function (status) {
-                return status == 201;
-            }
+                    return status == 201;
+                }
         }).then(function (response) {
-            window.location.replace('{{.FilesURL}}?path=' + encodeURIComponent('{{.CurrentDir}}'));
+            window.location.replace('{{.FilesURL}}?path='+encodeURIComponent('{{.CurrentDir}}'));
         }).catch(function (error) {
             saveButton.removeAttribute('data-kt-indicator');
-            saveButton.disabled = false;
+		    saveButton.disabled = false;
 
             let errorMessage = "";
             if (error && error.response) {
@@ -146,25 +140,24 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         break;
                 }
             }
-            if (!errorMessage) {
+            if (!errorMessage){
                 errorMessage = "fs.save.err_generic";
             }
             setI18NData($('#errorTxt'), errorMessage);
             $('#errorMsg').removeClass("d-none");
         });
     }
-
     //{{- end}}
 
-    $(document).on("i18nload", function () {
+    $(document).on("i18nload", function(){
         let message = 'fs.edit_file';
         //{{- if .ReadOnly}}
         message = 'fs.view_file';
         //{{- end}}
-        setI18NData($('#card_title'), message, {path: '{{.Path}}'});
+        setI18NData($('#card_title'), message, { path: '{{.Path}}'});
     });
 
-    $(document).on("i18nshow", function () {
+    $(document).on("i18nshow", function(){
         let filename = "{{.Name}}";
         let extension = filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
         let options = {
@@ -181,8 +174,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
         cmView = cm6.createEditorView(editorState, document.getElementById("editor"));
 
         var saveBtn = $('#save_button');
-        if (saveBtn) {
-            saveBtn.on("click", function () {
+        if (saveBtn){
+            saveBtn.on("click", function(){
                 saveFile();
             });
         }
