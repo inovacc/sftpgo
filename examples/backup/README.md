@@ -14,6 +14,7 @@ The provided example tries to connect to an SFTPGo instance running on `127.0.0.
 - username: `admin`
 - password: `password`
 
-and, if you execute it daily, it saves a different backup file for each day of the week. The backups will be saved within the configured `backups_path`.
+and, if you execute it daily, it saves a different backup file for each day of the week. The backups will be saved
+within the configured `backups_path`.
 
 Please edit the script according to your needs.

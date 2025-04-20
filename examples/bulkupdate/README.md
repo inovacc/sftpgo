@@ -1,6 +1,7 @@
 # Bulk user update
 
-The `bulkuserupdate` example script shows how to use the SFTPGo REST API to easily update some common parameters for multiple users while preserving the others.
+The `bulkuserupdate` example script shows how to use the SFTPGo REST API to easily update some common parameters for
+multiple users while preserving the others.
 
 The script is written in Python and has the following requirements:
 

@@ -2018,7 +2018,7 @@ func GetNodes() ([]Node, error) {
 	}
 	nodes, err := provider.getNodes()
 	if err != nil {
-		providerLog(logger.LevelError, "unable to getItem other cluster nodes %v", err)
+		providerLog(logger.LevelError, "unable to get other cluster nodes %v", err)
 	}
 	return nodes, err
 }
@@ -2334,7 +2334,7 @@ func UpdateFolder(folder *vfs.BaseVirtualFolder, users []string, groups []string
 			users = append(users, usersInGroups...)
 			users = util.RemoveDuplicates(users, false)
 		} else {
-			providerLog(logger.LevelWarn, "unable to getItem users in groups %+v: %v", groups, errGrp)
+			providerLog(logger.LevelWarn, "unable to get users in groups %+v: %v", groups, errGrp)
 		}
 		for _, user := range users {
 			provider.setUpdatedAt(user)
@@ -2366,7 +2366,7 @@ func DeleteFolder(folderName, executor, ipAddress, role string) error {
 			users = append(users, usersInGroups...)
 			users = util.RemoveDuplicates(users, false)
 		} else {
-			providerLog(logger.LevelWarn, "unable to getItem users in groups %+v: %v", folder.Groups, errGrp)
+			providerLog(logger.LevelWarn, "unable to get users in groups %+v: %v", folder.Groups, errGrp)
 		}
 		for _, user := range users {
 			provider.setUpdatedAt(user)
@@ -4152,7 +4152,6 @@ func executeCheckPasswordHook(username, password, ip, protocol string) (checkPas
 	if err != nil {
 		return response, err
 	}
-
 	err = json.Unmarshal(out, &response)
 	return response, err
 }
@@ -4454,7 +4453,9 @@ func checkPasswordAfterEmptyExtAuthResponse(user *User, plainPwd, protocol strin
 	return nil
 }
 
-func doExternalAuth(username, password string, pubKey []byte, keyboardInteractive, ip, protocol string, tlsCert *x509.Certificate) (User, error) {
+func doExternalAuth(username, password string, pubKey []byte, keyboardInteractive, ip, protocol string,
+	tlsCert *x509.Certificate,
+) (User, error) {
 	var user User
 
 	u, mergedUser, err := getUserForHook(username, nil)

@@ -30,7 +30,7 @@
     },
     "defender": {
       "enabled": false,
-      "driver": "memory",
+      "driver": "nats",
       "ban_time": 30,
       "ban_time_increment": 50,
       "threshold": 15,
@@ -202,8 +202,8 @@
     }
   },
   "data_provider": {
-    "driver": "sqlite",
-    "name": "sftpgo.db",
+    "driver": "nats",
+    "name": "",
     "host": "",
     "port": 0,
     "username": "",
