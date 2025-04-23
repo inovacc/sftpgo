@@ -3,6 +3,8 @@ package core
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -12,12 +14,24 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 )
 
-type StdLogger struct{}
+type StdLogger struct {
+	log *slog.Logger
+}
 
-func (l StdLogger) Debug(msg string, args ...any) { fmt.Printf("[DEBUG] "+msg+"\n", args...) }
-func (l StdLogger) Info(msg string, args ...any)  { fmt.Printf("[INFO] "+msg+"\n", args...) }
-func (l StdLogger) Warn(msg string, args ...any)  { fmt.Printf("[WARN] "+msg+"\n", args...) }
-func (l StdLogger) Error(msg string, args ...any) { fmt.Printf("[ERROR] "+msg+"\n", args...) }
+func NewStdLogger() StdLogger {
+	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelDebug,
+		AddSource: false,
+	})
+	logger := slog.New(jsonHandler)
+	slog.SetDefault(logger)
+	return StdLogger{log: logger}
+}
+
+func (l StdLogger) Debug(msg string, args ...any) { l.log.Debug(msg, args...) }
+func (l StdLogger) Info(msg string, args ...any)  { l.log.Info(msg, args...) }
+func (l StdLogger) Warn(msg string, args ...any)  { l.log.Warn(msg, args...) }
+func (l StdLogger) Error(msg string, args ...any) { l.log.Error(msg, args...) }
 
 var (
 	ErrBucketNotFound     = errors.New("bucket not found")
@@ -38,7 +52,7 @@ type NatsCoreConfig struct {
 	MaxRetries   int
 	RetryDelay   time.Duration
 	StorageNames []string
-	Logger       Logger
+	Logger       *slog.Logger
 }
 
 type NatsCore struct {
@@ -47,18 +61,16 @@ type NatsCore struct {
 	mu         sync.RWMutex
 	maxRetries int
 	retryDelay time.Duration
-	log        Logger
+	log        *slog.Logger
 }
 
 func NewNatsCore(config *NatsCoreConfig) (*NatsCore, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
-
 	if config.Logger == nil {
-		config.Logger = StdLogger{}
+		config.Logger = NewStdLogger().log
 	}
-
 	core := &NatsCore{
 		js:         config.JS,
 		kvStore:    make(map[string]nats.KeyValue),
@@ -66,7 +78,6 @@ func NewNatsCore(config *NatsCoreConfig) (*NatsCore, error) {
 		retryDelay: config.RetryDelay,
 		log:        config.Logger,
 	}
-
 	if err := core.initializeStorages(config.StorageNames); err != nil {
 		return nil, err
 	}
@@ -121,10 +132,12 @@ func (p *NatsCore) marshalItem(item wrapper.Wrapper, key string) ([]byte, error)
 	if err != nil {
 		return nil, fmt.Errorf("marshal item for key %q: %w", key, err)
 	}
+	p.log.Debug("marshal item", "key", key, "data", string(data))
 	return data, nil
 }
 
 func (p *NatsCore) unmarshalItem(data []byte, item wrapper.Wrapper, key, bucket string) error {
+	p.log.Debug("unmarshal item", "bucket", bucket, "key", key, "data", string(data))
 	if err := item.UnmarshalJSON(data); err != nil {
 		return fmt.Errorf("unmarshal key %q in bucket %q: %w", key, bucket, err)
 	}
@@ -134,7 +147,9 @@ func (p *NatsCore) unmarshalItem(data []byte, item wrapper.Wrapper, key, bucket 
 func (p *NatsCore) CreateBucket(bucket string) (nats.KeyValue, error) {
 	kv, err := p.js.CreateKeyValue(&nats.KeyValueConfig{Bucket: bucket, Compression: true})
 	if err != nil && !errors.Is(err, jetstream.ErrBucketExists) {
-		p.log.Error("create bucket failed", "bucket", bucket, "error", err)
+		p.log.Error("create bucket failed",
+			"bucket", bucket,
+			"error", err)
 		return nil, err
 	}
 	if errors.Is(err, jetstream.ErrBucketExists) {
@@ -154,12 +169,10 @@ func (p *NatsCore) PutItem(bucket, key string, item wrapper.Wrapper) (uint64, er
 	if err != nil {
 		return 0, err
 	}
-
 	data, err := p.marshalItem(item, key)
 	if err != nil {
 		return 0, err
 	}
-
 	revision, err := kv.Put(key, data)
 	if err != nil {
 		return 0, fmt.Errorf("put key %q in bucket %q: %w", key, bucket, err)
@@ -172,12 +185,10 @@ func (p *NatsCore) GetItem(bucket, key string, item wrapper.Wrapper) (uint64, er
 	if err != nil {
 		return 0, err
 	}
-
 	entry, err := kv.Get(key)
 	if err != nil {
 		return 0, fmt.Errorf("%w: key %q in bucket %q", ErrKeyNotFound, key, bucket)
 	}
-
 	if err := p.unmarshalItem(entry.Value(), item, key, bucket); err != nil {
 		return 0, err
 	}
@@ -189,10 +200,10 @@ func (p *NatsCore) DeleteItem(bucket, key string) error {
 	if err != nil {
 		return err
 	}
-
 	if err := kv.Delete(key); err != nil {
 		return fmt.Errorf("delete key %q in bucket %q: %w", key, bucket, err)
 	}
+	p.log.Info("item deleted", "bucket", bucket, "key", key)
 	return nil
 }
 
@@ -201,14 +212,10 @@ func (p *NatsCore) CreateItem(bucket, key string, item wrapper.Wrapper) (uint64,
 	if err != nil {
 		return 0, err
 	}
-
-	// Marshal data first to avoid unnecessary operations if marshaling fails
 	data, err := p.marshalItem(item, key)
 	if err != nil {
 		return 0, err
 	}
-
-	// Try direct creation first, handle exists error if needed
 	revision, err := kv.Create(key, data)
 	if err != nil && errors.Is(err, nats.ErrKeyExists) {
 		return 0, fmt.Errorf("%w: key %q in bucket %q", ErrKeyAlreadyExists, key, bucket)
@@ -221,12 +228,10 @@ func (p *NatsCore) GetAllItems(bucket string) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	keyList, err := kv.ListKeys()
 	if err != nil {
 		return nil, fmt.Errorf("list keys in bucket %q: %w", bucket, err)
 	}
-
 	var items [][]byte
 	for key := range keyList.Keys() {
 		entry, err := kv.Get(key)
@@ -235,6 +240,7 @@ func (p *NatsCore) GetAllItems(bucket string) ([][]byte, error) {
 		}
 		items = append(items, entry.Value())
 	}
+	p.log.Debug("get all items", "bucket", bucket, "items", items)
 	return items, nil
 }
 
@@ -243,17 +249,14 @@ func (p *NatsCore) UpdateItem(bucket, key string, item wrapper.Wrapper) error {
 	if err != nil {
 		return err
 	}
-
 	clone := item.Clone()
 	if clone == nil {
 		return fmt.Errorf("failed to clone item for key %q", key)
 	}
-
 	data, err := p.marshalItem(item, key)
 	if err != nil {
 		return err
 	}
-
 	for attempt := 0; attempt < p.maxRetries; attempt++ {
 		sequence, err := p.GetItem(bucket, key, clone)
 		switch {
@@ -262,15 +265,12 @@ func (p *NatsCore) UpdateItem(bucket, key string, item wrapper.Wrapper) error {
 		case err != nil:
 			return fmt.Errorf("failed to get key %q: %w", key, err)
 		}
-
 		if reflect.DeepEqual(clone.Get(), item.Get()) {
 			return nil // No changes needed
 		}
-
 		if _, err = kv.Update(key, data, sequence); err == nil {
 			return nil
 		}
-
 		if errors.Is(err, nats.ErrKeyExists) {
 			p.log.Warn("key conflict, retrying", "key", key, "attempt", attempt)
 			time.Sleep(p.retryDelay)
@@ -286,20 +286,15 @@ func (p *NatsCore) ListItems(bucket string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	keyList, err := kv.ListKeys()
 	if err != nil {
 		return nil, fmt.Errorf("list keys in bucket %q: %w", bucket, err)
 	}
-
-	// Pre-allocate slice with estimated capacity
 	result := make([]string, 0, 100)
-
-	// Direct iteration without channels
 	for key := range keyList.Keys() {
 		result = append(result, key)
 	}
-
+	p.log.Debug("list items", "bucket", bucket, "keys", result)
 	return result, nil
 }
 
@@ -308,9 +303,9 @@ func (p *NatsCore) PurgeBucket(bucket string) error {
 	if err != nil {
 		return err
 	}
-
 	if err := kv.Purge(bucket); err != nil {
 		return fmt.Errorf("purge bucket %q: %w", bucket, err)
 	}
+	p.log.Info("bucket purged", "bucket", bucket)
 	return nil
 }

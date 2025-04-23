@@ -2825,6 +2825,6 @@ func (p *NATSProvider) updateDatabaseVersion(version int) error {
 			return nil
 		}
 	}
-	_, err = p.PutItem(dbMetadataNATS, dbVersionKeyNATS, wVersion)
-	return err
+	wVersion.Set(schemaVersion{Version: version})
+	return p.UpdateItem(dbMetadataNATS, dbVersionKeyNATS, wVersion)
 }
