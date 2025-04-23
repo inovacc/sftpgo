@@ -739,63 +739,37 @@ func (p *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
 
 func (p *NATSProvider) getUsersForQuotaCheck(toFetch map[string]bool) ([]User, error) {
 	users := make([]User, 0, 10)
-
-	bucket, err := p.usersBucketNATS()
-	if err != nil {
-		return nil, err
-	}
-
-	foldersBucket, err := p.foldersBucketNATS()
-	if err != nil {
-		return nil, err
-	}
-
-	groupsBucket, err := p.rolesBucketNATS()
-	if err != nil {
-		return nil, err
-	}
-
 	for username, needFolders := range toFetch {
-		_, err := p.GetItem(username)
+		wUser := wrapper.NewWrapper(User{})
+		_, err := p.GetItem(usersBucketNATS, username, wUser)
 		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
-
-		wUser := wrapper.NewWrapper(User{})
-		if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
-			return nil, err
-		}
-
-		user := wUser.Get()
-
+		user := wUser.Get().(User)
 		if needFolders && len(user.VirtualFolders) > 0 {
 			var folders []vfs.VirtualFolder
 			for idx := range user.VirtualFolders {
 				folder := &user.VirtualFolders[idx]
-				baseFolder, err := p.folderExistsInternal(folder.Name, foldersBucket)
+				baseFolder, err := p.folderExistsInternal(folder.Name)
 				if err != nil {
 					continue
 				}
-
 				folder.BaseVirtualFolder = baseFolder
 				folders = append(folders, *folder)
 			}
 			user.VirtualFolders = folders
 		}
-
 		if len(user.Groups) > 0 {
 			groupMapping := make(map[string]Group)
 			for idx := range user.Groups {
-				group, err := p.groupExistsInternal(user.Groups[idx].Name, groupsBucket)
+				group, err := p.groupExistsInternal(user.Groups[idx].Name)
 				if err != nil {
 					continue
 				}
-
 				groupMapping[group.Name] = group
 			}
 			user.applyGroupSettings(groupMapping)
 		}
-
 		user.SetEmptySecretsIfNil()
 		user.PrepareForRendering()
 		users = append(users, user)
@@ -808,53 +782,36 @@ func (p *NATSProvider) getUsers(limit int, offset int, order, role string) ([]Us
 	if limit <= 0 {
 		return users, nil
 	}
-
-	bucket, err := p.usersBucketNATS()
+	keys, err := p.ListItems(usersBucketNATS)
 	if err != nil {
 		return nil, err
 	}
-
-	foldersBucket, err := p.foldersBucketNATS()
-	if err != nil {
-		return nil, err
-	}
-
-	keys, err := bucket.Keys()
-	if err != nil {
-		return nil, err
-	}
-
 	if order == OrderDESC {
 		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
 	} else {
 		sort.Strings(keys)
 	}
-
 	start := offset
 	end := offset + limit
 	if start >= len(keys) {
 		return users, nil
 	}
-
 	if end > len(keys) {
 		end = len(keys)
 	}
-
 	for _, key := range keys[start:end] {
-		_, err := p.GetItem(key)
+		wUser := wrapper.NewWrapper(User{})
+		_, err := p.GetItem(usersBucketNATS, key, wUser)
 		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
-
-		user, err := p.joinUserAndFolders(entry.Value(), foldersBucketNATS)
+		user, err := p.joinUserAndFolders(wUser.Get().(User))
 		if err != nil {
 			return nil, err
 		}
-
 		if !user.hasRole(role) {
 			continue
 		}
-
 		user.PrepareForRendering()
 		users = append(users, user)
 	}
@@ -863,28 +820,17 @@ func (p *NATSProvider) getUsers(limit int, offset int, order, role string) ([]Us
 
 func (p *NATSProvider) dumpFolders() ([]vfs.BaseVirtualFolder, error) {
 	folders := make([]vfs.BaseVirtualFolder, 0, 50)
-	bucket, err := p.foldersBucketNATS()
+	keys, err := p.ListItems(foldersBucketNATS)
 	if err != nil {
 		return nil, err
 	}
-
-	keys, err := bucket.Keys()
-	if err != nil {
-		return nil, err
-	}
-
 	for _, key := range keys {
-		_, err := p.GetItem(key)
+		wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+		_, err := p.GetItem(foldersBucketNATS, key, wFolder)
 		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
-
-		wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
-		if err = wFolder.UnmarshalJSON(entry.Value()); err != nil {
-			return nil, err
-		}
-
-		folders = append(folders, wFolder.Get())
+		folders = append(folders, wFolder.Get().(vfs.BaseVirtualFolder))
 	}
 	return folders, nil
 }
@@ -894,45 +840,30 @@ func (p *NATSProvider) getFolders(limit, offset int, order string, _ bool) ([]vf
 	if limit <= 0 {
 		return folders, nil
 	}
-
-	bucket, err := p.foldersBucketNATS()
+	keys, err := p.ListItems(foldersBucketNATS)
 	if err != nil {
 		return nil, err
 	}
-
-	keys, err := bucket.Keys()
-	if err != nil {
-		return nil, err
-	}
-
 	if order == OrderDESC {
 		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
 	} else {
 		sort.Strings(keys)
 	}
-
 	start := offset
 	end := offset + limit
 	if start >= len(keys) {
 		return folders, nil
 	}
-
 	if end > len(keys) {
 		end = len(keys)
 	}
-
 	for _, key := range keys[start:end] {
-		_, err := p.GetItem(key)
+		wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+		_, err := p.GetItem(foldersBucketNATS, key, wFolder)
 		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
-
-		wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
-		if err = wFolder.UnmarshalJSON(entry.Value()); err != nil {
-			return nil, err
-		}
-
-		folder := wFolder.Get()
+		folder := wFolder.Get().(vfs.BaseVirtualFolder)
 		folder.PrepareForRendering()
 		folders = append(folders, folder)
 	}
@@ -940,96 +871,50 @@ func (p *NATSProvider) getFolders(limit, offset int, order string, _ bool) ([]vf
 }
 
 func (p *NATSProvider) getFolderByName(name string) (vfs.BaseVirtualFolder, error) {
-	bucket, err := p.foldersBucketNATS()
-	if err != nil {
-		return vfs.BaseVirtualFolder{}, err
-	}
-
-	folder, err := p.folderExistsInternal(name, bucket)
-	return folder, err
+	return p.folderExistsInternal(name)
 }
 
 func (p *NATSProvider) addFolder(folder *vfs.BaseVirtualFolder) error {
 	if err := ValidateFolder(folder); err != nil {
 		return err
 	}
-
-	bucket, err := p.foldersBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	_, err := p.GetItem(folder.Name)
+	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+	revision, err := p.GetItem(foldersBucketNATS, folder.Name, wFolder)
 	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewI18nError(fmt.Errorf("%w: folder %q already exists", ErrDuplicatedKey, folder.Name), util.I18nErrorDuplicatedUsername)
 	}
-
 	folder.Users = nil
 	folder.Groups = nil
-
-	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
-	if err := wFolder.UnmarshalJSON(entry.Value()); err != nil {
-		return err
-	}
-
 	wFolder.Set(*folder)
-
-	data, err := wFolder.MarshalJSON()
-	if err != nil {
+	if revision == 0 {
+		_, err := p.PutItem(foldersBucketNATS, folder.Name, wFolder)
 		return err
 	}
-
-	if entry == nil && entry.Revision() == 0 {
-		_, err := bucket.Put(folder.Name, data)
-		return err
-	}
-
-	return p.UpdateItem(folder.Name, data, entry.Revision())
-	return err
+	return p.UpdateItem(foldersBucketNATS, folder.Name, wFolder)
 }
 
 func (p *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
 	if err := ValidateFolder(folder); err != nil {
 		return err
 	}
-
-	bucket, err := p.foldersBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	_, err := p.GetItem(folder.Name)
+	wOldFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+	revision, err := p.GetItem(foldersBucketNATS, folder.Name, wOldFolder)
 	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("folder %v does not exist", folder.Name))
 	}
-
-	wOldFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
-	if err = wOldFolder.UnmarshalJSON(entry.Value()); err != nil {
-		return err
-	}
-
-	oldFolder := wOldFolder.Get()
-
+	oldFolder := wOldFolder.Get().(vfs.BaseVirtualFolder)
 	folder.ID = oldFolder.ID
 	folder.LastQuotaUpdate = oldFolder.LastQuotaUpdate
 	folder.UsedQuotaFiles = oldFolder.UsedQuotaFiles
 	folder.UsedQuotaSize = oldFolder.UsedQuotaSize
 	folder.Users = oldFolder.Users
 	folder.Groups = oldFolder.Groups
-
-	wFolder := wrapper.NewWrapper(*folder)
-	data, err := wFolder.MarshalJSON()
-	if err != nil {
+	wOldFolder.Set(*folder)
+	if revision == 0 {
+		_, err := p.PutItem(foldersBucketNATS, folder.Name, wOldFolder)
 		return err
 	}
-
-	if entry == nil && entry.Revision() == 0 {
-		_, err := bucket.Put(folder.Name, data)
-		return err
-	}
-
-	return p.UpdateItem(folder.Name, data, entry.Revision())
-	return err
+	return p.UpdateItem(foldersBucketNATS, folder.Name, wOldFolder)
 }
 
 func (p *NATSProvider) deleteFolder(baseFolder vfs.BaseVirtualFolder) error {
@@ -2028,46 +1913,32 @@ func (p *NATSProvider) getEventRules(limit, offset int, order string) ([]EventRu
 	if limit <= 0 {
 		return nil, nil
 	}
-
 	rules := make([]EventRule, 0, limit)
-	bucket, err := p.rolesBucketNATS()
+	keys, err := p.ListItems(rolesBucketNATS)
 	if err != nil {
 		return nil, err
 	}
-
-	actionsBucket, err := p.actionsBucketNATS()
-	if err != nil {
-		return nil, err
-	}
-
-	keys, err := bucket.Keys()
-	if err != nil {
-		return nil, err
-	}
-
 	if order == OrderDESC {
 		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
 	} else {
 		sort.Strings(keys)
 	}
-
 	start := offset
 	end := offset + limit
 	if start >= len(keys) {
 		return rules, nil
 	}
-
 	if end > len(keys) {
 		end = len(keys)
 	}
-
 	for _, key := range keys[start:end] {
-		_, err := p.GetItem(key)
+		wEvent := wrapper.NewWrapper(EventRule{})
+		_, err := p.GetItem(rolesBucketNATS, key, wEvent)
 		if err != nil {
 			continue
 		}
 
-		rule, err := p.joinRuleAndActions(entry.Value(), actionsBucket)
+		rule, err := p.joinRuleAndActions(wEvent.Get().(EventRule))
 		if err != nil {
 			return nil, err
 		}
@@ -2079,28 +1950,17 @@ func (p *NATSProvider) getEventRules(limit, offset int, order string) ([]EventRu
 
 func (p *NATSProvider) dumpEventRules() ([]EventRule, error) {
 	rules := make([]EventRule, 0, 50)
-	bucket, err := p.rolesBucketNATS()
+	keys, err := p.ListItems(rolesBucketNATS)
 	if err != nil {
 		return nil, err
 	}
-
-	actionsBucket, err := p.actionsBucketNATS()
-	if err != nil {
-		return nil, err
-	}
-
-	keys, err := bucket.Keys()
-	if err != nil {
-		return nil, err
-	}
-
 	for _, key := range keys {
-		_, err := p.GetItem(key)
+		wEvent := wrapper.NewWrapper(EventRule{})
+		_, err := p.GetItem(rolesBucketNATS, key, wEvent)
 		if err != nil {
 			continue
 		}
-
-		rule, err := p.joinRuleAndActions(entry.Value(), actionsBucket)
+		rule, err := p.joinRuleAndActions(wEvent.Get().(EventRule))
 		if err != nil {
 			return nil, err
 		}
@@ -2113,54 +1973,30 @@ func (p *NATSProvider) getRecentlyUpdatedRules(after int64) ([]EventRule, error)
 	if getLastRuleUpdate() < after {
 		return nil, nil
 	}
-
 	rules := make([]EventRule, 0, 10)
-	rulesBucket, err := p.rolesBucketNATS()
+	keys, err := p.ListItems(rolesBucketNATS)
 	if err != nil {
 		return nil, err
 	}
-
-	actionsBucket, err := p.actionsBucketNATS()
-	if err != nil {
-		return nil, err
-	}
-
-	keys, err := rulesBucket.Keys()
-	if err != nil {
-		return nil, err
-	}
-
 	for _, key := range keys {
-		entry, err := rulesBucket.Get(key)
+		wRule := wrapper.NewWrapper(EventRule{})
+		_, err := p.GetItem(rolesBucketNATS, key, wRule)
 		if err != nil {
 			continue
 		}
-
-		wRule := wrapper.NewWrapper(EventRule{})
-		if err = wRule.UnmarshalJSON(entry.Value()); err != nil {
-			return nil, err
-		}
-
-		rule := wRule.Get()
-
+		rule := wRule.Get().(EventRule)
 		if rule.UpdatedAt < after {
 			continue
 		}
-
 		var actions []EventAction
 		for idx := range rule.Actions {
 			action := &rule.Actions[idx]
-			actionEntry, err := actionsBucket.Get(action.Name)
+			wBaseAction := wrapper.NewWrapper(BaseEventAction{})
+			_, err := p.GetItem(actionsBucketNATS, action.Name, wBaseAction)
 			if err != nil {
 				continue
 			}
-
-			wBaseAction := wrapper.NewWrapper(BaseEventAction{})
-			if err = wBaseAction.UnmarshalJSON(actionEntry.Value()); err != nil {
-				continue
-			}
-
-			baseAction := wBaseAction.Get()
+			baseAction := wBaseAction.Get().(BaseEventAction)
 			baseAction.Options.SetEmptySecretsIfNil()
 			action.BaseEventAction = baseAction
 			actions = append(actions, *action)
@@ -2172,64 +2008,36 @@ func (p *NATSProvider) getRecentlyUpdatedRules(after int64) ([]EventRule, error)
 }
 
 func (p *NATSProvider) eventRuleExists(name string) (EventRule, error) {
-	rulesBucket, err := p.rolesBucketNATS()
-	if err != nil {
-		return EventRule{}, err
-	}
-
-	entry, err := rulesBucket.Get(name)
+	wRule := wrapper.NewWrapper(EventRule{})
+	_, err := p.GetItem(rolesBucketNATS, name, wRule)
 	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return EventRule{}, util.NewRecordNotFoundError(fmt.Sprintf("event rule %q does not exist", name))
 	}
-
-	actionsBucket, err := p.actionsBucketNATS()
-	if err != nil {
-		return EventRule{}, err
-	}
-	return p.joinRuleAndActions(entry.Value(), actionsBucket)
+	return p.joinRuleAndActions(wRule.Get().(EventRule))
 }
 
 func (p *NATSProvider) addEventRule(rule *EventRule) error {
 	if err := rule.validate(); err != nil {
 		return err
 	}
-
-	rulesBucket, err := p.rolesBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	actionsBucket, err := p.actionsBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	_, err = rulesBucket.Get(rule.Name)
+	wRule := wrapper.NewWrapper(EventRule{})
+	_, err := p.GetItem(rolesBucketNATS, rule.Name, wRule)
 	if err == nil {
 		return util.NewI18nError(fmt.Errorf("%w: event rule %q already exists", ErrDuplicatedKey, rule.Name), util.I18nErrorDuplicatedName)
 	}
-
 	rule.ID = time.Now().UnixNano()
 	rule.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
 	rule.UpdatedAt = rule.CreatedAt
-
 	for idx := range rule.Actions {
-		if err = p.addRuleToActionMapping(rule.Name, rule.Actions[idx].Name, actionsBucket); err != nil {
+		if err = p.addRuleToActionMapping(rule.Name, rule.Actions[idx].Name); err != nil {
 			return err
 		}
 	}
-
 	sort.Slice(rule.Actions, func(i, j int) bool {
 		return rule.Actions[i].Order < rule.Actions[j].Order
 	})
-
-	wRule := wrapper.NewWrapper(*rule)
-	data, err := wRule.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	if _, err = rulesBucket.Create(rule.Name, data); err == nil {
+	wRule.Set(*rule)
+	if _, err = p.CreateItem(rolesBucketNATS, rule.Name, wRule); err == nil {
 		setLastRuleUpdate()
 	}
 	return err
@@ -2239,94 +2047,50 @@ func (p *NATSProvider) updateEventRule(rule *EventRule) error {
 	if err := rule.validate(); err != nil {
 		return err
 	}
-
-	rulesBucket, err := p.rolesBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	actionsBucket, err := p.actionsBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	entry, err := rulesBucket.Get(rule.Name)
+	wOldRule := wrapper.NewWrapper(EventRule{})
+	_, err := p.GetItem(rolesBucketNATS, rule.Name, wOldRule)
 	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("event rule %q does not exist", rule.Name))
 	}
-
-	wOldRule := wrapper.NewWrapper(EventRule{})
-	if err = wOldRule.UnmarshalJSON(entry.Value()); err != nil {
-		return err
-	}
-
-	oldRule := wOldRule.Get()
-
+	oldRule := wOldRule.Get().(EventRule)
 	for idx := range oldRule.Actions {
-		if err = p.removeRuleFromActionMapping(rule.Name, oldRule.Actions[idx].Name, actionsBucket); err != nil {
+		if err = p.removeRuleFromActionMapping(rule.Name, oldRule.Actions[idx].Name); err != nil {
 			return err
 		}
 	}
-
 	for idx := range rule.Actions {
-		if err = p.addRuleToActionMapping(rule.Name, rule.Actions[idx].Name, actionsBucket); err != nil {
+		if err = p.addRuleToActionMapping(rule.Name, rule.Actions[idx].Name); err != nil {
 			return err
 		}
 	}
-
 	rule.ID = oldRule.ID
 	rule.CreatedAt = oldRule.CreatedAt
 	rule.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-
 	sort.Slice(rule.Actions, func(i, j int) bool {
 		return rule.Actions[i].Order < rule.Actions[j].Order
 	})
-
-	wRule := wrapper.NewWrapper(*rule)
-	data, err := wRule.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	if _, err = rulesBucket.Update(rule.Name, data, entry.Revision()); err == nil {
+	wOldRule.Set(*rule)
+	if err := p.UpdateItem(actionsBucketNATS, rule.Name, wOldRule); err == nil {
 		setLastRuleUpdate()
 	}
 	return err
 }
 
 func (p *NATSProvider) deleteEventRule(rule EventRule, _ bool) error {
-	rulesBucket, err := p.rolesBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	entry, err := rulesBucket.Get(rule.Name)
+	wOldRule := wrapper.NewWrapper(EventRule{})
+	_, err := p.GetItem(rolesBucketNATS, rule.Name, wOldRule)
 	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("event rule %q does not exist", rule.Name))
 	}
-
-	wOldRule := wrapper.NewWrapper(EventRule{})
-	if err = wOldRule.UnmarshalJSON(entry.Value()); err != nil {
-		return err
-	}
-
-	oldRule := wOldRule.Get()
-
+	oldRule := wOldRule.Get().(EventRule)
 	if len(oldRule.Actions) > 0 {
-		actionsBucket, err := p.actionsBucketNATS()
-		if err != nil {
-			return err
-		}
-
 		for idx := range oldRule.Actions {
-			if err = p.removeRuleFromActionMapping(rule.Name, oldRule.Actions[idx].Name, actionsBucket); err != nil {
+			if err = p.removeRuleFromActionMapping(rule.Name, oldRule.Actions[idx].Name); err != nil {
 				return err
 			}
 		}
 	}
-
-	_, err = rulesBucket.Update(rule.Name, nil, entry.Revision())
-	return err
+	return p.UpdateItem(rolesBucketNATS, rule.Name, wOldRule)
 }
 
 func (p *NATSProvider) roleExists(name string) (Role, error) {
@@ -2894,78 +2658,41 @@ func (p *NATSProvider) updateAdminLastLogin(username string) error {
 }
 
 func (p *NATSProvider) deleteFolderMappings(folder vfs.BaseVirtualFolder) error {
-	usersBucket, err := p.usersBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	groupsBucket, err := p.rolesBucketNATS()
-	if err != nil {
-		return err
-	}
-
 	for _, username := range folder.Users {
-		entry, err := usersBucket.Get(username)
+		wUser := wrapper.NewWrapper(User{})
+		_, err := p.GetItem(usersBucketNATS, username, wUser)
 		if err != nil {
 			continue
 		}
-
-		wUser := wrapper.NewWrapper(User{})
-		if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
-			return err
-		}
-
-		user := wUser.Get()
-
+		user := wUser.Get().(User)
 		var folders []vfs.VirtualFolder
 		for _, userFolder := range user.VirtualFolders {
 			if folder.Name != userFolder.Name {
 				folders = append(folders, userFolder)
 			}
 		}
-
 		user.VirtualFolders = folders
-
-		data, err := wUser.MarshalJSON()
-		if err != nil {
-			return err
-		}
-
-		_, err = usersBucket.Update(user.Username, data, entry.Revision())
-		if err != nil {
+		wUser.Set(user)
+		if err := p.UpdateItem(usersBucketNATS, user.Username, wUser); err != nil {
 			return err
 		}
 	}
-
 	for _, groupname := range folder.Groups {
-		entry, err := groupsBucket.Get(groupname)
+		wGroup := wrapper.NewWrapper(Group{})
+		_, err := p.GetItem(rolesBucketNATS, groupname, wGroup)
 		if err != nil {
 			continue
 		}
-
-		wGroup := wrapper.NewWrapper(Group{})
-		if err = wGroup.UnmarshalJSON(entry.Value()); err != nil {
-			return err
-		}
-
-		group := wGroup.Get()
-
+		group := wGroup.Get().(Group)
 		var folders []vfs.VirtualFolder
 		for _, groupFolder := range group.VirtualFolders {
 			if folder.Name != groupFolder.Name {
 				folders = append(folders, groupFolder)
 			}
 		}
-
 		group.VirtualFolders = folders
-
-		data, err := wGroup.MarshalJSON()
-		if err != nil {
-			return err
-		}
-
-		_, err = groupsBucket.Update(group.Name, data, entry.Revision())
-		if err != nil {
+		wGroup.Set(group)
+		if err := p.UpdateItem(rolesBucketNATS, group.Name, wGroup); err != nil {
 			return err
 		}
 	}
@@ -2981,12 +2708,7 @@ func (p *NATSProvider) folderExistsInternal(name string) (vfs.BaseVirtualFolder,
 	return wFolder.Get().(vfs.BaseVirtualFolder), err
 }
 
-func (p *NATSProvider) joinRuleAndActions(r []byte) (EventRule, error) {
-	wRule := wrapper.NewWrapper(EventRule{})
-	if err := wRule.UnmarshalJSON(r); err != nil {
-		return EventRule{}, err
-	}
-	rule := wRule.Get().(EventRule)
+func (p *NATSProvider) joinRuleAndActions(rule EventRule) (EventRule, error) {
 	var actions []EventAction
 	for idx := range rule.Actions {
 		action := &rule.Actions[idx]
