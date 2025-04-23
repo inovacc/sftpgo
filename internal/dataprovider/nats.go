@@ -299,7 +299,7 @@ func (p *NATSProvider) getEventActions(limit, offset int, order string, _ bool) 
 		}
 		wAction := wrapper.NewWrapper(BaseEventAction{})
 		_, err := p.GetItem(actionsBucketNATS, k, wAction)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 		action := wAction.Get().(BaseEventAction)
@@ -312,168 +312,10 @@ func (p *NATSProvider) getEventActions(limit, offset int, order string, _ bool) 
 	return actions, nil
 }
 
-func (p *NATSProvider) getTaskByName(_ string) (Task, error) {
-	return Task{}, ErrNotImplemented
-}
-
-func (p *NATSProvider) addTask(_ string) error {
-	return ErrNotImplemented
-}
-
-func (p *NATSProvider) updateTask(_ string, _ int64) error {
-	return ErrNotImplemented
-}
-
-func (p *NATSProvider) updateTaskTimestamp(_ string) error {
-	return ErrNotImplemented
-}
-
-func (p *NATSProvider) addNode() error {
-	return ErrNotImplemented
-}
-
-func (p *NATSProvider) getNodeByName(_ string) (Node, error) {
-	return Node{}, ErrNotImplemented
-}
-
-func (p *NATSProvider) getNodes() ([]Node, error) {
-	return nil, ErrNotImplemented
-}
-
-func (p *NATSProvider) updateNodeTimestamp() error {
-	return ErrNotImplemented
-}
-
-func (p *NATSProvider) cleanupNodes() error {
-	return ErrNotImplemented
-}
-
-func (p *NATSProvider) resetDatabase() error {
-	for _, name := range storageNames {
-		if err := p.PurgeBucket(name); err != nil {
-			providerLog(logger.LevelError, "error purging bucket %s", name)
-			continue
-		}
-	}
-	return nil
-}
-
-func (p *NATSProvider) checkAvailability() error {
-	wVersion := wrapper.NewWrapper(schemaVersion{})
-	_, err := p.GetItem(dbMetadataNATS, dbVersionKeyNATS, wVersion)
-	return err
-}
-
-func (p *NATSProvider) validateUserAndPass(username, password, ip, protocol string) (User, error) {
-	user, err := p.userExists(username, "")
-	if err != nil {
-		providerLog(logger.LevelWarn, "error authenticating user %q: %v", username, err)
-		return user, err
-	}
-	return checkUserAndPass(&user, password, ip, protocol)
-}
-
-func (p *NATSProvider) validateUserAndPubKey(username string, pubKey []byte, isSSHCert bool) (User, string, error) {
-	if len(pubKey) == 0 {
-		return User{}, "", errors.New("credentials cannot be null or empty")
-	}
-	user, err := p.userExists(username, "")
-	if err != nil {
-		providerLog(logger.LevelWarn, "error authenticating user %q: %v", username, err)
-		return User{}, "", err
-	}
-	return checkUserAndPubKey(&user, pubKey, isSSHCert)
-}
-
-func (p *NATSProvider) updateAPIKeyLastUse(keyID string) error {
-	wAPIKey := wrapper.NewWrapper(APIKey{})
-	revision, err := p.GetItem(apiKeysBucketNATS, keyID, wAPIKey)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
-		return util.NewRecordNotFoundError(fmt.Sprintf("key %q does not exist, unable to update last use", keyID))
-	}
-	apiKey := wAPIKey.Get().(APIKey)
-	apiKey.LastUseAt = util.GetTimeAsMsSinceEpoch(time.Now())
-	wAPIKey.Set(apiKey)
-	if revision == 0 {
-		_, err := p.PutItem(apiKeysBucketNATS, keyID, wAPIKey)
-		return err
-	}
-	providerLog(logger.LevelDebug, "last use updated for key %q", keyID)
-	return p.UpdateItem(apiKeysBucketNATS, keyID, wAPIKey)
-}
-
-func (p *NATSProvider) getAdminSignature(username string) (string, error) {
-	wAdmin := wrapper.NewWrapper(Admin{})
-	_, err := p.GetItem(adminsBucketNATS, username, wAdmin)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
-		return "", err
-	}
-	admin := wAdmin.Get().(Admin)
-	return strconv.FormatInt(admin.UpdatedAt, 10), nil
-}
-
-func (p *NATSProvider) getUserSignature(username string) (string, error) {
-	wUser := wrapper.NewWrapper(User{})
-	_, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
-		return "", err
-	}
-	user := wUser.Get().(User)
-	return strconv.FormatInt(user.UpdatedAt, 10), nil
-}
-
-func (p *NATSProvider) setUpdatedAt(username string) {
-	wUser := wrapper.NewWrapper(User{})
-	revision, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
-		return
-	}
-	user := wUser.Get().(User)
-	user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-	wUser.Set(user)
-	if revision == 0 {
-		_, _ = p.PutItem(usersBucketNATS, username, wUser)
-	}
-	setLastUserUpdate()
-	_ = p.UpdateItem(usersBucketNATS, username, wUser)
-}
-
-func (p *NATSProvider) updateLastLogin(username string) error {
-	wUser := wrapper.NewWrapper(User{})
-	revision, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
-		return err
-	}
-	user := wUser.Get().(User)
-	user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-	wUser.Set(user)
-	if revision == 0 {
-		_, err := p.PutItem(usersBucketNATS, username, wUser)
-		return err
-	}
-	return p.UpdateItem(usersBucketNATS, username, wUser)
-}
-
-func (p *NATSProvider) updateAdminLastLogin(username string) error {
-	wAdmin := wrapper.NewWrapper(Admin{})
-	revision, err := p.GetItem(adminsBucketNATS, username, wAdmin)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
-		return err
-	}
-	admin := wAdmin.Get().(Admin)
-	admin.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
-	wAdmin.Set(admin)
-	if revision == 0 {
-		_, err := p.PutItem(adminsBucketNATS, username, wAdmin)
-		return err
-	}
-	return p.UpdateItem(adminsBucketNATS, username, wAdmin)
-}
-
 func (p *NATSProvider) updateTransferQuota(username string, uploadSize, downloadSize int64, reset bool) error {
 	wUser := wrapper.NewWrapper(User{})
 	revision, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update transfer quota", username))
 	}
 	user := wUser.Get().(User)
@@ -497,7 +339,7 @@ func (p *NATSProvider) updateTransferQuota(username string, uploadSize, download
 func (p *NATSProvider) updateQuota(username string, filesAdd int, sizeAdd int64, reset bool) error {
 	wUser := wrapper.NewWrapper(User{})
 	revision, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to update quota", username))
 	}
 	user := wUser.Get().(User)
@@ -530,7 +372,7 @@ func (p *NATSProvider) getUsedQuota(username string) (int, int64, int64, int64, 
 func (p *NATSProvider) adminExists(username string) (Admin, error) {
 	wAdmin := wrapper.NewWrapper(Admin{})
 	_, err := p.GetItem(adminsBucketNATS, username, wAdmin)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return Admin{}, util.NewRecordNotFoundError(fmt.Sprintf("admin %v does not exist", username))
 	}
 	return wAdmin.Get().(Admin), nil
@@ -542,7 +384,7 @@ func (p *NATSProvider) addAdmin(admin *Admin) error {
 	}
 	wAdmin := wrapper.NewWrapper(Admin{})
 	revision, err := p.GetItem(adminsBucketNATS, admin.Username, wAdmin)
-	if err != nil && !errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && !errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewI18nError(fmt.Errorf("%w: admin %q already exists", ErrDuplicatedKey, admin.Username), util.I18nErrorDuplicatedUsername)
 	}
 	admin.ID = time.Now().UnixNano()
@@ -574,7 +416,7 @@ func (p *NATSProvider) updateAdmin(admin *Admin) error {
 	}
 	wAdmin := wrapper.NewWrapper(Admin{})
 	revision, err := p.GetItem(adminsBucketNATS, admin.Username, wAdmin)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("admin %v does not exist", admin.Username))
 	}
 	oldAdmin := wAdmin.Get().(Admin)
@@ -612,7 +454,7 @@ func (p *NATSProvider) updateAdmin(admin *Admin) error {
 func (p *NATSProvider) deleteAdmin(admin Admin) error {
 	wOldAdmin := wrapper.NewWrapper(Admin{})
 	_, err := p.GetItem(adminsBucketNATS, admin.Username, wOldAdmin)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("admin %v does not exist", admin.Username))
 	}
 	oldAdmin := wOldAdmin.Get().(Admin)
@@ -637,7 +479,7 @@ func (p *NATSProvider) deleteAdmin(admin Admin) error {
 func (p *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, error) {
 	admins := make([]Admin, 0, limit)
 	keys, err := p.ListItems(adminsBucketNATS)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return nil, err
 	}
 	if order == OrderDESC {
@@ -656,7 +498,7 @@ func (p *NATSProvider) getAdmins(limit int, offset int, order string) ([]Admin, 
 	for _, key := range keys[start:end] {
 		wAdmin := wrapper.NewWrapper(Admin{})
 		_, err := p.GetItem(adminsBucketNATS, key, wAdmin)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 		admin := wAdmin.Get().(Admin)
@@ -675,7 +517,7 @@ func (p *NATSProvider) dumpAdmins() ([]Admin, error) {
 	for _, key := range keys {
 		wAdmin := wrapper.NewWrapper(Admin{})
 		_, err := p.GetItem(adminsBucketNATS, key, wAdmin)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 		admins = append(admins, wAdmin.Get().(Admin))
@@ -686,7 +528,7 @@ func (p *NATSProvider) dumpAdmins() ([]Admin, error) {
 func (p *NATSProvider) userExists(username, role string) (User, error) {
 	wUser := wrapper.NewWrapper(User{})
 	_, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return User{}, util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
 	}
 	user, err := p.joinUserAndFolders(wUser.Get().(User))
@@ -705,7 +547,7 @@ func (p *NATSProvider) addUser(user *User) error {
 	}
 	wUser := wrapper.NewWrapper(User{})
 	revision, err := p.GetItem(usersBucketNATS, user.Username, wUser)
-	if err == nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err == nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewI18nError(fmt.Errorf("%w: username %v already exists", ErrDuplicatedKey, user.Username), util.I18nErrorDuplicatedUsername)
 	}
 	user.ID = time.Now().UnixNano()
@@ -752,7 +594,7 @@ func (p *NATSProvider) updateUser(user *User) error {
 	}
 	wOldUser := wrapper.NewWrapper(User{})
 	revision, err := p.GetItem(usersBucketNATS, user.Username, wOldUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", user.Username))
 	}
 	oldUser := wOldUser.Get().(User)
@@ -782,7 +624,7 @@ func (p *NATSProvider) updateUser(user *User) error {
 func (p *NATSProvider) deleteUser(user User, _ bool) error {
 	wOldUser := wrapper.NewWrapper(User{})
 	_, err := p.GetItem(usersBucketNATS, user.Username, wOldUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", user.Username))
 	}
 	oldUser := wOldUser.Get().(User)
@@ -811,7 +653,7 @@ func (p *NATSProvider) deleteUser(user User, _ bool) error {
 func (p *NATSProvider) updateUserPassword(username, password string) error {
 	wUser := wrapper.NewWrapper(User{})
 	revision, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
 	}
 	user := wUser.Get().(User)
@@ -834,7 +676,7 @@ func (p *NATSProvider) dumpUsers() ([]User, error) {
 	for _, key := range keys {
 		wUser := wrapper.NewWrapper(User{})
 		_, err := p.GetItem(usersBucketNATS, key, wUser)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 		user, err := p.joinUserAndFolders(wUser.Get().(User))
@@ -844,15 +686,6 @@ func (p *NATSProvider) dumpUsers() ([]User, error) {
 		users = append(users, user)
 	}
 	return users, nil
-}
-
-func (p *NATSProvider) folderExistsInternal(name string) (vfs.BaseVirtualFolder, error) {
-	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
-	_, err := p.GetItem(foldersBucketNATS, name, wFolder)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
-		return vfs.BaseVirtualFolder{}, util.NewRecordNotFoundError(fmt.Sprintf("folder %q does not exist", name))
-	}
-	return wFolder.Get().(vfs.BaseVirtualFolder), err
 }
 
 func (p *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
@@ -867,7 +700,7 @@ func (p *NATSProvider) getRecentlyUpdatedUsers(after int64) ([]User, error) {
 	for _, key := range keys {
 		wUser := wrapper.NewWrapper(User{})
 		_, err := p.GetItem(usersBucketNATS, key, wUser)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 		user := wUser.Get().(User)
@@ -924,7 +757,7 @@ func (p *NATSProvider) getUsersForQuotaCheck(toFetch map[string]bool) ([]User, e
 
 	for username, needFolders := range toFetch {
 		_, err := p.GetItem(username)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 
@@ -1009,7 +842,7 @@ func (p *NATSProvider) getUsers(limit int, offset int, order, role string) ([]Us
 
 	for _, key := range keys[start:end] {
 		_, err := p.GetItem(key)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 
@@ -1042,7 +875,7 @@ func (p *NATSProvider) dumpFolders() ([]vfs.BaseVirtualFolder, error) {
 
 	for _, key := range keys {
 		_, err := p.GetItem(key)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 
@@ -1090,7 +923,7 @@ func (p *NATSProvider) getFolders(limit, offset int, order string, _ bool) ([]vf
 
 	for _, key := range keys[start:end] {
 		_, err := p.GetItem(key)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 
@@ -1127,7 +960,7 @@ func (p *NATSProvider) addFolder(folder *vfs.BaseVirtualFolder) error {
 	}
 
 	_, err := p.GetItem(folder.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewI18nError(fmt.Errorf("%w: folder %q already exists", ErrDuplicatedKey, folder.Name), util.I18nErrorDuplicatedUsername)
 	}
 
@@ -1166,7 +999,7 @@ func (p *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
 	}
 
 	_, err := p.GetItem(folder.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("folder %v does not exist", folder.Name))
 	}
 
@@ -1199,85 +1032,6 @@ func (p *NATSProvider) updateFolder(folder *vfs.BaseVirtualFolder) error {
 	return err
 }
 
-func (p *NATSProvider) deleteFolderMappings(folder vfs.BaseVirtualFolder) error {
-	usersBucket, err := p.usersBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	groupsBucket, err := p.rolesBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	for _, username := range folder.Users {
-		entry, err := usersBucket.Get(username)
-		if err != nil {
-			continue
-		}
-
-		wUser := wrapper.NewWrapper(User{})
-		if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
-			return err
-		}
-
-		user := wUser.Get()
-
-		var folders []vfs.VirtualFolder
-		for _, userFolder := range user.VirtualFolders {
-			if folder.Name != userFolder.Name {
-				folders = append(folders, userFolder)
-			}
-		}
-
-		user.VirtualFolders = folders
-
-		data, err := wUser.MarshalJSON()
-		if err != nil {
-			return err
-		}
-
-		_, err = usersBucket.Update(user.Username, data, entry.Revision())
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, groupname := range folder.Groups {
-		entry, err := groupsBucket.Get(groupname)
-		if err != nil {
-			continue
-		}
-
-		wGroup := wrapper.NewWrapper(Group{})
-		if err = wGroup.UnmarshalJSON(entry.Value()); err != nil {
-			return err
-		}
-
-		group := wGroup.Get()
-
-		var folders []vfs.VirtualFolder
-		for _, groupFolder := range group.VirtualFolders {
-			if folder.Name != groupFolder.Name {
-				folders = append(folders, groupFolder)
-			}
-		}
-
-		group.VirtualFolders = folders
-
-		data, err := wGroup.MarshalJSON()
-		if err != nil {
-			return err
-		}
-
-		_, err = groupsBucket.Update(group.Name, data, entry.Revision())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (p *NATSProvider) deleteFolder(baseFolder vfs.BaseVirtualFolder) error {
 	bucket, err := p.foldersBucketNATS()
 	if err != nil {
@@ -1285,7 +1039,7 @@ func (p *NATSProvider) deleteFolder(baseFolder vfs.BaseVirtualFolder) error {
 	}
 
 	_, err := p.GetItem(baseFolder.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("folder %v does not exist", baseFolder.Name))
 	}
 
@@ -1309,7 +1063,7 @@ func (p *NATSProvider) updateFolderQuota(name string, filesAdd int, sizeAdd int6
 	}
 
 	_, err := p.GetItem(name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("folder %q does not exist, unable to update quota", name))
 	}
 
@@ -1461,7 +1215,7 @@ func (p *NATSProvider) groupExists(name string) (Group, error) {
 	}
 
 	_, err := p.GetItem(name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return Group{}, util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", name))
 	}
 
@@ -1476,46 +1230,26 @@ func (p *NATSProvider) addGroup(group *Group) error {
 	if err := group.validate(); err != nil {
 		return err
 	}
-
-	bucket, err := p.rolesBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	_, err := p.GetItem(group.Name)
-	if err == nil && errors.Is(err, nats.ErrKeyNotFound) {
+	wGroup := wrapper.NewWrapper(Group{})
+	_, err := p.GetItem(rolesBucketNATS, group.Name, wGroup)
+	if err == nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewI18nError(fmt.Errorf("%w: group %q already exists", ErrDuplicatedKey, group.Name), util.I18nErrorDuplicatedUsername)
 	}
-
 	group.ID = time.Now().UnixNano()
 	group.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
 	group.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
 	group.Users = nil
 	group.Admins = nil
-
 	sort.Slice(group.VirtualFolders, func(i, j int) bool {
 		return group.VirtualFolders[i].Name < group.VirtualFolders[j].Name
 	})
-
-	foldersBucket, err := p.foldersBucketNATS()
-	if err != nil {
-		return err
-	}
-
 	for idx := range group.VirtualFolders {
-		if err = p.addRelationToFolderMapping(group.VirtualFolders[idx].Name, nil, group, foldersBucket); err != nil {
+		if err = p.addRelationToFolderMapping(group.VirtualFolders[idx].Name, nil, group); err != nil {
 			return err
 		}
 	}
-
-	wGroup := wrapper.NewWrapper(*group)
-	data, err := wGroup.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	return p.UpdateItem(group.Name, data, entry.Revision())
-	return err
+	wGroup.Set(*group)
+	return p.UpdateItem(rolesBucketNATS, group.Name, wGroup)
 }
 
 func (p *NATSProvider) updateGroup(group *Group) error {
@@ -1529,7 +1263,7 @@ func (p *NATSProvider) updateGroup(group *Group) error {
 	}
 
 	_, err := p.GetItem(group.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", group.Name))
 	}
 
@@ -1584,7 +1318,7 @@ func (p *NATSProvider) deleteGroup(group Group) error {
 	}
 
 	_, err := p.GetItem(group.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", group.Name))
 	}
 
@@ -1667,7 +1401,7 @@ func (p *NATSProvider) apiKeyExists(keyID string) (APIKey, error) {
 	}
 
 	_, err := p.GetItem(keyID)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return APIKey{}, util.NewRecordNotFoundError(fmt.Sprintf("API key %v does not exist", keyID))
 	}
 
@@ -1689,7 +1423,7 @@ func (p *NATSProvider) updateAPIKey(apiKey *APIKey) error {
 	}
 
 	_, err := p.GetItem(apiKey.KeyID)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("API key %v does not exist", apiKey.KeyID))
 	}
 
@@ -1734,7 +1468,7 @@ func (p *NATSProvider) deleteAPIKey(apiKey APIKey) error {
 		return err
 	}
 
-	if _, err = bucket.Get(apiKey.KeyID); err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if _, err = bucket.Get(apiKey.KeyID); err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("API key %v does not exist", apiKey.KeyID))
 	}
 	return bucket.Delete(apiKey.KeyID)
@@ -1822,7 +1556,7 @@ func (p *NATSProvider) shareExists(shareID, username string) (Share, error) {
 	}
 
 	_, err := p.GetItem(shareID)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return Share{}, util.NewRecordNotFoundError(fmt.Sprintf("Share %v does not exist", shareID))
 	}
 
@@ -1850,7 +1584,7 @@ func (p *NATSProvider) addShare(share *Share) error {
 	}
 
 	_, err := p.GetItem(share.ShareID)
-	if err == nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err == nil && errors.Is(err, core.ErrKeyNotFound) {
 		return fmt.Errorf("share %q already exists", share.ShareID)
 	}
 
@@ -2011,7 +1745,7 @@ func (p *NATSProvider) updateShareLastUse(shareID string, numTokens int) error {
 	}
 
 	_, err := p.GetItem(shareID)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("share %q does not exist, unable to update last use", shareID))
 	}
 
@@ -2051,7 +1785,7 @@ func (p *NATSProvider) updateShare(share *Share) error {
 	}
 
 	_, err := p.GetItem(share.ShareID)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("Share %v does not exist", share.ShareID))
 	}
 
@@ -2102,7 +1836,7 @@ func (p *NATSProvider) deleteShare(share Share) error {
 	}
 
 	_, err := p.GetItem(share.ShareID)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("Share %v does not exist", share.ShareID))
 	}
 
@@ -2129,7 +1863,7 @@ func (p *NATSProvider) dumpEventActions() ([]BaseEventAction, error) {
 	}
 
 	keys, err := bucket.Keys()
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return nil, err
 	}
 
@@ -2156,7 +1890,7 @@ func (p *NATSProvider) eventActionExists(name string) (BaseEventAction, error) {
 	}
 
 	_, err := p.GetItem(name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return BaseEventAction{}, util.NewRecordNotFoundError(fmt.Sprintf("action %q does not exist", name))
 	}
 
@@ -2205,7 +1939,7 @@ func (p *NATSProvider) updateEventAction(action *BaseEventAction) error {
 	}
 
 	_, err := p.GetItem(action.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("event action %s does not exist", action.Name))
 	}
 
@@ -2271,7 +2005,7 @@ func (p *NATSProvider) deleteEventAction(action BaseEventAction) error {
 	}
 
 	_, err := p.GetItem(action.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("action %s does not exist", action.Name))
 	}
 
@@ -2444,7 +2178,7 @@ func (p *NATSProvider) eventRuleExists(name string) (EventRule, error) {
 	}
 
 	entry, err := rulesBucket.Get(name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return EventRule{}, util.NewRecordNotFoundError(fmt.Sprintf("event rule %q does not exist", name))
 	}
 
@@ -2517,7 +2251,7 @@ func (p *NATSProvider) updateEventRule(rule *EventRule) error {
 	}
 
 	entry, err := rulesBucket.Get(rule.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("event rule %q does not exist", rule.Name))
 	}
 
@@ -2567,7 +2301,7 @@ func (p *NATSProvider) deleteEventRule(rule EventRule, _ bool) error {
 	}
 
 	entry, err := rulesBucket.Get(rule.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("event rule %q does not exist", rule.Name))
 	}
 
@@ -2596,50 +2330,29 @@ func (p *NATSProvider) deleteEventRule(rule EventRule, _ bool) error {
 }
 
 func (p *NATSProvider) roleExists(name string) (Role, error) {
-	bucket, err := p.foldersBucketNATS()
-	if err != nil {
-		return Role{}, err
-	}
-
-	_, err := p.GetItem(name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	wRole := wrapper.NewWrapper(Role{})
+	_, err := p.GetItem(foldersBucketNATS, name, wRole)
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return Role{}, util.NewRecordNotFoundError(fmt.Sprintf("role %q does not exist", name))
 	}
-
-	wRole := wrapper.NewWrapper(Role{})
-	if err = wRole.UnmarshalJSON(entry.Value()); err != nil {
-		return Role{}, err
-	}
-	return wRole.Get(), nil
+	return wRole.Get().(Role), nil
 }
 
 func (p *NATSProvider) addRole(role *Role) error {
 	if err := role.validate(); err != nil {
 		return err
 	}
-
-	bucket, err := p.foldersBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	if _, err = bucket.Get(role.Name); err == nil {
+	wRole := wrapper.NewWrapper(Role{})
+	if _, err := p.GetItem(foldersBucketNATS, role.Name, wRole); err == nil {
 		return util.NewI18nError(fmt.Errorf("%w: role %q already exists", ErrDuplicatedKey, role.Name), util.I18nErrorDuplicatedName)
 	}
-
 	role.ID = time.Now().UnixNano()
 	role.CreatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
 	role.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
 	role.Users = nil
 	role.Admins = nil
-
-	wRole := wrapper.NewWrapper(*role)
-	data, err := wRole.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	_, err = bucket.Create(role.Name, data)
+	wRole.Set(*role)
+	_, err := p.CreateItem(foldersBucketNATS, role.Name, wRole)
 	return err
 }
 
@@ -2647,77 +2360,39 @@ func (p *NATSProvider) updateRole(role *Role) error {
 	if err := role.validate(); err != nil {
 		return err
 	}
-
-	bucket, err := p.foldersBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	_, err := p.GetItem(role.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	wRole := wrapper.NewWrapper(Role{})
+	_, err := p.GetItem(foldersBucketNATS, role.Name, wRole)
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return fmt.Errorf("role %q does not exist", role.Name)
 	}
-
-	wOldRole := wrapper.NewWrapper(Role{})
-	if err = wOldRole.UnmarshalJSON(entry.Value()); err != nil {
-		return err
-	}
-
-	oldRole := wOldRole.Get()
-
+	oldRole := wRole.Get().(Role)
 	role.ID = oldRole.ID
 	role.CreatedAt = oldRole.CreatedAt
 	role.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
 	role.Users = oldRole.Users
 	role.Admins = oldRole.Admins
-
-	wRole := wrapper.NewWrapper(*role)
-	data, err := wRole.MarshalJSON()
-	if err != nil {
-		return err
-	}
-
-	return p.UpdateItem(role.Name, data, entry.Revision())
-	return err
+	wRole.Set(*role)
+	return p.UpdateItem(foldersBucketNATS, role.Name, wRole)
 }
 
 func (p *NATSProvider) deleteRole(role Role) error {
-	bucket, err := p.foldersBucketNATS()
-	if err != nil {
-		return err
-	}
-
-	_, err := p.GetItem(role.Name)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	wOldRole := wrapper.NewWrapper(Role{})
+	_, err := p.GetItem(foldersBucketNATS, role.Name, wOldRole)
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return fmt.Errorf("role %q does not exist", role.Name)
 	}
-
-	wOldRole := wrapper.NewWrapper(Role{})
-	if err = wOldRole.UnmarshalJSON(entry.Value()); err != nil {
-		return err
-	}
-
-	oldRole := wOldRole.Get()
-
+	oldRole := wOldRole.Get().(Role)
 	if len(oldRole.Admins) > 0 {
 		return util.NewValidationError(fmt.Sprintf("the role %q is referenced, it cannot be removed", oldRole.Name))
 	}
-
 	if len(oldRole.Users) > 0 {
-		usersBucket, err := p.usersBucketNATS()
-		if err != nil {
-			return err
-		}
-
 		for _, username := range oldRole.Users {
-			if err := p.removeRoleFromUser(username, oldRole.Name, usersBucket); err != nil {
+			if err := p.removeRoleFromUser(username, oldRole.Name); err != nil {
 				return err
 			}
 		}
 	}
-
-	return p.UpdateItem(role.Name, nil, entry.Revision())
-	return err
+	return p.DeleteItem(foldersBucketNATS, role.Name)
 }
 
 func (p *NATSProvider) getRoles(limit int, offset int, order string, _ bool) ([]Role, error) {
@@ -2725,44 +2400,30 @@ func (p *NATSProvider) getRoles(limit int, offset int, order string, _ bool) ([]
 	if limit <= 0 {
 		return roles, nil
 	}
-
-	bucket, err := p.foldersBucketNATS()
+	keys, err := p.ListItems(foldersBucketNATS)
 	if err != nil {
 		return nil, err
 	}
-
-	keys, err := bucket.Keys()
-	if err != nil {
-		return nil, err
-	}
-
 	if order == OrderDESC {
 		sort.Sort(sort.Reverse(sort.StringSlice(keys)))
 	} else {
 		sort.Strings(keys)
 	}
-
 	start := offset
 	end := offset + limit
 	if start >= len(keys) {
 		return roles, nil
 	}
-
 	if end > len(keys) {
 		end = len(keys)
 	}
-
 	for _, key := range keys[start:end] {
-		_, err := p.GetItem(key)
+		wRole := wrapper.NewWrapper(Role{})
+		_, err := p.GetItem(foldersBucketNATS, key, wRole)
 		if err != nil {
 			continue
 		}
-
-		wRole := wrapper.NewWrapper(Role{})
-		if err = wRole.UnmarshalJSON(entry.Value()); err != nil {
-			return nil, err
-		}
-		roles = append(roles, wRole.Get())
+		roles = append(roles, wRole.Get().(Role))
 	}
 	return roles, nil
 }
@@ -2791,7 +2452,7 @@ func (p *NATSProvider) ipListEntryExists(ipOrNet string, listType IPListType) (I
 	}
 	wEntry := wrapper.NewWrapper(IPListEntry{})
 	_, err := p.GetItem(rolesBucketNATS, entry.getKey(), wEntry)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return entry, util.NewRecordNotFoundError(fmt.Sprintf("entry %q does not exist", entry.IPOrNet))
 	}
 	entry = wEntry.Get().(IPListEntry)
@@ -2821,7 +2482,7 @@ func (p *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
 	}
 	wEntry := wrapper.NewWrapper(IPListEntry{})
 	_, err := p.GetItem(rolesBucketNATS, entry.getKey(), wEntry)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return fmt.Errorf("entry %q does not exist", entry.IPOrNet)
 	}
 	entry.CreatedAt = wEntry.Get().(IPListEntry).CreatedAt
@@ -2833,7 +2494,7 @@ func (p *NATSProvider) updateIPListEntry(entry *IPListEntry) error {
 func (p *NATSProvider) deleteIPListEntry(entry IPListEntry, _ bool) error {
 	wrapperObj := wrapper.NewWrapper(IPListEntry{})
 	_, err := p.GetItem(rolesBucketNATS, entry.getKey(), wrapperObj)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return fmt.Errorf("entry %q does not exist", entry.IPOrNet)
 	}
 	return p.UpdateItem(rolesBucketNATS, entry.getKey(), wrapper.NewWrapper(IPListEntry{}))
@@ -2963,7 +2624,7 @@ func (p *NATSProvider) getListEntriesForIP(ip string, listType IPListType) ([]IP
 func (p *NATSProvider) getConfigs() (Configs, error) {
 	wConfigs := wrapper.NewWrapper(Configs{})
 	_, err := p.GetItem(dbMetadataNATS, configsBucketNATS, wConfigs)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return Configs{}, nil
 	}
 	return wConfigs.Get().(Configs), nil
@@ -2980,7 +2641,7 @@ func (p *NATSProvider) setConfigs(configs *Configs) error {
 func (p *NATSProvider) setFirstDownloadTimestamp(username string) error {
 	wUser := wrapper.NewWrapper(User{})
 	_, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to set download timestamp", username))
 	}
 	user := wUser.Get().(User)
@@ -2995,7 +2656,7 @@ func (p *NATSProvider) setFirstDownloadTimestamp(username string) error {
 func (p *NATSProvider) setFirstUploadTimestamp(username string) error {
 	wUser := wrapper.NewWrapper(User{})
 	_, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist, unable to set upload timestamp", username))
 	}
 	user := wUser.Get().(User)
@@ -3074,6 +2735,252 @@ func (p *NATSProvider) revertDatabase(targetVersion int) error {
 	}
 }
 
+func (p *NATSProvider) getTaskByName(_ string) (Task, error) {
+	return Task{}, ErrNotImplemented
+}
+
+func (p *NATSProvider) addTask(_ string) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) updateTask(_ string, _ int64) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) updateTaskTimestamp(_ string) error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) addNode() error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) getNodeByName(_ string) (Node, error) {
+	return Node{}, ErrNotImplemented
+}
+
+func (p *NATSProvider) getNodes() ([]Node, error) {
+	return nil, ErrNotImplemented
+}
+
+func (p *NATSProvider) updateNodeTimestamp() error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) cleanupNodes() error {
+	return ErrNotImplemented
+}
+
+func (p *NATSProvider) resetDatabase() error {
+	for _, name := range storageNames {
+		if err := p.PurgeBucket(name); err != nil {
+			providerLog(logger.LevelError, "error purging bucket %s", name)
+			continue
+		}
+	}
+	return nil
+}
+
+func (p *NATSProvider) checkAvailability() error {
+	wVersion := wrapper.NewWrapper(schemaVersion{})
+	_, err := p.GetItem(dbMetadataNATS, dbVersionKeyNATS, wVersion)
+	return err
+}
+
+func (p *NATSProvider) validateUserAndPass(username, password, ip, protocol string) (User, error) {
+	user, err := p.userExists(username, "")
+	if err != nil {
+		providerLog(logger.LevelWarn, "error authenticating user %q: %v", username, err)
+		return user, err
+	}
+	return checkUserAndPass(&user, password, ip, protocol)
+}
+
+func (p *NATSProvider) validateUserAndPubKey(username string, pubKey []byte, isSSHCert bool) (User, string, error) {
+	if len(pubKey) == 0 {
+		return User{}, "", errors.New("credentials cannot be null or empty")
+	}
+	user, err := p.userExists(username, "")
+	if err != nil {
+		providerLog(logger.LevelWarn, "error authenticating user %q: %v", username, err)
+		return User{}, "", err
+	}
+	return checkUserAndPubKey(&user, pubKey, isSSHCert)
+}
+
+func (p *NATSProvider) updateAPIKeyLastUse(keyID string) error {
+	wAPIKey := wrapper.NewWrapper(APIKey{})
+	revision, err := p.GetItem(apiKeysBucketNATS, keyID, wAPIKey)
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
+		return util.NewRecordNotFoundError(fmt.Sprintf("key %q does not exist, unable to update last use", keyID))
+	}
+	apiKey := wAPIKey.Get().(APIKey)
+	apiKey.LastUseAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	wAPIKey.Set(apiKey)
+	if revision == 0 {
+		_, err := p.PutItem(apiKeysBucketNATS, keyID, wAPIKey)
+		return err
+	}
+	providerLog(logger.LevelDebug, "last use updated for key %q", keyID)
+	return p.UpdateItem(apiKeysBucketNATS, keyID, wAPIKey)
+}
+
+func (p *NATSProvider) getAdminSignature(username string) (string, error) {
+	wAdmin := wrapper.NewWrapper(Admin{})
+	_, err := p.GetItem(adminsBucketNATS, username, wAdmin)
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
+		return "", err
+	}
+	admin := wAdmin.Get().(Admin)
+	return strconv.FormatInt(admin.UpdatedAt, 10), nil
+}
+
+func (p *NATSProvider) getUserSignature(username string) (string, error) {
+	wUser := wrapper.NewWrapper(User{})
+	_, err := p.GetItem(usersBucketNATS, username, wUser)
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
+		return "", err
+	}
+	user := wUser.Get().(User)
+	return strconv.FormatInt(user.UpdatedAt, 10), nil
+}
+
+func (p *NATSProvider) setUpdatedAt(username string) {
+	wUser := wrapper.NewWrapper(User{})
+	revision, err := p.GetItem(usersBucketNATS, username, wUser)
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
+		return
+	}
+	user := wUser.Get().(User)
+	user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	wUser.Set(user)
+	if revision == 0 {
+		_, _ = p.PutItem(usersBucketNATS, username, wUser)
+	}
+	setLastUserUpdate()
+	_ = p.UpdateItem(usersBucketNATS, username, wUser)
+}
+
+func (p *NATSProvider) updateLastLogin(username string) error {
+	wUser := wrapper.NewWrapper(User{})
+	revision, err := p.GetItem(usersBucketNATS, username, wUser)
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
+		return err
+	}
+	user := wUser.Get().(User)
+	user.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	wUser.Set(user)
+	if revision == 0 {
+		_, err := p.PutItem(usersBucketNATS, username, wUser)
+		return err
+	}
+	return p.UpdateItem(usersBucketNATS, username, wUser)
+}
+
+func (p *NATSProvider) updateAdminLastLogin(username string) error {
+	wAdmin := wrapper.NewWrapper(Admin{})
+	revision, err := p.GetItem(adminsBucketNATS, username, wAdmin)
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
+		return err
+	}
+	admin := wAdmin.Get().(Admin)
+	admin.UpdatedAt = util.GetTimeAsMsSinceEpoch(time.Now())
+	wAdmin.Set(admin)
+	if revision == 0 {
+		_, err := p.PutItem(adminsBucketNATS, username, wAdmin)
+		return err
+	}
+	return p.UpdateItem(adminsBucketNATS, username, wAdmin)
+}
+
+func (p *NATSProvider) deleteFolderMappings(folder vfs.BaseVirtualFolder) error {
+	usersBucket, err := p.usersBucketNATS()
+	if err != nil {
+		return err
+	}
+
+	groupsBucket, err := p.rolesBucketNATS()
+	if err != nil {
+		return err
+	}
+
+	for _, username := range folder.Users {
+		entry, err := usersBucket.Get(username)
+		if err != nil {
+			continue
+		}
+
+		wUser := wrapper.NewWrapper(User{})
+		if err = wUser.UnmarshalJSON(entry.Value()); err != nil {
+			return err
+		}
+
+		user := wUser.Get()
+
+		var folders []vfs.VirtualFolder
+		for _, userFolder := range user.VirtualFolders {
+			if folder.Name != userFolder.Name {
+				folders = append(folders, userFolder)
+			}
+		}
+
+		user.VirtualFolders = folders
+
+		data, err := wUser.MarshalJSON()
+		if err != nil {
+			return err
+		}
+
+		_, err = usersBucket.Update(user.Username, data, entry.Revision())
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, groupname := range folder.Groups {
+		entry, err := groupsBucket.Get(groupname)
+		if err != nil {
+			continue
+		}
+
+		wGroup := wrapper.NewWrapper(Group{})
+		if err = wGroup.UnmarshalJSON(entry.Value()); err != nil {
+			return err
+		}
+
+		group := wGroup.Get()
+
+		var folders []vfs.VirtualFolder
+		for _, groupFolder := range group.VirtualFolders {
+			if folder.Name != groupFolder.Name {
+				folders = append(folders, groupFolder)
+			}
+		}
+
+		group.VirtualFolders = folders
+
+		data, err := wGroup.MarshalJSON()
+		if err != nil {
+			return err
+		}
+
+		_, err = groupsBucket.Update(group.Name, data, entry.Revision())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *NATSProvider) folderExistsInternal(name string) (vfs.BaseVirtualFolder, error) {
+	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
+	_, err := p.GetItem(foldersBucketNATS, name, wFolder)
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
+		return vfs.BaseVirtualFolder{}, util.NewRecordNotFoundError(fmt.Sprintf("folder %q does not exist", name))
+	}
+	return wFolder.Get().(vfs.BaseVirtualFolder), err
+}
+
 func (p *NATSProvider) joinRuleAndActions(r []byte) (EventRule, error) {
 	wRule := wrapper.NewWrapper(EventRule{})
 	if err := wRule.UnmarshalJSON(r); err != nil {
@@ -3136,7 +3043,7 @@ func (p *NATSProvider) joinUserAndFolders(user User) (User, error) {
 func (p *NATSProvider) groupExistsInternal(name string) (Group, error) {
 	wGroup := wrapper.NewWrapper(Group{})
 	_, err := p.GetItem(rolesBucketNATS, name, wGroup)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return Group{}, util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", name))
 	}
 	return wGroup.Get().(Group), nil
@@ -3152,7 +3059,7 @@ func (p *NATSProvider) addFolderInternal(folder vfs.BaseVirtualFolder) error {
 func (p *NATSProvider) removeRoleFromUser(username, role string) error {
 	wUser := wrapper.NewWrapper(User{})
 	_, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		providerLog(logger.LevelWarn, "user %q does not exist, cannot remove role %q", username, role)
 		return nil
 	}
@@ -3172,7 +3079,7 @@ func (p *NATSProvider) addAdminToRole(username, roleName string) error {
 	}
 	wRole := wrapper.NewWrapper(Role{})
 	_, err := p.GetItem(rolesBucketNATS, roleName, wRole)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return fmt.Errorf("%w: role %q does not exist", ErrForeignKeyViolated, roleName)
 	}
 	role := wRole.Get().(Role)
@@ -3190,7 +3097,7 @@ func (p *NATSProvider) removeAdminFromRole(username, roleName string) error {
 	}
 	wRole := wrapper.NewWrapper(Role{})
 	_, err := p.GetItem(rolesBucketNATS, roleName, wRole)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		providerLog(logger.LevelWarn, "role %q does not exist, cannot remove admin %q", roleName, username)
 		return nil
 	}
@@ -3215,7 +3122,7 @@ func (p *NATSProvider) addUserToRole(username, roleName string) error {
 	}
 	wRole := wrapper.NewWrapper(Role{})
 	_, err := p.GetItem(rolesBucketNATS, roleName, wRole)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return fmt.Errorf("%w: role %q does not exist", ErrForeignKeyViolated, roleName)
 	}
 	role := wRole.Get().(Role)
@@ -3233,7 +3140,7 @@ func (p *NATSProvider) removeUserFromRole(username, roleName string) error {
 	}
 	wRole := wrapper.NewWrapper(Role{})
 	_, err := p.GetItem(rolesBucketNATS, roleName, wRole)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		providerLog(logger.LevelWarn, "role %q does not exist, cannot remove user %q", roleName, username)
 		return nil
 	}
@@ -3256,7 +3163,7 @@ func (p *NATSProvider) removeUserFromRole(username, roleName string) error {
 func (p *NATSProvider) addRuleToActionMapping(ruleName, actionName string) error {
 	wAction := wrapper.NewWrapper(BaseEventAction{})
 	_, err := p.GetItem(actionsBucketNATS, actionName, wAction)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewGenericError(fmt.Sprintf("action %q does not exist", actionName))
 	}
 	action := wAction.Get().(BaseEventAction)
@@ -3271,7 +3178,7 @@ func (p *NATSProvider) addRuleToActionMapping(ruleName, actionName string) error
 func (p *NATSProvider) removeRuleFromActionMapping(ruleName, actionName string) error {
 	wAction := wrapper.NewWrapper(BaseEventAction{})
 	_, err := p.GetItem(actionsBucketNATS, actionName, wAction)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		providerLog(logger.LevelWarn, "action %q does not exist, cannot remove from mapping", actionName)
 		return nil
 	}
@@ -3293,7 +3200,7 @@ func (p *NATSProvider) removeRuleFromActionMapping(ruleName, actionName string) 
 func (p *NATSProvider) addUserToGroupMapping(username, groupname string) error {
 	wGroup := wrapper.NewWrapper(Group{})
 	_, err := p.GetItem(groupsBucketNATS, groupname, wGroup)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewGenericError(fmt.Sprintf("group %q does not exist", groupname))
 	}
 	group := wGroup.Get().(Group)
@@ -3308,7 +3215,7 @@ func (p *NATSProvider) addUserToGroupMapping(username, groupname string) error {
 func (p *NATSProvider) removeUserFromGroupMapping(username, groupname string) error {
 	wGroup := wrapper.NewWrapper(Group{})
 	_, err := p.GetItem(groupsBucketNATS, groupname, wGroup)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", groupname))
 	}
 	group := wGroup.Get().(Group)
@@ -3325,7 +3232,7 @@ func (p *NATSProvider) removeUserFromGroupMapping(username, groupname string) er
 func (p *NATSProvider) addAdminToGroupMapping(username, groupname string) error {
 	wGroup := wrapper.NewWrapper(Group{})
 	_, err := p.GetItem(rolesBucketNATS, groupname, wGroup)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", groupname))
 	}
 	group := wGroup.Get().(Group)
@@ -3340,7 +3247,7 @@ func (p *NATSProvider) addAdminToGroupMapping(username, groupname string) error 
 func (p *NATSProvider) removeAdminFromGroupMapping(username, groupname string) error {
 	wGroup := wrapper.NewWrapper(Group{})
 	_, err := p.GetItem(rolesBucketNATS, groupname, wGroup)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("group %q does not exist", groupname))
 	}
 	group := wGroup.Get().(Group)
@@ -3358,7 +3265,7 @@ func (p *NATSProvider) removeAdminFromGroupMapping(username, groupname string) e
 func (p *NATSProvider) removeGroupFromAdminMapping(groupName, adminName string) error {
 	wAdmin := wrapper.NewWrapper(Admin{})
 	_, err := p.GetItem(adminsBucketNATS, adminName, wAdmin)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		// the admin does not exist so there is no associated group
 		return nil
 	}
@@ -3377,7 +3284,7 @@ func (p *NATSProvider) removeGroupFromAdminMapping(groupName, adminName string) 
 func (p *NATSProvider) addRelationToFolderMapping(folderName string, user *User, group *Group) error {
 	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
 	_, err := p.GetItem(foldersBucketNATS, folderName, wFolder)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewGenericError(fmt.Sprintf("folder %q does not exist", folderName))
 	}
 	folder := wFolder.Get().(vfs.BaseVirtualFolder)
@@ -3400,7 +3307,7 @@ func (p *NATSProvider) addRelationToFolderMapping(folderName string, user *User,
 func (p *NATSProvider) removeRelationFromFolderMapping(folder vfs.VirtualFolder, username, groupname string) error {
 	wFolder := wrapper.NewWrapper(vfs.BaseVirtualFolder{})
 	revision, err := p.GetItem(foldersBucketNATS, folder.Name, wFolder)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		// the folder does not exist, so there is no associated user/group
 		return nil
 	}
@@ -3473,7 +3380,7 @@ func (p *NATSProvider) updateUserRelations(user *User, oldUser User) error {
 func (p *NATSProvider) adminExistsInternal(username string) error {
 	wAdmin := wrapper.NewWrapper(Admin{})
 	_, err := p.GetItem(adminsBucketNATS, username, wAdmin)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("admin %v does not exist", username))
 	}
 	return nil
@@ -3482,7 +3389,7 @@ func (p *NATSProvider) adminExistsInternal(username string) error {
 func (p *NATSProvider) userExistsInternal(username string) error {
 	wUser := wrapper.NewWrapper(User{})
 	_, err := p.GetItem(usersBucketNATS, username, wUser)
-	if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+	if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 		return util.NewRecordNotFoundError(fmt.Sprintf("username %q does not exist", username))
 	}
 	return nil
@@ -3496,7 +3403,7 @@ func (p *NATSProvider) deleteRelatedShares(username string) error {
 	for _, k := range keys {
 		wShare := wrapper.NewWrapper(Share{})
 		_, err := p.GetItem(sharesBucketNATS, k, wShare)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 		share := wShare.Get().(Share)
@@ -3517,7 +3424,7 @@ func (p *NATSProvider) deleteRelatedAPIKey(username string, scope APIKeyScope) e
 	for _, k := range keys {
 		wAPIKey := wrapper.NewWrapper(APIKey{})
 		_, err := p.GetItem(apiKeysBucketNATS, k, wAPIKey)
-		if err != nil && errors.Is(err, nats.ErrKeyNotFound) {
+		if err != nil && errors.Is(err, core.ErrKeyNotFound) {
 			continue
 		}
 		apiKey := wAPIKey.Get().(APIKey)
@@ -3534,7 +3441,7 @@ func (p *NATSProvider) getDatabaseVersion() (schemaVersion, error) {
 	wVersion := wrapper.NewWrapper(schemaVersion{})
 	_, err := p.GetItem(dbMetadataNATS, dbVersionKeyNATS, wVersion)
 	if err != nil {
-		if errors.Is(err, nats.ErrKeyNotFound) {
+		if errors.Is(err, core.ErrKeyNotFound) {
 			wVersion.Set(schemaVersion{Version: 29})
 			if _, err := p.PutItem(dbMetadataNATS, dbVersionKeyNATS, wVersion); err != nil {
 				return wVersion.Get().(schemaVersion), err
@@ -3550,7 +3457,7 @@ func (p *NATSProvider) updateDatabaseVersion(version int) error {
 	wVersion := wrapper.NewWrapper(schemaVersion{})
 	_, err := p.GetItem(dbMetadataNATS, dbVersionKeyNATS, wVersion)
 	if err != nil {
-		if errors.Is(err, nats.ErrKeyNotFound) {
+		if errors.Is(err, core.ErrKeyNotFound) {
 			wVersion.Set(schemaVersion{Version: version})
 			if _, err := p.PutItem(dbMetadataNATS, dbVersionKeyNATS, wVersion); err != nil {
 				return err
