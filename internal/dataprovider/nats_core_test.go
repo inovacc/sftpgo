@@ -1,4 +1,4 @@
-package core
+package dataprovider
 
 import (
 	"fmt"
@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brianvoe/gofakeit/v7"
-	"github.com/drakkan/sftpgo/v2/internal/dataprovider/core/wrapper"
 	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -139,19 +137,19 @@ func TestNatsCore_CRUD(t *testing.T) {
 	}
 
 	t.Run("Create", func(t *testing.T) {
-		revision, err := core.CreateItem(testBucket, testKey, wrapper.NewWrapper(product))
+		revision, err := core.CreateItem(testBucket, testKey, newWrapper(product))
 		assert.NoError(t, err)
 		assert.Greater(t, revision, uint64(0))
 	})
 
 	t.Run("Create Duplicate", func(t *testing.T) {
-		_, err := core.CreateItem(testBucket, testKey, wrapper.NewWrapper(product))
+		_, err := core.CreateItem(testBucket, testKey, newWrapper(product))
 		assert.Error(t, err)
 	})
 
 	t.Run("Get", func(t *testing.T) {
 		var retrieved TestProduct
-		w := wrapper.NewWrapper(&retrieved)
+		w := newWrapper(&retrieved)
 		revision, err := core.GetItem(testBucket, testKey, w)
 		assert.NoError(t, err)
 		assert.Greater(t, revision, uint64(0))
@@ -160,11 +158,11 @@ func TestNatsCore_CRUD(t *testing.T) {
 
 	t.Run("Update", func(t *testing.T) {
 		product.Price = 999.99
-		err := core.UpdateItem(testBucket, testKey, wrapper.NewWrapper(product))
+		err := core.UpdateItem(testBucket, testKey, newWrapper(product))
 		assert.NoError(t, err)
 
 		var retrieved TestProduct
-		w := wrapper.NewWrapper(&retrieved)
+		w := newWrapper(&retrieved)
 		_, err = core.GetItem(testBucket, testKey, w)
 		assert.NoError(t, err)
 		assert.Equal(t, product, retrieved)
@@ -181,7 +179,7 @@ func TestNatsCore_CRUD(t *testing.T) {
 		assert.NoError(t, err)
 
 		var retrieved TestProduct
-		w := wrapper.NewWrapper(&retrieved)
+		w := newWrapper(&retrieved)
 		_, err = core.GetItem(testBucket, testKey, w)
 		assert.Error(t, err)
 	})
@@ -204,15 +202,15 @@ func BenchmarkNatsCore(b *testing.B) {
 	b.Run("CreateItem", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			key := fmt.Sprintf("bench-key-%d", i)
-			_, _ = core.CreateItem(testBucket, key, wrapper.NewWrapper(product))
+			_, _ = core.CreateItem(testBucket, key, newWrapper(product))
 		}
 	})
 
 	b.Run("GetItem", func(b *testing.B) {
 		key := "bench-get-key"
-		_, _ = core.CreateItem(testBucket, key, wrapper.NewWrapper(product))
+		_, _ = core.CreateItem(testBucket, key, newWrapper(product))
 		var retrieved TestProduct
-		w := wrapper.NewWrapper(&retrieved)
+		w := newWrapper(&retrieved)
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -222,12 +220,12 @@ func BenchmarkNatsCore(b *testing.B) {
 
 	b.Run("UpdateItem", func(b *testing.B) {
 		key := "bench-update-key"
-		_, _ = core.CreateItem(testBucket, key, wrapper.NewWrapper(product))
+		_, _ = core.CreateItem(testBucket, key, newWrapper(product))
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			product.Price = float64(i)
-			_ = core.UpdateItem(testBucket, key, wrapper.NewWrapper(product))
+			_ = core.UpdateItem(testBucket, key, newWrapper(product))
 		}
 	})
 
@@ -240,7 +238,7 @@ func BenchmarkNatsCore(b *testing.B) {
 				Name:  fmt.Sprintf("Product-%d", i),
 				Price: float64(i),
 			}
-			_, _ = core.CreateItem(testBucket, key, wrapper.NewWrapper(product))
+			_, _ = core.CreateItem(testBucket, key, newWrapper(product))
 		}
 	}
 

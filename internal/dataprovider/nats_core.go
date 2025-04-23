@@ -1,4 +1,4 @@
-package core
+package dataprovider
 
 import (
 	"errors"
@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/drakkan/sftpgo/v2/internal/dataprovider/core/wrapper"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -127,7 +126,7 @@ func (p *NatsCore) getBucket(bucket string) (nats.KeyValue, error) {
 	return kv, nil
 }
 
-func (p *NatsCore) marshalItem(item wrapper.Wrapper, key string) ([]byte, error) {
+func (p *NatsCore) marshalItem(item Wrapper, key string) ([]byte, error) {
 	data, err := item.MarshalJSON()
 	if err != nil {
 		return nil, fmt.Errorf("marshal item for key %q: %w", key, err)
@@ -136,7 +135,7 @@ func (p *NatsCore) marshalItem(item wrapper.Wrapper, key string) ([]byte, error)
 	return data, nil
 }
 
-func (p *NatsCore) unmarshalItem(data []byte, item wrapper.Wrapper, key, bucket string) error {
+func (p *NatsCore) unmarshalItem(data []byte, item Wrapper, key, bucket string) error {
 	p.log.Debug("unmarshal item", "bucket", bucket, "key", key, "data", string(data))
 	if err := item.UnmarshalJSON(data); err != nil {
 		return fmt.Errorf("unmarshal key %q in bucket %q: %w", key, bucket, err)
@@ -164,7 +163,7 @@ func (p *NatsCore) DeleteBucket(bucket string) error {
 	return p.js.DeleteKeyValue(bucket)
 }
 
-func (p *NatsCore) PutItem(bucket, key string, item wrapper.Wrapper) (uint64, error) {
+func (p *NatsCore) PutItem(bucket, key string, item Wrapper) (uint64, error) {
 	kv, err := p.getBucket(bucket)
 	if err != nil {
 		return 0, err
@@ -180,7 +179,7 @@ func (p *NatsCore) PutItem(bucket, key string, item wrapper.Wrapper) (uint64, er
 	return revision, nil
 }
 
-func (p *NatsCore) GetItem(bucket, key string, item wrapper.Wrapper) (uint64, error) {
+func (p *NatsCore) GetItem(bucket, key string, item Wrapper) (uint64, error) {
 	kv, err := p.getBucket(bucket)
 	if err != nil {
 		return 0, err
@@ -207,7 +206,7 @@ func (p *NatsCore) DeleteItem(bucket, key string) error {
 	return nil
 }
 
-func (p *NatsCore) CreateItem(bucket, key string, item wrapper.Wrapper) (uint64, error) {
+func (p *NatsCore) CreateItem(bucket, key string, item Wrapper) (uint64, error) {
 	kv, err := p.getBucket(bucket)
 	if err != nil {
 		return 0, err
@@ -244,7 +243,7 @@ func (p *NatsCore) GetAllItems(bucket string) ([][]byte, error) {
 	return items, nil
 }
 
-func (p *NatsCore) UpdateItem(bucket, key string, item wrapper.Wrapper) error {
+func (p *NatsCore) UpdateItem(bucket, key string, item Wrapper) error {
 	kv, err := p.getBucket(bucket)
 	if err != nil {
 		return err

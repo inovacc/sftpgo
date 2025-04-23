@@ -1,4 +1,4 @@
-package wrapper
+package dataprovider
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-type User struct {
+type TestUser struct {
 	Name        string   `json:"name" xml:"name"`
 	Description string   `json:"description" xml:"description"`
 	Categories  []string `json:"categories" xml:"categories"`
@@ -20,12 +20,12 @@ type User struct {
 func TestWrapper(t *testing.T) {
 	tests := []struct {
 		name    string
-		input   User
+		input   TestUser
 		wantErr bool
 	}{
 		{
 			name: "Valid full user data",
-			input: User{
+			input: TestUser{
 				Name:        "Microwave Vertex Marble",
 				Description: "Full him bale me within. As far to canoe wad its it.",
 				Categories:  []string{"musical instruments", "bicycles and accessories", "books"},
@@ -38,7 +38,7 @@ func TestWrapper(t *testing.T) {
 		},
 		{
 			name: "Empty categories and features",
-			input: User{
+			input: TestUser{
 				Name:        "Simple Product",
 				Description: "Basic description",
 				Categories:  []string{},
@@ -51,7 +51,7 @@ func TestWrapper(t *testing.T) {
 		},
 		{
 			name: "Zero price",
-			input: User{
+			input: TestUser{
 				Name:        "Free Item",
 				Description: "Free product description",
 				Categories:  []string{"free"},
@@ -64,7 +64,7 @@ func TestWrapper(t *testing.T) {
 		},
 		{
 			name: "Special characters in strings",
-			input: User{
+			input: TestUser{
 				Name:        "Product!@#$%^&*()",
 				Description: "Description with šĕęćīàł characters 你好",
 				Categories:  []string{"category#1", "category@2"},
@@ -77,7 +77,7 @@ func TestWrapper(t *testing.T) {
 		},
 		{
 			name: "Maximum float value",
-			input: User{
+			input: TestUser{
 				Name:        "Expensive Product",
 				Description: "Very expensive item",
 				Categories:  []string{"luxury"},
@@ -90,7 +90,7 @@ func TestWrapper(t *testing.T) {
 		},
 		{
 			name: "Negative price",
-			input: User{
+			input: TestUser{
 				Name:        "Invalid Product",
 				Description: "Product with negative price",
 				Categories:  []string{"test"},
@@ -103,7 +103,7 @@ func TestWrapper(t *testing.T) {
 		},
 		{
 			name: "Empty required fields",
-			input: User{
+			input: TestUser{
 				Name:        "",
 				Description: "",
 				Categories:  nil,
@@ -119,7 +119,7 @@ func TestWrapper(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create wrapper
-			p := NewWrapper(tt.input)
+			p := newWrapper(tt.input)
 
 			// Test MarshalJSON
 			data, err := p.MarshalJSON()
@@ -136,7 +136,7 @@ func TestWrapper(t *testing.T) {
 			}
 
 			// Test UnmarshalJSON
-			newWrapper := NewWrapper(User{})
+			newWrapper := newWrapper(TestUser{})
 			if err := newWrapper.UnmarshalJSON(data); err != nil {
 				t.Errorf("UnmarshalJSON() error = %v", err)
 				return
@@ -153,7 +153,7 @@ func TestWrapper(t *testing.T) {
 
 func TestWrapperEdgeCases(t *testing.T) {
 	t.Run("Unmarshal invalid JSON", func(t *testing.T) {
-		w := NewWrapper(User{})
+		w := newWrapper(TestUser{})
 		err := w.UnmarshalJSON([]byte(`{"invalid json`))
 		if err == nil {
 			t.Error("Expected error for invalid JSON, got nil")
@@ -161,7 +161,7 @@ func TestWrapperEdgeCases(t *testing.T) {
 	})
 
 	t.Run("Unmarshal empty JSON", func(t *testing.T) {
-		w := NewWrapper(User{})
+		w := newWrapper(TestUser{})
 		err := w.UnmarshalJSON([]byte(`{}`))
 		if err != nil {
 			t.Errorf("Unexpected error for empty JSON: %v", err)
@@ -169,7 +169,7 @@ func TestWrapperEdgeCases(t *testing.T) {
 	})
 
 	t.Run("Unmarshal with invalid types", func(t *testing.T) {
-		w := NewWrapper(User{})
+		w := newWrapper(TestUser{})
 		err := w.UnmarshalJSON([]byte(`{"price": "not a number"}`))
 		if err == nil {
 			t.Error("Expected error for invalid type conversion, got nil")
@@ -177,7 +177,7 @@ func TestWrapperEdgeCases(t *testing.T) {
 	})
 
 	t.Run("Unmarshal with null values", func(t *testing.T) {
-		w := NewWrapper(User{})
+		w := newWrapper(TestUser{})
 		err := w.UnmarshalJSON([]byte(`{"name": null, "price": null}`))
 		if err != nil {
 			t.Errorf("Unexpected error for null values: %v", err)
@@ -186,7 +186,7 @@ func TestWrapperEdgeCases(t *testing.T) {
 }
 
 func TestGetType(t *testing.T) {
-	wUser := NewWrapper(User{
+	wUser := newWrapper(TestUser{
 		Name:        "Microwave Vertex Marble",
 		Description: "Full him bale me within. As far to canoe wad its it.",
 		Categories:  []string{"musical instruments", "bicycles and accessories", "books"},
@@ -200,7 +200,7 @@ func TestGetType(t *testing.T) {
 }
 
 // func TestCloneFull(t *testing.T) {
-// 	wUser := NewWrapper(User{
+// 	wUser := newWrapper(TestUser{
 // 		Name:        "Microwave Vertex Marble",
 // 		Description: "Full him bale me within. As far to canoe wad its it.",
 // 		Categories:  []string{"musical instruments", "bicycles and accessories", "books"},
@@ -219,7 +219,7 @@ func TestGetType(t *testing.T) {
 // }
 //
 // func TestCloneEmpty(t *testing.T) {
-// 	wUser := NewWrapper(User{
+// 	wUser := newWrapper(TestUser{
 // 		Name:        "Microwave Vertex Marble",
 // 		Description: "Full him bale me within. As far to canoe wad its it.",
 // 		Categories:  []string{"musical instruments", "bicycles and accessories", "books"},
@@ -238,7 +238,7 @@ func TestGetType(t *testing.T) {
 // }
 //
 // func TestCloneDeepCopy(t *testing.T) {
-// 	original := NewWrapper(User{
+// 	original := newWrapper(TestUser{
 // 		Categories: []string{"cat1", "cat2"},
 // 		Features:   []string{"feat1", "feat2"},
 // 	})
@@ -259,10 +259,10 @@ func TestGetType(t *testing.T) {
 
 func TestEmptyWrapperWithSet(t *testing.T) {
 	// Create an empty wrapper
-	emptyWrapper := NewWrapper(User{})
+	emptyWrapper := newWrapper(TestUser{})
 
 	// Prepare test data
-	testUser := User{
+	testUser := TestUser{
 		Name:        "Test User",
 		Description: "Test Description",
 		Categories:  []string{"test1", "test2"},
@@ -294,7 +294,7 @@ func TestEmptyWrapperWithSet(t *testing.T) {
 	}
 
 	// Create another empty wrapper and unmarshal the data
-	verifyWrapper := NewWrapper(User{})
+	verifyWrapper := newWrapper(TestUser{})
 	if err := verifyWrapper.UnmarshalJSON(data); err != nil {
 		t.Errorf("UnmarshalJSON() error after Set(): %v", err)
 	}

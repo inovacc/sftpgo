@@ -1,4 +1,4 @@
-package wrapper
+package dataprovider
 
 import (
 	"encoding/json"
@@ -19,8 +19,8 @@ type WithJSON[T any] struct {
 	Data T
 }
 
-// NewWrapper creates a new wrapped instance.
-func NewWrapper[T any](data T) *WithJSON[T] {
+// newWrapper creates a new wrapped instance.
+func newWrapper[T any](data T) *WithJSON[T] {
 	return &WithJSON[T]{Data: data}
 }
 
@@ -53,5 +53,5 @@ func (w *WithJSON[T]) TypeName() string {
 // Clone returns a new wrapper with a deep copy of the data
 func (w *WithJSON[T]) Clone() Wrapper {
 	var newData T
-	return NewWrapper(newData)
+	return newWrapper(newData)
 }
