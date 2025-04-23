@@ -36,7 +36,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.6.3
 	github.com/hashicorp/go-retryablehttp v0.7.7
-	github.com/inovacc/wrapper v1.0.1
+	github.com/inovacc/utils/v2 v2.2.4
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/jlaffaye/ftp v0.2.0
 	github.com/klauspost/compress v1.18.0
